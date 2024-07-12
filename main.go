@@ -4,62 +4,101 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
 
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/suites"
 
 	"wetee.app/dsecret/dkg"
-	"wetee.app/dsecret/p2p"
+	p2p "wetee.app/dsecret/peer"
+	"wetee.app/dsecret/util"
 )
 
 func main() {
+	peerSecret := util.GetEnv("PEER_PK", "")
+	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
+	udpPort := util.GetEnvInt("UDP_PORT", 61000)
+	bootPeers := util.GetEnv("BOOT_PEERS", "")
+	sender := util.GetEnv("SENDER", "")
+	pkgPk := util.GetEnv("PKG_PK", "")
+	pkgPubs := util.GetEnv("PKG_PUBS", "")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// 初始化加密套件。
 	suite := suites.MustFind("Ed25519")
+	nodeSecret, err := util.HexToScalar(suite, pkgPk)
+	if err != nil {
+		fmt.Println("解析 PKG_PK 失败:", err)
+		os.Exit(1)
+	}
 
-	// 初始化参与者列表。
-	participants := []kyber.Point{
-		// 生成随机公钥。
-		suite.Point().Mul(suite.Scalar().Pick(suite.RandomStream()), nil),
-		// ...
+	participants := []kyber.Point{}
+	if pkgPubs != "" {
+		pubs := strings.Split(pkgPubs, "_")
+		for _, pub := range pubs {
+			pk, err := util.HexToPoint(suite, pub)
+			if err != nil {
+				fmt.Println("解析 PKG_PUBS 失败:", err)
+				os.Exit(1)
+			}
+			participants = append(participants, pk)
+		}
 	}
 
 	// 获取阈值参数。
 	// TODO: 从外部获取阈值参数。
-	threshold, err := strconv.Atoi(os.Getenv("THRESHOLD"))
-	if err != nil {
-		fmt.Println("获取阈值参数失败:", err)
-		os.Exit(1)
-	}
+	//
+	threshold := 2
 
 	// 创建 DKG 实例。
-	dkg, err := dkg.NewRabinDKG(suite, participants, threshold)
+	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, participants, threshold)
 	if err != nil {
 		fmt.Println("创建 DKG 实例失败:", err)
 		os.Exit(1)
 	}
 
 	// 启动 P2P 网络。
-	host, err := p2p.NewP2PNetwork(context.Background())
+	peer, err := p2p.NewP2PNetwork(ctx, peerSecret, strings.Split(bootPeers, "_"), uint32(tcpPort), uint32(udpPort))
 	if err != nil {
 		fmt.Println("启动 P2P 网络失败:", err)
 		os.Exit(1)
 	}
-	dkg.Host = host
-	dkg.NodeID = host.ID()
+	dkg.Peer = peer
+
+	// pk := peer.Peerstore().PrivKey(peer.ID())
+
+	// 启动节点
+	peer.Start(ctx)
+
+	if sender != "" {
+		// 	for i := 0; i < 10000; i++ {
+		// 		peer.Send(ctx, "key", []byte("hello"))
+		// 		time.Sleep(time.Second * 5)
+		// 	}
+	}
+
+	// ch, err := peer.Receive(ctx, "key")
+	// if err != nil {
+	// 	fmt.Println("peer.Receive error:", err)
+	// 	os.Exit(1)
+	// }
+
+	// for {
+	// 	msg, err := ch.Next(context.Background())
+	// 	if err != nil {
+	// 		fmt.Println("接收消息失败:", err)
+	// 		continue
+	// 	}
+	// 	fmt.Println(string(msg.Data))
+	// }
 
 	// 运行 DKG 协议。
-	if err := dkg.Run(); err != nil {
+	if err := dkg.Run(ctx); err != nil {
 		fmt.Println("运行 DKG 协议失败:", err)
 		os.Exit(1)
 	}
-
-	// 获取密钥文件路径。
-	// TODO: 从外部获取密钥文件路径。
-	// keyFilePath := os.Getenv("KEY_FILE_PATH")
-
-	// 保存密钥到文件。
-	// ...
 }
 
 // import (
