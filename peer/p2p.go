@@ -36,9 +36,9 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, bootPeers []string, t
 
 	// 创建连接管理器
 	connmgr, err := connmgr.NewConnManager(
-		100, // Lowwater
-		400, // HighWater,
-		connmgr.WithGracePeriod(time.Minute),
+		100,                                  // Lowwater
+		400,                                  // HighWater,
+		connmgr.WithGracePeriod(time.Minute), // 1 minute grace period
 	)
 
 	// 创建 P2P 网络主机。
