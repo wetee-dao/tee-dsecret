@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -124,25 +125,10 @@ func (p *Peer) Start(ctx context.Context) {
 	wg.Wait()
 }
 
-func (p *Peer) Receive(ctx context.Context, topic string) (*pubsub.Subscription, error) {
-
-	t, err := p.join(topic)
-	if err != nil {
-		return nil, fmt.Errorf("join topic: %w", err)
-	}
-
-	sub, err := t.Subscribe()
-	if err != nil {
-		return nil, fmt.Errorf("subscribe topic: %w", err)
-	}
-
-	return sub, nil
-}
-
-func (p *Peer) Send(ctx context.Context, node *types.Node, message *types.Message) error {
+func (p *Peer) Send(ctx context.Context, node *types.Node, protocolId string, message *types.Message) error {
 	var err error
 	peerID := node.PeerID()
-	protocolID := protocol.ConvertFromStrings([]string{message.Type})
+	protocolID := protocol.ConvertFromStrings([]string{protocolId})
 
 	fmt.Printf("transport.Send(): peerID:%s, ProtocolID:%v", peerID, protocolID)
 	var stream network.Stream
@@ -173,41 +159,54 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, message *types.Messag
 	return nil
 }
 
-func (p *Peer) Broadcast(ctx context.Context, topic string, data []byte) error {
-
-	t, err := p.join(topic)
-	if err != nil {
-		return fmt.Errorf("join topic: %w", err)
-	}
-
-	err = t.Publish(ctx, data)
-	if err != nil {
-		return fmt.Errorf("publish topic: %w", err)
-	}
-
-	return nil
+func (p *Peer) AddHandler(pid protocol.ID, handler func(*types.Message) error) {
+	streamHandler := genStream(handler)
+	p.Host.SetStreamHandler(pid, streamHandler)
 }
 
-func (p *Peer) join(topic string) (*pubsub.Topic, error) {
-
-	p.topicsLock.Lock()
-	defer p.topicsLock.Unlock()
-
-	t, exists := p.topics[topic]
-	if exists {
-		return t, nil
-	}
-
-	t, err := p.pubsub.Join(topic)
-	if err != nil {
-		return nil, fmt.Errorf("join topic: %w", err)
-	}
-
-	p.topics[topic] = t
-
-	return t, nil
+func (t *Peer) RemoveHandler(pid protocol.ID) {
+	t.Host.RemoveStreamHandler(pid)
 }
 
 func (p *Peer) Close() error {
 	return p.Host.Close()
+}
+
+func genStream(handler func(*types.Message) error) func(network.Stream) {
+	return func(stream network.Stream) {
+		fmt.Printf("new stream from %s", stream.Conn().RemotePeer())
+		buf, err := io.ReadAll(stream)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Printf("read stream: %s", err)
+			}
+
+			err = stream.Reset()
+			if err != nil {
+				fmt.Printf("reset stream: %s", err)
+			}
+
+			return
+		}
+
+		err = stream.Close()
+		if err != nil {
+			fmt.Printf("close stream: %s", err)
+			return
+		}
+
+		data := &types.Message{}
+		err = json.Unmarshal(buf, data)
+		if err != nil {
+			fmt.Printf("unmarshal data: %s", err)
+			return
+		}
+
+		fmt.Printf("received message:  type: %s", data.Type)
+		err = handler(data)
+		if err != nil {
+			fmt.Printf("handle data: %s", err)
+			return
+		}
+	}
 }

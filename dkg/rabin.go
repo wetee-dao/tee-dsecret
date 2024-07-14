@@ -96,24 +96,26 @@ func (dkg *DKG) Start(ctx context.Context) error {
 
 	time.Sleep(15 * time.Second)
 	for i, deal := range deals {
-		dkg.Peer.Send(ctx, dkg.Peers[i], &types.Message{})
-		dkg.BroadcastMessage(deal)
+		dkg.SendDealMessage(ctx, dkg.Peers[i], deal)
 	}
 
+	// Add 请求回调 handler
+	dkg.Peer.AddHandler("deal", dkg.HandleMessage)
+
 	// Listen to deal
-	deal, err := dkg.Peer.Receive(ctx, "deal")
+	deal, err := dkg.Peer.Sub(ctx, "deal")
 	if err != nil {
 		fmt.Println("peer.Receive error:", err)
 		os.Exit(1)
 	}
 	// Listen to deal response
-	response, err := dkg.Peer.Receive(ctx, "response")
+	response, err := dkg.Peer.Sub(ctx, "response")
 	if err != nil {
 		fmt.Println("peer.Receive error:", err)
 		os.Exit(1)
 	}
 	// Listen to secret commits
-	secretCommits, err := dkg.Peer.Receive(ctx, "secret_commits")
+	secretCommits, err := dkg.Peer.Sub(ctx, "secret_commits")
 	if err != nil {
 		fmt.Println("peer.Receive error:", err)
 		os.Exit(1)

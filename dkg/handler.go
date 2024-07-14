@@ -149,3 +149,18 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 
 	return nil
 }
+
+func (dkg *DKG) HandleMessage(msg *types.Message) error {
+	switch msg.Type {
+	case "deal":
+		return dkg.HandleDeal(msg.Payload)
+	case "deal_resp":
+		return dkg.HandleDealResp(msg.Payload)
+	case "justification":
+		return dkg.HandleJustification(msg.Payload)
+	case "secret_commits":
+		return dkg.HandleSecretCommits(msg.Payload)
+	default:
+		return fmt.Errorf("unknown message type: %s", msg.Type)
+	}
+}
