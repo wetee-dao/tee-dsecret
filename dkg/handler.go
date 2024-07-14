@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -38,12 +37,13 @@ func (dkg *DKG) HandleDeal(data []byte) error {
 	}
 	fmt.Printf("HandleDeal : %+v\n", resp)
 
-	bt, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
+	// bt, err := json.Marshal(resp)
+	// if err != nil {
+	// 	return err
+	// }
 
-	return dkg.Peer.Send(context.Background(), "response", bt)
+	// return dkg.Peer.Send(context.Background(), "response", bt)
+	return nil
 }
 
 // HandleDealMessage 处理密钥份额消息。
@@ -82,22 +82,23 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-	sc, err := dkg.DistKeyGenerator.SecretCommits()
-	if err != nil {
-		return fmt.Errorf("Generate secret commit: %w", err)
-	}
+	// sc, err := dkg.DistKeyGenerator.SecretCommits()
+	// if err != nil {
+	// 	return fmt.Errorf("Generate secret commit: %w", err)
+	// }
 
-	psc, err := types.SecretCommitsToProtocol(sc)
-	if err != nil {
-		return fmt.Errorf("SecretCommitsToProtocol : %w", err)
-	}
+	// psc, err := types.SecretCommitsToProtocol(sc)
+	// if err != nil {
+	// 	return fmt.Errorf("SecretCommitsToProtocol : %w", err)
+	// }
 
-	bt, err := json.Marshal(psc)
-	if err != nil {
-		return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
-	}
+	// bt, err := json.Marshal(psc)
+	// if err != nil {
+	// 	return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
+	// }
 
-	return dkg.Peer.Send(context.Background(), "secret_commits", bt)
+	// return dkg.Peer.Send(context.Background(), "secret_commits", bt)
+	return nil
 }
 
 // HandleDealMessage 处理密钥份额消息。

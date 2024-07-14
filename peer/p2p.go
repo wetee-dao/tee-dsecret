@@ -3,19 +3,24 @@ package peer
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	"wetee.app/dsecret/types"
 )
 
 // NewP2PNetwork 创建一个新的 P2P 网络实例。
@@ -45,8 +50,8 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, bootPeers []string, t
 	host, err := libp2p.New(
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp),         // regular tcp connections
-			"/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // a UDP endpoint for the QUIC transport
+			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp), // regular tcp connections
+			// "/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // a UDP endpoint for the QUIC transport
 		),
 		// support TLS connections
 		// libp2p.Security(libp2ptls.ID, libp2ptls.New),
@@ -134,7 +139,41 @@ func (p *Peer) Receive(ctx context.Context, topic string) (*pubsub.Subscription,
 	return sub, nil
 }
 
-func (p *Peer) Send(ctx context.Context, topic string, data []byte) error {
+func (p *Peer) Send(ctx context.Context, node *types.Node, message *types.Message) error {
+	var err error
+	peerID := node.PeerID()
+	protocolID := protocol.ConvertFromStrings([]string{message.Type})
+
+	fmt.Printf("transport.Send(): peerID:%s, ProtocolID:%v", peerID, protocolID)
+	var stream network.Stream
+	newStream := func() error {
+		stream, err = p.Host.NewStream(ctx, peerID, protocolID...)
+		return err
+	}
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 10 * time.Second
+	bctx := backoff.WithContext(b, ctx)
+
+	err = backoff.Retry(newStream, bctx)
+	if err != nil {
+		return fmt.Errorf("new stream: %v", err)
+	}
+	defer stream.Close()
+
+	buf, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("marshal message: %w", err)
+	}
+
+	_, err = stream.Write(buf)
+	if err != nil {
+		return fmt.Errorf("write stream: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Peer) Broadcast(ctx context.Context, topic string, data []byte) error {
 
 	t, err := p.join(topic)
 	if err != nil {

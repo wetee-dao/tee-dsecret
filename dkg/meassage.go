@@ -1,8 +1,8 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
 	"wetee.app/dsecret/types"
@@ -19,5 +19,8 @@ func (dkg *DKG) BroadcastMessage(message *rabin.Deal) error {
 	if err != nil {
 		return err
 	}
-	return dkg.Peer.Send(context.Background(), "deal", bt)
+
+	fmt.Println(bt)
+	return nil
+	// return dkg.Peer.Send(context.Background(), "deal", bt)
 }

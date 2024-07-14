@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/suites"
 
 	"wetee.app/dsecret/dkg"
 	p2p "wetee.app/dsecret/peer"
+	"wetee.app/dsecret/types"
 	"wetee.app/dsecret/util"
 )
 
@@ -20,39 +21,46 @@ func main() {
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
 	bootPeers := util.GetEnv("BOOT_PEERS", "")
-	pkgPk := util.GetEnv("PKG_PK", "")
-	pkgPubs := util.GetEnv("PKG_PUBS", "")
+	nodeStr := util.GetEnv("NODES", "")
+
+	fmt.Println(nodeStr)
+	nodes := []*types.Node{}
+	err := json.Unmarshal([]byte(nodeStr), &nodes)
+	if err != nil {
+		fmt.Println("解析 NODES 失败:", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// 初始化加密套件。
 	suite := suites.MustFind("Ed25519")
-	nodeSecret, err := util.HexToScalar(suite, pkgPk)
+	nodeSecret, err := types.PrivateKeyFromHex(peerSecret)
 	if err != nil {
 		fmt.Println("解析 PKG_PK 失败:", err)
 		os.Exit(1)
 	}
 
 	// 获取节点公钥列表
-	participants := []kyber.Point{}
-	if pkgPubs != "" {
-		pubs := strings.Split(pkgPubs, "_")
-		for _, pub := range pubs {
-			pk, err := util.HexToPoint(suite, pub)
-			if err != nil {
-				fmt.Println("解析 PKG_PUBS 失败:", err)
-				os.Exit(1)
-			}
-			participants = append(participants, pk)
-		}
-	}
+	// participants := []*types.PubKey{}
+	// if pkgPubs != "" {
+	// 	pubs := strings.Split(pkgPubs, "_")
+	// 	for _, pub := range pubs {
+	// 		pk, err := types.PublicKeyFromHex("08011220" + pub)
+	// 		if err != nil {
+	// 			fmt.Println("解析 PKG_PUBS 失败:", err)
+	// 			os.Exit(1)
+	// 		}
+	// 		participants = append(participants, pk)
+	// 	}
+	// }
 
 	// 获取阈值参数。
 	threshold := 2
 
 	// 创建 DKG 实例。
-	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, participants, threshold)
+	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, nodes, threshold)
 	if err != nil {
 		fmt.Println("创建 DKG 实例失败:", err)
 		os.Exit(1)
