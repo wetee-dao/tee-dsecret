@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	done := make(chan bool)
 	// 获取环境变量
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
@@ -23,7 +24,6 @@ func main() {
 	bootPeers := util.GetEnv("BOOT_PEERS", "")
 	nodeStr := util.GetEnv("NODES", "")
 
-	fmt.Println(nodeStr)
 	nodes := []*types.Node{}
 	err := json.Unmarshal([]byte(nodeStr), &nodes)
 	if err != nil {
@@ -59,20 +59,26 @@ func main() {
 	// 获取阈值参数。
 	threshold := 2
 
-	// 创建 DKG 实例。
-	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, nodes, threshold)
-	if err != nil {
-		fmt.Println("创建 DKG 实例失败:", err)
-		os.Exit(1)
-	}
-
 	// 启动 P2P 网络。
-	peer, err := p2p.NewP2PNetwork(ctx, peerSecret, strings.Split(bootPeers, "_"), uint32(tcpPort), uint32(udpPort))
+	bs := strings.Split(bootPeers, "_")
+	boots := make([]string, 0, len(bs))
+	for _, b := range bs {
+		if b != "" {
+			boots = append(boots, b)
+		}
+	}
+	peer, err := p2p.NewP2PNetwork(ctx, peerSecret, boots, uint32(tcpPort), uint32(udpPort))
 	if err != nil {
 		fmt.Println("启动 P2P 网络失败:", err)
 		os.Exit(1)
 	}
-	dkg.Peer = peer
+
+	// 创建 DKG 实例。
+	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, nodes, threshold, peer)
+	if err != nil {
+		fmt.Println("创建 DKG 实例失败:", err)
+		os.Exit(1)
+	}
 
 	// 启动节点
 	peer.Start(ctx)
@@ -82,6 +88,9 @@ func main() {
 		fmt.Println("运行 DKG 协议失败:", err)
 		os.Exit(1)
 	}
+
+	<-done
+	fmt.Println("进程退出")
 }
 
 // import (

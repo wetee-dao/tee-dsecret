@@ -15,7 +15,6 @@ import (
 	"go.dedis.ch/kyber/v3/suites"
 	p2p "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/types"
-	"wetee.app/dsecret/util"
 )
 
 // DKG 代表 Rabin DKG 协议的实例。
@@ -34,7 +33,7 @@ type DKG struct {
 	// Participants 是参与者的公钥列表。
 	Participants []kyber.Point
 	// Peer 是 P2P 网络主机。
-	Peers []*types.Node
+	Nodes []*types.Node
 	// Threshold 是密钥重建所需的最小份额数量。
 	Threshold int
 	// Shares 是当前节点持有的密钥份额。
@@ -44,7 +43,7 @@ type DKG struct {
 }
 
 // NewRabinDKG 创建一个新的 Rabin DKG 实例。
-func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.Node, threshold int) (*DKG, error) {
+func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, p *p2p.Peer) (*DKG, error) {
 	// 检查参数。
 	if len(nodes) < threshold {
 		return nil, errors.New("阈值必须小于参与者数量")
@@ -57,8 +56,11 @@ func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.N
 			fmt.Println("解析 PKG_PUBS 失败:", err)
 			os.Exit(1)
 		}
-		peerID, err := peer.IDFromPublicKey(pk)
-		fmt.Println("peerID:", peerID)
+		_, err = peer.IDFromPublicKey(pk)
+		if err != nil {
+			fmt.Println("IDFromPublicKey 失败:", err)
+			os.Exit(1)
+		}
 		participants[i] = pk.Point()
 	}
 
@@ -69,7 +71,8 @@ func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.N
 		Threshold:    threshold,
 		Shares:       make(map[peer.ID]*share.PriShare),
 		NodeSecret:   NodeSecret.Scalar(),
-		Peers:        nodes,
+		Peer:         p,
+		Nodes:        nodes,
 	}
 
 	return dkg, nil
@@ -90,75 +93,29 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("生成密钥份额失败: %w", err)
 	}
-	for index, deal := range deals {
-		fmt.Printf("参与者 %d 的 Deal: %+v\n", index, deal)
-	}
-
-	time.Sleep(15 * time.Second)
-	for i, deal := range deals {
-		dkg.SendDealMessage(ctx, dkg.Peers[i], deal)
-	}
 
 	// Add 请求回调 handler
 	dkg.Peer.AddHandler("deal", dkg.HandleMessage)
 
-	// Listen to deal
-	deal, err := dkg.Peer.Sub(ctx, "deal")
-	if err != nil {
-		fmt.Println("peer.Receive error:", err)
-		os.Exit(1)
-	}
-	// Listen to deal response
-	response, err := dkg.Peer.Sub(ctx, "response")
-	if err != nil {
-		fmt.Println("peer.Receive error:", err)
-		os.Exit(1)
-	}
-	// Listen to secret commits
-	secretCommits, err := dkg.Peer.Sub(ctx, "secret_commits")
-	if err != nil {
-		fmt.Println("peer.Receive error:", err)
-		os.Exit(1)
-	}
-
-	go func() {
-		for {
-			msg, err := deal.Next(context.Background())
-			if err != nil {
-				fmt.Println("接收消息失败:", err)
-				continue
-			}
-			err = dkg.HandleDeal(msg.Data)
-			if err != nil {
-				util.LogWithRed("HandleDeal error:", err)
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			msg, err := response.Next(context.Background())
-			if err != nil {
-				fmt.Println("接收消息失败:", err)
-				continue
-			}
-			err = dkg.HandleDealResp(msg.Data)
-			if err != nil {
-				util.LogWithRed("HandleDealResp error:", err)
-			}
-		}
-	}()
+	// time.Sleep(15 * time.Second)
+	// dkg.Peer.Discover(ctx)
+	fmt.Println("deals", deals)
 
 	for {
-		msg, err := secretCommits.Next(context.Background())
+		err := dkg.Peer.Discover(ctx)
 		if err != nil {
-			fmt.Println("接收消息失败:", err)
-			continue
+			fmt.Println("Discover error:", err)
 		}
-		err = dkg.HandleSecretCommits(msg.Data)
-		if err != nil {
-			util.LogWithRed("HandleDeal error:", err)
+
+		for i, deal := range deals {
+			// 发送请求
+			err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
+			if err != nil {
+				fmt.Println("Send error:", err)
+			}
 		}
+
+		time.Sleep(time.Second * 16)
 	}
 
 	return nil
