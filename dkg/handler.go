@@ -1,7 +1,9 @@
 package dkg
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
@@ -19,30 +21,40 @@ func (dkg *DKG) HandleDeal(data []byte) error {
 		fmt.Println(err)
 		return err
 	}
-	message, err := types.ProtocolToDeal(dkg.Suite, pmessage)
+	deal, err := types.ProtocolToDeal(dkg.Suite, pmessage)
 	if err != nil {
 		return err
 	}
 
-	// 判断是否是当前节点需要处理的消息
-	fmt.Println("HandleDeal message.Index: ", message.Index, "dkg.ID()", dkg.ID())
-	if dkg.ID() == -1 || uint32(dkg.ID()) == message.Index {
-		return nil
-	}
-
 	// 处理密钥份额。
-	resp, err := dkg.DistKeyGenerator.ProcessDeal(message)
+	resp, err := dkg.DistKeyGenerator.ProcessDeal(deal)
 	if err != nil {
 		return fmt.Errorf("HandleDeal error: %w", err)
 	}
-	fmt.Printf("HandleDeal : %+v\n", resp)
 
-	// bt, err := json.Marshal(resp)
-	// if err != nil {
-	// 	return err
-	// }
+	if !resp.Response.Approved {
+		return errors.New("deal rejected")
+	}
 
-	// return dkg.Peer.Send(context.Background(), "response", bt)
+	bt, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+
+	// 发送 deal resp
+	for _, node := range dkg.Nodes {
+		if node.PeerID() == dkg.Peer.ID() {
+			continue
+		}
+		err = dkg.Peer.Send(context.Background(), node, "deal", &types.Message{
+			Type:    "deal_resp",
+			Payload: bt,
+		})
+		if err != nil {
+			fmt.Println("Send deal_resp error", err)
+		}
+	}
+
 	return nil
 }
 
@@ -56,11 +68,6 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 	if err != nil {
 		fmt.Println(err)
 		return err
-	}
-
-	// 判断是否是当前节点需要处理的消息
-	if dkg.ID() == -1 || uint32(dkg.ID()) == message.Index {
-		return nil
 	}
 
 	// 处理密钥份额。
@@ -77,32 +84,49 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 
 	// 已经判断为有效了
 	if !dkg.DistKeyGenerator.Certified() {
+		fmt.Println("DistKeyGenerator not certified")
 		return nil
 	}
 
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-	// sc, err := dkg.DistKeyGenerator.SecretCommits()
-	// if err != nil {
-	// 	return fmt.Errorf("Generate secret commit: %w", err)
-	// }
+	sc, err := dkg.DistKeyGenerator.SecretCommits()
+	if err != nil {
+		return fmt.Errorf("Generate secret commit: %w", err)
+	}
 
-	// psc, err := types.SecretCommitsToProtocol(sc)
-	// if err != nil {
-	// 	return fmt.Errorf("SecretCommitsToProtocol : %w", err)
-	// }
+	psc, err := types.SecretCommitsToProtocol(sc)
+	if err != nil {
+		return fmt.Errorf("SecretCommitsToProtocol : %w", err)
+	}
 
-	// bt, err := json.Marshal(psc)
-	// if err != nil {
-	// 	return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
-	// }
+	bt, err := json.Marshal(psc)
+	if err != nil {
+		return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
+	}
 
-	// return dkg.Peer.Send(context.Background(), "secret_commits", bt)
+	// 发送 deal resp
+	for _, node := range dkg.Nodes {
+		if node.PeerID() == dkg.Peer.ID() {
+			continue
+		}
+		err = dkg.Peer.Send(context.Background(), node, "deal", &types.Message{
+			Type:    "secret_commits",
+			Payload: bt,
+		})
+		if err != nil {
+			fmt.Println("Send secret_commits error", err)
+		}
+	}
+
 	return nil
 }
 
 // HandleDealMessage 处理密钥份额消息。
 func (dkg *DKG) HandleJustification(data []byte) error {
+	dkg.mu.Lock()
+	defer dkg.mu.Unlock()
+
 	message := &rabin.Justification{}
 	err := json.Unmarshal(data, message)
 	if err != nil {
@@ -111,7 +135,7 @@ func (dkg *DKG) HandleJustification(data []byte) error {
 	}
 
 	// 判断是否是当前节点需要处理的消息
-	if dkg.ID() == -1 || uint32(dkg.ID()) == message.Index {
+	if dkg.ID() == -1 || uint32(dkg.ID()) != message.Index {
 		return nil
 	}
 
@@ -125,6 +149,9 @@ func (dkg *DKG) HandleJustification(data []byte) error {
 }
 
 func (dkg *DKG) HandleSecretCommits(data []byte) error {
+	dkg.mu.Lock()
+	defer dkg.mu.Unlock()
+
 	// 转换协议对象。
 	psc := &types.SecretCommits{}
 	err := json.Unmarshal(data, psc)
@@ -136,16 +163,19 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 		return fmt.Errorf("ProtocolToSecretCommits: %w", err)
 	}
 
-	// 判断是否是当前节点需要处理的消息
-	if dkg.ID() == -1 || uint32(dkg.ID()) != sc.Index {
-		return nil
-	}
-
 	// 处理秘密提交
 	_, err = dkg.DistKeyGenerator.ProcessSecretCommits(sc)
 	if err != nil {
 		return fmt.Errorf("ProcessSecretCommits: %w", err)
 	}
+
+	// interpolate shared public key
+	distkey, err := dkg.DistKeyGenerator.DistKeyShare()
+	if err != nil {
+		return fmt.Errorf("rabin dkg dist key share: %w", err)
+	}
+
+	fmt.Println("================================================", distkey)
 
 	return nil
 }
@@ -153,13 +183,29 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 func (dkg *DKG) HandleMessage(msg *types.Message) error {
 	switch msg.Type {
 	case "deal":
-		return dkg.HandleDeal(msg.Payload)
+		err := dkg.HandleDeal(msg.Payload)
+		if err != nil {
+			fmt.Println("HandleDeal err: ", err)
+		}
+		return err
 	case "deal_resp":
-		return dkg.HandleDealResp(msg.Payload)
+		err := dkg.HandleDealResp(msg.Payload)
+		if err != nil {
+			fmt.Println("HandleDealResp err: ", err)
+		}
+		return err
 	case "justification":
-		return dkg.HandleJustification(msg.Payload)
+		err := dkg.HandleJustification(msg.Payload)
+		if err != nil {
+			fmt.Println("HandleJustification err: ", err)
+		}
+		return err
 	case "secret_commits":
-		return dkg.HandleSecretCommits(msg.Payload)
+		err := dkg.HandleSecretCommits(msg.Payload)
+		if err != nil {
+			fmt.Println("HandleSecretCommits err: ", err)
+		}
+		return err
 	default:
 		return fmt.Errorf("unknown message type: %s", msg.Type)
 	}

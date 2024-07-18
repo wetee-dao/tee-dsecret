@@ -11,6 +11,7 @@ import (
 
 	"wetee.app/dsecret/dkg"
 	p2p "wetee.app/dsecret/peer"
+	"wetee.app/dsecret/store"
 	"wetee.app/dsecret/types"
 	"wetee.app/dsecret/util"
 )
@@ -24,8 +25,14 @@ func main() {
 	bootPeers := util.GetEnv("BOOT_PEERS", "")
 	nodeStr := util.GetEnv("NODES", "")
 
+	err := store.InitDB()
+	if err != nil {
+		fmt.Println("初始化数据库失败:", err)
+		os.Exit(1)
+	}
+
 	nodes := []*types.Node{}
-	err := json.Unmarshal([]byte(nodeStr), &nodes)
+	err = json.Unmarshal([]byte(nodeStr), &nodes)
 	if err != nil {
 		fmt.Println("解析 NODES 失败:", err)
 		os.Exit(1)

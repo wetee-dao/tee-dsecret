@@ -124,7 +124,7 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *
 	peerID := node.PeerID()
 	protocolID := protocol.ConvertFromStrings([]string{pid})
 
-	fmt.Printf("transport.Send(): peerID: %s , ProtocolID: %v \n", peerID, protocolID)
+	fmt.Printf(">>>>>> P2P Send(): peerID = %s , ProtocolID = %v \n", peerID, protocolID)
 	var stream network.Stream
 	newStream := func() error {
 		stream, err = p.Host.NewStream(ctx, peerID, protocolID...)
@@ -168,7 +168,7 @@ func (p *Peer) Close() error {
 
 func genStream(handler func(*types.Message) error) func(network.Stream) {
 	return func(stream network.Stream) {
-		fmt.Printf("New call from %s", stream.Conn().RemotePeer())
+		fmt.Printf("<<<<<< P2P call from %s ", stream.Conn().RemotePeer())
 		buf, err := io.ReadAll(stream)
 		if err != nil {
 			if err != io.EOF {
@@ -196,10 +196,10 @@ func genStream(handler func(*types.Message) error) func(network.Stream) {
 			return
 		}
 
-		fmt.Printf("received message:  type: %s", data.Type)
+		fmt.Printf(" message:  type: %s \n", data.Type)
 		err = handler(data)
 		if err != nil {
-			fmt.Printf("handle data: %s", err)
+			fmt.Printf("handle data: %s \n", err)
 			return
 		}
 	}

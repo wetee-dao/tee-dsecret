@@ -131,7 +131,6 @@ func (p *Peer) Discover(ctx context.Context) error {
 
 	defer fmt.Println("Peer discovery finished...")
 	for peer := range peerChan {
-		fmt.Println("Peer ====> ", peer.Addrs)
 		if peer.ID == p.ID() {
 			continue
 		}
@@ -145,7 +144,6 @@ func (p *Peer) Discover(ctx context.Context) error {
 			fmt.Println("Connection failed:", err)
 			continue
 		}
-		fmt.Printf("Connected to: %s \n", peer)
 	}
 
 	return nil

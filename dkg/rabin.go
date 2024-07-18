@@ -97,26 +97,24 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	// Add 请求回调 handler
 	dkg.Peer.AddHandler("deal", dkg.HandleMessage)
 
-	// time.Sleep(15 * time.Second)
-	// dkg.Peer.Discover(ctx)
 	fmt.Println("deals", deals)
+	time.Sleep(time.Second * 20)
 
-	for {
-		err := dkg.Peer.Discover(ctx)
-		if err != nil {
-			fmt.Println("Discover error:", err)
-		}
-
-		for i, deal := range deals {
-			// 发送请求
-			err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
-			if err != nil {
-				fmt.Println("Send error:", err)
-			}
-		}
-
-		time.Sleep(time.Second * 16)
+	// for {
+	err = dkg.Peer.Discover(ctx)
+	if err != nil {
+		fmt.Println("Discover error:", err)
 	}
+
+	for i, deal := range deals {
+		// 发送请求
+		err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
+		if err != nil {
+			fmt.Println("Send error:", err)
+		}
+	}
+	// 	time.Sleep(time.Second * 16)
+	// }
 
 	return nil
 }
