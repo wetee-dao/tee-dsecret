@@ -3,7 +3,10 @@ package types
 import (
 	"fmt"
 
+	"github.com/ipfs/go-cid"
+	mh "github.com/multiformats/go-multihash"
 	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/share"
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
 	"go.dedis.ch/kyber/v3/suites"
 )
@@ -56,4 +59,26 @@ type SecretCommits struct {
 	SessionID []byte
 	// Signature from the Dealer
 	Signature []byte
+}
+
+// DistKeyShare
+type DistKeyShare struct {
+	// Coefficients of the public polynomial holding the public key
+	Commits []kyber.Point
+
+	// PriShare of the distributed secret
+	PriShare *share.PriShare
+}
+
+type Secret struct {
+	EncCmt  []byte   `json:"enc_cmt,omitempty"`  // encryption commitment
+	EncScrt [][]byte `json:"enc_scrt,omitempty"` // enncrypted secret
+}
+
+func CidFromBytes(b []byte) (cid.Cid, error) {
+	h, err := mh.Sum(b, mh.SHA2_256, -1)
+	if err != nil {
+		return cid.Undef, err
+	}
+	return cid.NewCidV1(cid.Raw, h), nil
 }

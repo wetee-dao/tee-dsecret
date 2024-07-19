@@ -61,3 +61,12 @@ func InitDB() error {
 
 	return nil
 }
+
+func SetKey(namespace, key string, value []byte) error {
+	return DB.Set([]byte(namespace+"__"+key), value, nil)
+}
+
+func GetKey(namespace, key string) ([]byte, error) {
+	value, _, err := DB.Get([]byte(namespace + "__" + key))
+	return value, err
+}

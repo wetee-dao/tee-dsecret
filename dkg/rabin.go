@@ -40,6 +40,12 @@ type DKG struct {
 	Shares map[peer.ID]*share.PriShare
 	// DistKeyGenerator
 	DistKeyGenerator *rabin.DistKeyGenerator
+	// DistPubKey globle public key
+	DkgPubKey kyber.Point // DKG group Public key
+	// DistKeyShare is the node private share
+	DkgKeyShare types.DistKeyShare // DKG node private share
+	// preRecerve is the channel to receive SendEncryptedSecretRequest
+	preRecerve map[string]chan *share.PubShare
 }
 
 // NewRabinDKG 创建一个新的 Rabin DKG 实例。
@@ -49,6 +55,7 @@ func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.N
 		return nil, errors.New("阈值必须小于参与者数量")
 	}
 
+	// 获取节点公钥列表。
 	participants := make([]kyber.Point, len(nodes))
 	for i, n := range nodes {
 		pk, err := types.PublicKeyFromHex("08011220" + n.ID)
@@ -73,6 +80,7 @@ func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.N
 		NodeSecret:   NodeSecret.Scalar(),
 		Peer:         p,
 		Nodes:        nodes,
+		preRecerve:   make(map[string]chan *share.PubShare),
 	}
 
 	return dkg, nil
@@ -95,7 +103,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	}
 
 	// Add 请求回调 handler
-	dkg.Peer.AddHandler("deal", dkg.HandleMessage)
+	dkg.Peer.AddHandler("dkg", dkg.HandleMessage)
 
 	fmt.Println("deals", deals)
 	time.Sleep(time.Second * 20)
@@ -117,6 +125,10 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	// }
 
 	return nil
+}
+
+func (d *DKG) Share() types.DistKeyShare {
+	return d.DkgKeyShare
 }
 
 func (dkg *DKG) ID() int {
