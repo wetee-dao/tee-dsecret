@@ -207,32 +207,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string) (*share.PubShar
 	}
 
 	return &reply.Share, nil
-
-	// reencryptMsgID := msgID
-	// r.xncSki[reencryptMsgID] = append(r.xncSki[reencryptMsgID], &reply.Share)
-	// xncSki := r.xncSki[reencryptMsgID]
-	// if len(xncSki) < d.Threshold {
-	// 	log.Printf("not enough shares to recover %d/%d", len(xncSki), d.Threshold)
-	// 	return nil
-	// }
-
-	// log.Info("handling PRE response: recovering reencrypted commitment")
-	// xncCmt, err := proxy_reenc.Recover(ste, xncSki, d.Threshold, len(d.Nodes))
-	// if err != nil {
-	// 	return fmt.Errorf("recover reencrypt reply: %s", err)
-	// }
-
-	// ch, ok := r.xncCmts[reencryptMsgID]
-	// if !ok {
-	// 	return fmt.Errorf("xncCmt channel for %s not found", reencryptMsgID)
-	// }
-	// log.Info("handling PRE response: returning reencrypted commitment")
-	// ch <- xncCmt
-	// log.Info("handling PRE response: done!")
-	// return nil
 }
-
-var s []byte = nil
 
 func (r *DKG) SetSecret(ctx context.Context, scrt []byte) (string, error) {
 	dkgPub := r.DkgPubKey

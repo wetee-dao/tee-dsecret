@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
 	"go.dedis.ch/kyber/v3/suites"
 	p2p "wetee.app/dsecret/peer"
+	"wetee.app/dsecret/store"
 	"wetee.app/dsecret/types"
 )
 
@@ -49,11 +51,13 @@ type DKG struct {
 }
 
 // NewRabinDKG 创建一个新的 Rabin DKG 实例。
-func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, p *p2p.Peer) (*DKG, error) {
+func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, p *p2p.Peer) (*DKG, error) {
 	// 检查参数。
 	if len(nodes) < threshold {
 		return nil, errors.New("阈值必须小于参与者数量")
 	}
+
+	suite := suites.MustFind("Ed25519")
 
 	// 获取节点公钥列表。
 	participants := make([]kyber.Point, len(nodes))
@@ -83,6 +87,8 @@ func NewRabinDKG(suite suites.Suite, NodeSecret *types.PrivKey, nodes []*types.N
 		preRecerve:   make(map[string]chan *share.PubShare),
 	}
 
+	// 存储 DKG 对象
+	dkg.restore()
 	return dkg, nil
 }
 
@@ -108,7 +114,6 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	fmt.Println("deals", deals)
 	time.Sleep(time.Second * 20)
 
-	// for {
 	err = dkg.Peer.Discover(ctx)
 	if err != nil {
 		fmt.Println("Discover error:", err)
@@ -121,8 +126,6 @@ func (dkg *DKG) Start(ctx context.Context) error {
 			fmt.Println("Send error:", err)
 		}
 	}
-	// 	time.Sleep(time.Second * 16)
-	// }
 
 	return nil
 }
@@ -141,4 +144,26 @@ func (dkg *DKG) ID() int {
 		}
 	}
 	return index
+}
+
+func (dkg *DKG) restore() error {
+	v, err := store.GetKey("G", "dkg")
+	if err != nil {
+		return fmt.Errorf("get dkg: %w", err)
+	}
+	if v != nil {
+		err = json.Unmarshal(v, dkg)
+		if err != nil {
+			return fmt.Errorf("unmarshal dkg: %w", err)
+		}
+	}
+	return nil
+}
+
+func (dkg *DKG) store() error {
+	payload, err := json.Marshal(dkg)
+	if err != nil {
+		return fmt.Errorf("marshal dkg: %w", err)
+	}
+	return store.SetKey("G", "dkg", payload)
 }

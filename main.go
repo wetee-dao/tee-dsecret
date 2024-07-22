@@ -7,8 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"go.dedis.ch/kyber/v3/suites"
-
+	"wetee.app/dsecret/chain"
 	"wetee.app/dsecret/dkg"
 	p2p "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/store"
@@ -18,6 +17,7 @@ import (
 
 func main() {
 	done := make(chan bool)
+
 	// 获取环境变量
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
@@ -28,6 +28,12 @@ func main() {
 	err := store.InitDB()
 	if err != nil {
 		fmt.Println("初始化数据库失败:", err)
+		os.Exit(1)
+	}
+
+	err = chain.InitChain("ws://127.0.0.1:9944")
+	if err != nil {
+		fmt.Println("初始化链失败:", err)
 		os.Exit(1)
 	}
 
@@ -42,26 +48,11 @@ func main() {
 	defer cancel()
 
 	// 初始化加密套件。
-	suite := suites.MustFind("Ed25519")
 	nodeSecret, err := types.PrivateKeyFromHex(peerSecret)
 	if err != nil {
 		fmt.Println("解析 PKG_PK 失败:", err)
 		os.Exit(1)
 	}
-
-	// 获取节点公钥列表
-	// participants := []*types.PubKey{}
-	// if pkgPubs != "" {
-	// 	pubs := strings.Split(pkgPubs, "_")
-	// 	for _, pub := range pubs {
-	// 		pk, err := types.PublicKeyFromHex("08011220" + pub)
-	// 		if err != nil {
-	// 			fmt.Println("解析 PKG_PUBS 失败:", err)
-	// 			os.Exit(1)
-	// 		}
-	// 		participants = append(participants, pk)
-	// 	}
-	// }
 
 	// 获取阈值参数。
 	threshold := 2
@@ -81,7 +72,7 @@ func main() {
 	}
 
 	// 创建 DKG 实例。
-	dkg, err := dkg.NewRabinDKG(suite, nodeSecret, nodes, threshold, peer)
+	dkg, err := dkg.NewRabinDKG(nodeSecret, nodes, threshold, peer)
 	if err != nil {
 		fmt.Println("创建 DKG 实例失败:", err)
 		os.Exit(1)

@@ -4,7 +4,24 @@ go 1.21.0
 
 toolchain go1.21.6
 
-require github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+require (
+	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1 // indirect
+	github.com/cosmos/go-bip39 v1.0.0 // indirect
+	github.com/deckarep/golang-set v1.8.0 // indirect
+	github.com/decred/base58 v1.0.4 // indirect
+	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
+	github.com/ethereum/go-ethereum v1.10.20 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/gtank/merlin v0.1.1 // indirect
+	github.com/gtank/ristretto255 v0.1.2 // indirect
+	github.com/mimoo/StrobeGo v0.0.0-20220103164710-9a04d6ca976b // indirect
+	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+	github.com/pierrec/xxHash v0.1.5 // indirect
+	github.com/rs/cors v1.8.2 // indirect
+	github.com/vedhavyas/go-subkey/v2 v2.0.0 // indirect
+	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
+)
 
 require (
 	github.com/edgelesssys/ego v1.5.3
@@ -12,6 +29,7 @@ require (
 	github.com/libp2p/go-libp2p v0.35.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/libp2p/go-libp2p-pubsub v0.11.0
+	github.com/wetee-dao/go-sdk v1.0.0
 	go.dedis.ch/kyber/v3 v3.1.0
 )
 
@@ -36,7 +54,7 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/boxo v0.10.0 // indirect
 	github.com/ipfs/go-cid v0.4.1
@@ -108,7 +126,7 @@ require (
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
+	github.com/stretchr/testify v1.9.0
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	go.dedis.ch/fixbuf v1.0.3 // indirect
 	go.dedis.ch/protobuf v1.0.11 // indirect
