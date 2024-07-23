@@ -2,7 +2,6 @@ package peer
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,13 +35,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 	dhtOptions = append(dhtOptions, dht.ProtocolPrefix("/wetee"))
 
 	// 解码私钥HEX
-	buf, err := hex.DecodeString(peerSecret)
-	if err != nil {
-		return nil, fmt.Errorf("decode peer secret: %w", err)
-	}
-
-	// 解码私钥
-	priv, err := crypto.UnmarshalPrivateKey(buf)
+	priv, err := types.PrivateKeyFromPhrase(peerSecret, "")
 	if err != nil {
 		return nil, fmt.Errorf("decode private key: %w", err)
 	}
@@ -56,7 +49,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 
 	// 创建 P2P 网络主机。
 	host, err := libp2p.New(
-		libp2p.Identity(priv),
+		libp2p.Identity(priv.PrivKey),
 		libp2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp), // regular tcp connections
 			// "/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // a UDP endpoint for the QUIC transport
@@ -98,7 +91,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 
 	peer := &Peer{
 		Host:      host,
-		privKey:   priv,
+		privKey:   priv.PrivKey,
 		idht:      idht,
 		pubsub:    gossipSub,
 		topics:    make(map[string]*pubsub.Topic),

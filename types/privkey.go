@@ -1,12 +1,15 @@
 package types
 
 import (
+	gocrypto "crypto"
+	"crypto/ed25519"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"strings"
 
+	"github.com/ChainSafe/go-schnorrkel"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
 	"go.dedis.ch/kyber/v3"
@@ -120,6 +123,32 @@ func PrivateKeyFromLibP2P(privkey libp2pCrypto.PrivKey) (*PrivKey, error) {
 		PrivKey: privkey,
 		suite:   suite,
 	}, nil
+}
+
+func PrivateKeyFromStd(privkey gocrypto.PrivateKey) (*PrivKey, error) {
+	var libpk libp2pCrypto.PrivKey
+	var err error
+	switch gopk := privkey.(type) {
+	case ed25519.PrivateKey:
+		libpk, err = libp2pCrypto.UnmarshalEd25519PrivateKey(gopk)
+	default:
+		return nil, fmt.Errorf("unknown key type")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return PrivateKeyFromLibP2P(libpk)
+}
+
+func PrivateKeyFromPhrase(phrase, pwd string) (*PrivKey, error) {
+	seed, err := schnorrkel.SeedFromMnemonic(phrase, pwd)
+	if err != nil {
+		return nil, err
+	}
+	secret := ed25519.NewKeyFromSeed(seed[:32])
+	return PrivateKeyFromStd(secret)
 }
 
 func KeyTypeFromString(keyType string) (int, error) {

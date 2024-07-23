@@ -58,11 +58,10 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 	}
 
 	suite := suites.MustFind("Ed25519")
-
 	// 获取节点公钥列表。
 	participants := make([]kyber.Point, len(nodes))
 	for i, n := range nodes {
-		pk, err := types.PublicKeyFromHex("08011220" + n.ID)
+		pk, err := types.PublicKeyFromEd25519Hex(n.ID)
 		if err != nil {
 			fmt.Println("解析 PKG_PUBS 失败:", err)
 			os.Exit(1)

@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = chain.InitChain("ws://127.0.0.1:9944")
+	err = chain.InitChain("wss://xiaobai.asyou.me:30001")
 	if err != nil {
 		fmt.Println("初始化链失败:", err)
 		os.Exit(1)
@@ -48,7 +48,8 @@ func main() {
 	defer cancel()
 
 	// 初始化加密套件。
-	nodeSecret, err := types.PrivateKeyFromHex(peerSecret)
+	fmt.Println(peerSecret)
+	nodeSecret, err := types.PrivateKeyFromPhrase(peerSecret, "")
 	if err != nil {
 		fmt.Println("解析 PKG_PK 失败:", err)
 		os.Exit(1)

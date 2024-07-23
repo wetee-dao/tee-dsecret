@@ -21,6 +21,10 @@ func InitDB() error {
 			return err
 		}
 
+		if _, err := os.Create(sealedKeyFile); err != nil {
+			return err
+		}
+
 		sealedKey, err := ecrypto.SealWithUniqueKey(encryptionKey, nil)
 		if err != nil {
 			return err

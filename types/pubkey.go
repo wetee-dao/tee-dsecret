@@ -38,8 +38,25 @@ func (p *PubKey) String() string {
 	return hex.EncodeToString(bt)
 }
 
+func (p *PubKey) Byte() ([]byte, error) {
+	bt, err := libp2pCrypto.MarshalPublicKey(p.PubKey)
+	if err != nil {
+		return nil, err
+	}
+	return bt, nil
+}
+
 func PublicKeyFromHex(hexStr string) (*PubKey, error) {
 	buf, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("decode hex: %w", err)
+	}
+
+	return PublicKeyFromBytes(buf)
+}
+
+func PublicKeyFromEd25519Hex(hexStr string) (*PubKey, error) {
+	buf, err := hex.DecodeString("08011220" + hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("decode hex: %w", err)
 	}
