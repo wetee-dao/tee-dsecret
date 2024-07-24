@@ -8,12 +8,11 @@ import (
 )
 
 type Node struct {
-	ID   string `json:"id"`
-	Addr string `json:"addr"`
+	ID string `json:"id"`
 }
 
 func (n *Node) PeerID() peer.ID {
-	pk, err := PublicKeyFromHex("08011220" + n.ID)
+	pk, err := PublicKeyFromHex(n.ID)
 	if err != nil {
 		fmt.Println("Node types.PublicKeyFromHex error:", err)
 		os.Exit(1)

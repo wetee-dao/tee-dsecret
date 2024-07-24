@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/cosmos/go-bip39"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"wetee.app/dsecret/types"
 )
 
@@ -54,4 +56,14 @@ func main() {
 
 	// pair2, err := signature.KeyringPairFromSecret(mnemonic, 42)
 	// fmt.Println("pair2:", hex.EncodeToString(pair2.PublicKey))
+
+	priv, pub, err := crypto.GenerateKeyPair(
+		crypto.Ed25519,
+		-1,
+	)
+
+	b, _ := crypto.MarshalPrivateKey(priv)
+	b2, _ := pub.Raw()
+	fmt.Println("priv:", hex.EncodeToString(b))
+	fmt.Println("pub:", hex.EncodeToString(b2))
 }

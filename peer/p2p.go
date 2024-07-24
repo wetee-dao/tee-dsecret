@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/crypto"
+	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -20,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
+	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
 
 	"wetee.app/dsecret/types"
 )
@@ -34,7 +35,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 	}
 	dhtOptions = append(dhtOptions, dht.ProtocolPrefix("/wetee"))
 
-	// 解码私钥HEX
+	// 解码私钥 HEX
 	priv, err := types.PrivateKeyFromPhrase(peerSecret, "")
 	if err != nil {
 		return nil, fmt.Errorf("decode private key: %w", err)
@@ -51,11 +52,11 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 	host, err := libp2p.New(
 		libp2p.Identity(priv.PrivKey),
 		libp2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp), // regular tcp connections
-			// "/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // a UDP endpoint for the QUIC transport
+			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp),         // TCP endpoint
+			"/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // UDP endpoint for the QUIC transport
 		),
 		// support TLS connections
-		// libp2p.Security(libp2ptls.ID, libp2ptls.New),
+		libp2p.Security(libp2ptls.ID, libp2ptls.New),
 		libp2p.Security(noise.ID, noise.New),
 		libp2p.DefaultTransports,
 		libp2p.ConnectionManager(connmgr),
@@ -67,8 +68,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 		}),
 		libp2p.EnableNATService(),
 	)
-
-	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()))
+	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()) + "\n")
 
 	// 创建 gossipsub 实例
 	pubsubTracer := new(pubsubTracer)
@@ -77,6 +77,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 		return nil, fmt.Errorf("create gossipsub: %w", err)
 	}
 
+	// 创建 boot peers
 	bootPeers := make(map[peer.ID]peer.AddrInfo)
 	for _, b := range boots {
 		if b == "" {
@@ -89,6 +90,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 		bootPeers[peerInfo.ID] = *peerInfo
 	}
 
+	// 创建 P2P 网络实例
 	peer := &Peer{
 		Host:      host,
 		privKey:   priv.PrivKey,
@@ -103,7 +105,7 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 
 type Peer struct {
 	host.Host
-	privKey     crypto.PrivKey
+	privKey     libp2pCrypto.PrivKey
 	idht        *dht.IpfsDHT
 	pubsub      *pubsub.PubSub
 	topics      map[string]*pubsub.Topic

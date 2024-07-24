@@ -14,7 +14,7 @@ import (
 	"go.dedis.ch/kyber/v3/share"
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
 	"go.dedis.ch/kyber/v3/suites"
-	p2p "wetee.app/dsecret/peer"
+	p2peer "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/store"
 	"wetee.app/dsecret/types"
 )
@@ -23,15 +23,11 @@ import (
 type DKG struct {
 	mu sync.Mutex
 	// Host 是 P2P 网络主机。
-	Peer *p2p.Peer
+	Peer *p2peer.Peer
 	// Suite 是加密套件。
 	Suite suites.Suite
 	// NodeSecret 是长期的私钥。
 	NodeSecret kyber.Scalar
-	// rabin dkg internal private polynomial (f)
-	FPoly *share.PriPoly
-	// rabin dkg internal private polynimial (g)
-	GPoly *share.PriPoly
 	// Participants 是参与者的公钥列表。
 	Participants []kyber.Point
 	// Peer 是 P2P 网络主机。
@@ -51,7 +47,7 @@ type DKG struct {
 }
 
 // NewRabinDKG 创建一个新的 Rabin DKG 实例。
-func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, p *p2p.Peer) (*DKG, error) {
+func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, p *p2peer.Peer) (*DKG, error) {
 	// 检查参数。
 	if len(nodes) < threshold {
 		return nil, errors.New("阈值必须小于参与者数量")
@@ -61,7 +57,7 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 	// 获取节点公钥列表。
 	participants := make([]kyber.Point, len(nodes))
 	for i, n := range nodes {
-		pk, err := types.PublicKeyFromEd25519Hex(n.ID)
+		pk, err := types.PublicKeyFromHex(n.ID)
 		if err != nil {
 			fmt.Println("解析 PKG_PUBS 失败:", err)
 			os.Exit(1)
@@ -87,7 +83,7 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 	}
 
 	// 存储 DKG 对象
-	dkg.restore()
+	// dkg.restore()
 	return dkg, nil
 }
 
@@ -110,16 +106,21 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	// Add 请求回调 handler
 	dkg.Peer.AddHandler("dkg", dkg.HandleMessage)
 
-	fmt.Println("deals", deals)
-	time.Sleep(time.Second * 20)
+	for {
+		err = dkg.Peer.Discover(ctx)
+		if err != nil {
+			fmt.Println("Discover error:", err)
+		}
 
-	err = dkg.Peer.Discover(ctx)
-	if err != nil {
-		fmt.Println("Discover error:", err)
+		if len(dkg.Peer.Network().Peers()) <= dkg.Threshold {
+			time.Sleep(time.Second * 10)
+			fmt.Println("")
+		} else {
+			break
+		}
 	}
 
 	for i, deal := range deals {
-		// 发送请求
 		err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
 		if err != nil {
 			fmt.Println("Send error:", err)

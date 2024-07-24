@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
@@ -23,40 +23,49 @@ func main() {
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
 	bootPeers := util.GetEnv("BOOT_PEERS", "")
-	nodeStr := util.GetEnv("NODES", "")
 
+	// 初始化数据库
 	err := store.InitDB()
 	if err != nil {
-		fmt.Println("初始化数据库失败:", err)
+		fmt.Println("Init db error:", err)
 		os.Exit(1)
 	}
 
-	err = chain.InitChain("wss://xiaobai.asyou.me:30001")
+	// 链接区块链
+	err = chain.InitChain("ws://127.0.0.1:9944", peerSecret)
 	if err != nil {
-		fmt.Println("初始化链失败:", err)
+		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
 	}
 
+	// 检查节点代码是否和 substrate 上要求的版本一致
+
+	// 获取节点列表
+	nodesFromChain, err := chain.ChainClient.GetNodeList()
+	if err != nil {
+		fmt.Println("Get node list error:", err)
+		os.Exit(1)
+	}
+
+	// 获取阈值参数
+	nodeLen := len(nodesFromChain)
+	threshold := nodeLen * 2 / 3
 	nodes := []*types.Node{}
-	err = json.Unmarshal([]byte(nodeStr), &nodes)
-	if err != nil {
-		fmt.Println("解析 NODES 失败:", err)
-		os.Exit(1)
+	for _, n := range nodesFromChain {
+		nodes = append(nodes, &types.Node{
+			ID: hex.EncodeToString(n.Pubkey[:]),
+		})
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// 初始化加密套件。
-	fmt.Println(peerSecret)
 	nodeSecret, err := types.PrivateKeyFromPhrase(peerSecret, "")
 	if err != nil {
-		fmt.Println("解析 PKG_PK 失败:", err)
+		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
 	}
-
-	// 获取阈值参数。
-	threshold := 2
 
 	// 启动 P2P 网络。
 	bs := strings.Split(bootPeers, "_")
@@ -66,16 +75,17 @@ func main() {
 			boots = append(boots, b)
 		}
 	}
+
 	peer, err := p2p.NewP2PNetwork(ctx, peerSecret, boots, uint32(tcpPort), uint32(udpPort))
 	if err != nil {
-		fmt.Println("启动 P2P 网络失败:", err)
+		fmt.Println("Start P2P peer error:", err)
 		os.Exit(1)
 	}
 
 	// 创建 DKG 实例。
 	dkg, err := dkg.NewRabinDKG(nodeSecret, nodes, threshold, peer)
 	if err != nil {
-		fmt.Println("创建 DKG 实例失败:", err)
+		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
 
@@ -84,12 +94,12 @@ func main() {
 
 	// 运行 DKG 协议。
 	if err := dkg.Start(ctx); err != nil {
-		fmt.Println("运行 DKG 协议失败:", err)
+		fmt.Println("Start DKG error:", err)
 		os.Exit(1)
 	}
 
 	<-done
-	fmt.Println("进程退出")
+	fmt.Println("Exit 0")
 }
 
 // import (

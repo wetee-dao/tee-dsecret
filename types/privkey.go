@@ -95,16 +95,21 @@ func GenerateKeyPair(ste suites.Suite, src io.Reader) (*PrivKey, *PubKey, error)
 		}, nil
 }
 
-func PrivateKeyFromHex(key string) (*PrivKey, error) {
+// PrivateKeyFromLibp2pHex
+func PrivateKeyFromLibp2pHex(key string) (*PrivKey, error) {
 	buf, err := hex.DecodeString(key)
 	if err != nil {
 		return nil, fmt.Errorf("private key from hex: %w", err)
 	}
 
-	return PrivateKeyFromBytes(buf)
+	return PrivateKeyFromLibp2pBytes(buf)
 }
 
-func PrivateKeyFromBytes(buf []byte) (*PrivKey, error) {
+func PrivateKeyFromHex(key string) (*PrivKey, error) {
+	return PrivateKeyFromLibp2pHex("08011240" + key)
+}
+
+func PrivateKeyFromLibp2pBytes(buf []byte) (*PrivKey, error) {
 	pk, err := libp2pCrypto.UnmarshalPrivateKey(buf)
 	if err != nil {
 		return nil, fmt.Errorf("public key from bytes: %w", err)

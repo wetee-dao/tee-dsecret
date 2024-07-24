@@ -46,25 +46,20 @@ func (p *PubKey) Byte() ([]byte, error) {
 	return bt, nil
 }
 
-func PublicKeyFromHex(hexStr string) (*PubKey, error) {
+func PublicKeyFromLibp2pHex(hexStr string) (*PubKey, error) {
 	buf, err := hex.DecodeString(hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("decode hex: %w", err)
 	}
 
-	return PublicKeyFromBytes(buf)
+	return PublicKeyFromLibp2pBytes(buf)
 }
 
-func PublicKeyFromEd25519Hex(hexStr string) (*PubKey, error) {
-	buf, err := hex.DecodeString("08011220" + hexStr)
-	if err != nil {
-		return nil, fmt.Errorf("decode hex: %w", err)
-	}
-
-	return PublicKeyFromBytes(buf)
+func PublicKeyFromHex(hexStr string) (*PubKey, error) {
+	return PublicKeyFromLibp2pHex("08011220" + hexStr)
 }
 
-func PublicKeyFromBytes(buf []byte) (*PubKey, error) {
+func PublicKeyFromLibp2pBytes(buf []byte) (*PubKey, error) {
 	pk, err := libp2pCrypto.UnmarshalPublicKey(buf)
 	if err != nil {
 		return nil, fmt.Errorf("public key from bytes: %w", err)
