@@ -45,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 检查节点代码是否和 substrate 上要求的版本一致
+	// 检查节点代码是否和 wetee 上要求的版本一致
 
 	// 获取节点列表
 	nodesFromChain, err := chain.ChainClient.GetNodeList()

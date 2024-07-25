@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"wetee.app/dsecret/types"
+	"wetee.app/dsecret/util"
 )
 
 func (dkg *DKG) HandleMessage(msg *types.Message) error {
@@ -11,37 +12,37 @@ func (dkg *DKG) HandleMessage(msg *types.Message) error {
 	case "deal":
 		err := dkg.HandleDeal(msg.Payload)
 		if err != nil {
-			fmt.Println("HandleDeal err: ", err)
+			util.LogError("DEAL", "HandleDeal err: ", err)
 		}
 		return err
 	case "deal_resp":
 		err := dkg.HandleDealResp(msg.Payload)
 		if err != nil {
-			fmt.Println("HandleDealResp err: ", err)
+			util.LogError("DEAL", "HandleDealResp err: ", err)
 		}
 		return err
 	case "justification":
 		err := dkg.HandleJustification(msg.Payload)
 		if err != nil {
-			fmt.Println("HandleJustification err: ", err)
+			util.LogError("DEAL", "HandleJustification err: ", err)
 		}
 		return err
 	case "secret_commits":
 		err := dkg.HandleSecretCommits(msg.Payload)
 		if err != nil {
-			fmt.Println("HandleSecretCommits err: ", err)
+			util.LogError("DEAL", "HandleSecretCommits err: ", err)
 		}
 		return err
 	case "reencrypt_secret_request":
 		_, err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgID)
 		if err != nil {
-			fmt.Println("HandleReencryptSecretRequest err: ", err)
+			util.LogError("DEAL", "HandleReencryptSecretRequest err: ", err)
 		}
 		return err
 	case "reencrypted_secret_share":
 		_, err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgID)
 		if err != nil {
-			fmt.Println("HandleReencryptSecretRequest err: ", err)
+			util.LogError("DEAL", "HandleReencryptSecretRequest err: ", err)
 		}
 		return err
 	default:

@@ -23,6 +23,7 @@ import (
 	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
 
 	"wetee.app/dsecret/types"
+	"wetee.app/dsecret/util"
 )
 
 // NewP2PNetwork 创建一个新的 P2P 网络实例。
@@ -30,7 +31,6 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp
 	var idht *dht.IpfsDHT
 	var dhtOptions []dht.Option
 	if len(boots) == 0 {
-		fmt.Println("Host running as a bootsrap node")
 		dhtOptions = append(dhtOptions, dht.Mode(dht.ModeServer))
 	}
 	dhtOptions = append(dhtOptions, dht.ProtocolPrefix("/wetee"))
@@ -114,7 +114,7 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *
 	peerID := node.PeerID()
 	protocolID := protocol.ConvertFromStrings([]string{pid})
 
-	fmt.Printf(">>>>>> P2P Send(): peerID = %s , ProtocolID = %v \n", peerID, protocolID)
+	util.LogSendmsg(">>>>>> P2P Send()", "peerID = ", peerID, " , ProtocolID = ", protocolID)
 	var stream network.Stream
 	newStream := func() error {
 		stream, err = p.Host.NewStream(ctx, peerID, protocolID...)
@@ -158,7 +158,6 @@ func (p *Peer) Close() error {
 
 func genStream(handler func(*types.Message) error) func(network.Stream) {
 	return func(stream network.Stream) {
-		fmt.Printf("<<<<<< P2P call from %s ", stream.Conn().RemotePeer())
 		buf, err := io.ReadAll(stream)
 		if err != nil {
 			if err != io.EOF {
@@ -186,7 +185,7 @@ func genStream(handler func(*types.Message) error) func(network.Stream) {
 			return
 		}
 
-		fmt.Printf(" message:  type: %s \n", data.Type)
+		util.LogRevmsg("<<<<<< P2P Receive", "from ", stream.Conn().RemotePeer(), "| message:  type: ", data.Type)
 		err = handler(data)
 		if err != nil {
 			fmt.Printf("handle data: %s \n", err)

@@ -8,6 +8,7 @@ import (
 
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
 	"wetee.app/dsecret/types"
+	"wetee.app/dsecret/util"
 )
 
 // SendDealMessage 发送Deal消息
@@ -69,7 +70,7 @@ func (dkg *DKG) HandleDeal(data []byte) error {
 			Payload: bt,
 		})
 		if err != nil {
-			fmt.Println("Send deal_resp error", err)
+			util.LogError("DEAL", "Send deal_resp error", err)
 		}
 	}
 
@@ -84,7 +85,7 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 	message := &rabin.Response{}
 	err := json.Unmarshal(data, message)
 	if err != nil {
-		fmt.Println(err)
+		util.LogError("DEAL", err)
 		return err
 	}
 
@@ -96,17 +97,14 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 
 	// tJustification，证明 Deal 消息的无效性
 	if justification != nil {
-		fmt.Println("Got justification during response process for ", message.Index, justification)
+		util.LogError("DEAL", "Got justification during response process for ", message.Index, justification)
 		return nil
 	}
 
 	// 已经判断为有效了
 	if !dkg.DistKeyGenerator.Certified() {
-		fmt.Println("DistKeyGenerator not certified")
 		return nil
 	}
-
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 	sc, err := dkg.DistKeyGenerator.SecretCommits()
 	if err != nil {
@@ -133,7 +131,7 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 			Payload: bt,
 		})
 		if err != nil {
-			fmt.Println("Send secret_commits error", err)
+			util.LogError("DEAL", "Send secret_commits error", err)
 		}
 	}
 
@@ -193,7 +191,7 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 		return fmt.Errorf("rabin dkg dist key share: %w", err)
 	}
 
-	fmt.Println("================================================", distkey)
+	util.LogOk("DEAL", "身份认证完成 ================================================", distkey)
 
 	dkg.DkgKeyShare = types.DistKeyShare{
 		Commits:  distkey.Commitments(),

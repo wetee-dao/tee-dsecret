@@ -30,7 +30,7 @@ func (c *Chain) GetNodeList() ([]types.Node, error) {
 		for _, change := range elem.Changes {
 			var n types.Node
 			if err := codec.Decode(change.StorageData, &n); err != nil {
-				util.LogWithRed("codec.Decode", err)
+				util.LogError("codec.Decode", err)
 				continue
 			}
 			nodes = append(nodes, n)

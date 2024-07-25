@@ -112,7 +112,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 			fmt.Println("Discover error:", err)
 		}
 
-		if len(dkg.Peer.Network().Peers()) <= dkg.Threshold {
+		if len(dkg.Peer.Network().Peers())+1 <= dkg.Threshold {
 			time.Sleep(time.Second * 10)
 			fmt.Println("")
 		} else {
