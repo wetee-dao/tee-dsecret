@@ -31,8 +31,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 初始化加密套件。
+	nodeSecret, err := types.PrivateKeyFromLibp2pHex(peerSecret)
+	if err != nil {
+		fmt.Println("Marshal PKG_PK error:", err)
+		os.Exit(1)
+	}
+
 	// 链接区块链
-	err = chain.InitChain("ws://127.0.0.1:9944", peerSecret)
+	err = chain.InitChain("ws://127.0.0.1:9944", nodeSecret)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
@@ -60,13 +67,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 初始化加密套件。
-	nodeSecret, err := types.PrivateKeyFromPhrase(peerSecret, "")
-	if err != nil {
-		fmt.Println("Marshal PKG_PK error:", err)
-		os.Exit(1)
-	}
-
 	// 启动 P2P 网络。
 	bs := strings.Split(bootPeers, "_")
 	boots := make([]string, 0, len(bs))
@@ -76,7 +76,7 @@ func main() {
 		}
 	}
 
-	peer, err := p2p.NewP2PNetwork(ctx, peerSecret, boots, uint32(tcpPort), uint32(udpPort))
+	peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, boots, uint32(tcpPort), uint32(udpPort))
 	if err != nil {
 		fmt.Println("Start P2P peer error:", err)
 		os.Exit(1)

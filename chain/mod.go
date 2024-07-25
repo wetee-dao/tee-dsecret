@@ -1,11 +1,12 @@
 package chain
 
 import (
+	"crypto/ed25519"
 	"fmt"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature/ed25519"
 	chain "github.com/wetee-dao/go-sdk"
+	"github.com/wetee-dao/go-sdk/core"
+	"wetee.app/dsecret/types"
 )
 
 var ChainClient *Chain
@@ -13,16 +14,22 @@ var ChainClient *Chain
 // Chain
 type Chain struct {
 	client *chain.ChainClient
-	signer *signature.KeyringPair
+	signer *core.Signer
 }
 
-func InitChain(url string, seed string) error {
+func InitChain(url string, pk *types.PrivKey) error {
 	client, err := chain.ClientInit(url, true)
 	if err != nil {
 		return err
 	}
 
-	p, err := ed25519.KeyringPairFromSecret(seed, 42)
+	bt, err := pk.Raw()
+	if err != nil {
+		return err
+	}
+
+	var ed25519Key ed25519.PrivateKey = bt
+	p, err := core.Ed25519PairFromPk(ed25519Key, 42)
 	if err != nil {
 		return err
 	}

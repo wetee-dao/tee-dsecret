@@ -26,7 +26,7 @@ import (
 )
 
 // NewP2PNetwork 创建一个新的 P2P 网络实例。
-func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, udp uint32) (*Peer, error) {
+func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp, udp uint32) (*Peer, error) {
 	var idht *dht.IpfsDHT
 	var dhtOptions []dht.Option
 	if len(boots) == 0 {
@@ -34,12 +34,6 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 		dhtOptions = append(dhtOptions, dht.Mode(dht.ModeServer))
 	}
 	dhtOptions = append(dhtOptions, dht.ProtocolPrefix("/wetee"))
-
-	// 解码私钥 HEX
-	priv, err := types.PrivateKeyFromPhrase(peerSecret, "")
-	if err != nil {
-		return nil, fmt.Errorf("decode private key: %w", err)
-	}
 
 	// 创建连接管理器
 	connmgr, err := connmgr.NewConnManager(
@@ -68,7 +62,8 @@ func NewP2PNetwork(ctx context.Context, peerSecret string, boots []string, tcp, 
 		}),
 		libp2p.EnableNATService(),
 	)
-	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()) + "\n")
+
+	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()))
 
 	// 创建 gossipsub 实例
 	pubsubTracer := new(pubsubTracer)

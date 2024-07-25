@@ -9,7 +9,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ChainSafe/go-schnorrkel"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
 	"go.dedis.ch/kyber/v3"
@@ -145,15 +144,6 @@ func PrivateKeyFromStd(privkey gocrypto.PrivateKey) (*PrivKey, error) {
 	}
 
 	return PrivateKeyFromLibP2P(libpk)
-}
-
-func PrivateKeyFromPhrase(phrase, pwd string) (*PrivKey, error) {
-	seed, err := schnorrkel.SeedFromMnemonic(phrase, pwd)
-	if err != nil {
-		return nil, err
-	}
-	secret := ed25519.NewKeyFromSeed(seed[:32])
-	return PrivateKeyFromStd(secret)
 }
 
 func KeyTypeFromString(keyType string) (int, error) {

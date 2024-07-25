@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"github.com/wetee-dao/go-sdk/core"
 	"github.com/wetee-dao/go-sdk/gen/types"
 	"github.com/wetee-dao/go-sdk/gen/weteedsecret"
 	"wetee.app/dsecret/util"
@@ -10,7 +10,7 @@ import (
 
 // RegisterNode register node
 // 注册节点
-func (c *Chain) RegisterNode(signer *signature.KeyringPair, pubkey []byte) error {
+func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
 	var bt [32]byte
 	copy(bt[:], pubkey)
 	call := weteedsecret.MakeRegisterNodeCall(bt)
