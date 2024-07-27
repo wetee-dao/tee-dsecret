@@ -3,8 +3,8 @@ package chain
 import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/go-sdk/core"
-	"github.com/wetee-dao/go-sdk/gen/types"
-	"github.com/wetee-dao/go-sdk/gen/weteedsecret"
+	"github.com/wetee-dao/go-sdk/pallet/types"
+	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"wetee.app/dsecret/util"
 )
 

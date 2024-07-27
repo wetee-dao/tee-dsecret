@@ -1,4 +1,5 @@
-/// Copyright (c) 2022 Sourcenetwork Developers. All rights reserved.
+// / Copyright (c) 2022 Sourcenetwork Developers. All rights reserved.
+// / copy from https://github.com/sourcenetwork/orbis-go
 
 package proxy_reenc
 
