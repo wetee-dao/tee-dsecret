@@ -29,7 +29,7 @@ func (dkg *DKG) SendDealMessage(ctx context.Context, node *types.Node, message *
 	})
 }
 
-// HandleDeal 处理密钥份额消息。
+// HandleDeal 处理密钥份额消息
 func (dkg *DKG) HandleDeal(data []byte) error {
 	dkg.mu.Lock()
 	defer dkg.mu.Unlock()
@@ -77,7 +77,7 @@ func (dkg *DKG) HandleDeal(data []byte) error {
 	return nil
 }
 
-// HandleDealMessage 处理密钥份额消息。
+// HandleDealMessage 处理密钥份额消息
 func (dkg *DKG) HandleDealResp(data []byte) error {
 	dkg.mu.Lock()
 	defer dkg.mu.Unlock()
@@ -138,7 +138,7 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 	return nil
 }
 
-// HandleDealMessage 处理密钥份额消息。
+// HandleDealMessage 处理密钥份额消息
 func (dkg *DKG) HandleJustification(data []byte) error {
 	dkg.mu.Lock()
 	defer dkg.mu.Unlock()
@@ -164,11 +164,12 @@ func (dkg *DKG) HandleJustification(data []byte) error {
 	return nil
 }
 
+// HandleDealMessage 处理密钥份额消息
 func (dkg *DKG) HandleSecretCommits(data []byte) error {
 	dkg.mu.Lock()
 	defer dkg.mu.Unlock()
 
-	// 转换协议对象。
+	// 转换协议对象
 	psc := &types.SecretCommits{}
 	err := json.Unmarshal(data, psc)
 	if err != nil {
@@ -192,7 +193,6 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 	}
 
 	util.LogOk("DEAL", "身份认证完成 ================================================", distkey)
-
 	dkg.DkgKeyShare = types.DistKeyShare{
 		Commits:  distkey.Commitments(),
 		PriShare: distkey.PriShare(),

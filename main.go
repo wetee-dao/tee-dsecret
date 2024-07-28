@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"strings"
 
 	"wetee.app/dsecret/chain"
 	"wetee.app/dsecret/dkg"
@@ -22,7 +21,7 @@ func main() {
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
-	bootPeers := util.GetEnv("BOOT_PEERS", "")
+	// bootPeers := util.GetEnv("BOOT_PEERS", "")
 
 	// 初始化数据库
 	err := store.InitDB()
@@ -42,6 +41,17 @@ func main() {
 	err = chain.InitChain("ws://127.0.0.1:9944", nodeSecret)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
+		os.Exit(1)
+	}
+
+	// Get boot peers from chain
+	bootPeers, err := chain.ChainClient.GetBootPeers()
+	if err != nil {
+		fmt.Println("Get node list error:", err)
+		os.Exit(1)
+	}
+	if len(bootPeers) == 0 {
+		fmt.Println("No boot peers found")
 		os.Exit(1)
 	}
 
@@ -67,15 +77,17 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 启动 P2P 网络。
-	bs := strings.Split(bootPeers, "_")
-	boots := make([]string, 0, len(bs))
-	for _, b := range bs {
-		if b != "" {
-			boots = append(boots, b)
+	boots := make([]string, 0, len(bootPeers))
+	for _, b := range bootPeers {
+		n := &types.Node{
+			ID: hex.EncodeToString(b.Id[:]),
 		}
+		d := util.GetUrlFromIp1(b.Ip)
+		url := "/ip4/" + d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + string(n.PeerID())
+		boots = append(boots, url)
 	}
 
+	// 启动 P2P 网络
 	peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, boots, uint32(tcpPort), uint32(udpPort))
 	if err != nil {
 		fmt.Println("Start P2P peer error:", err)

@@ -7,6 +7,7 @@ import (
 	"wetee.app/dsecret/util"
 )
 
+// Handle deal message
 func (dkg *DKG) HandleMessage(msg *types.Message) error {
 	switch msg.Type {
 	case "deal":

@@ -33,6 +33,9 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp
 	if len(boots) == 0 {
 		dhtOptions = append(dhtOptions, dht.Mode(dht.ModeServer))
 	}
+	// 创建连接筛选器
+	gater := newConnectionGater()
+	dhtOptions = append(dhtOptions, dht.RoutingTableFilter(gater.chainRoutingTableFilter))
 	dhtOptions = append(dhtOptions, dht.ProtocolPrefix("/wetee"))
 
 	// 创建连接管理器
@@ -49,7 +52,6 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp
 			"/ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp),         // TCP endpoint
 			"/ip4/0.0.0.0/udp/"+fmt.Sprint(udp)+"/quic", // UDP endpoint for the QUIC transport
 		),
-		// support TLS connections
 		libp2p.Security(libp2ptls.ID, libp2ptls.New),
 		libp2p.Security(noise.ID, noise.New),
 		libp2p.DefaultTransports,
@@ -61,6 +63,7 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp
 			return idht, err
 		}),
 		libp2p.EnableNATService(),
+		libp2p.ConnectionGater(gater),
 	)
 
 	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()))
@@ -93,11 +96,13 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, tcp
 		pubsub:    gossipSub,
 		topics:    make(map[string]*pubsub.Topic),
 		bootPeers: bootPeers,
+		gater:     gater,
 	}
 
 	return peer, nil
 }
 
+// Peer P2P 网络实例
 type Peer struct {
 	host.Host
 	privKey     libp2pCrypto.PrivKey
@@ -106,9 +111,11 @@ type Peer struct {
 	topics      map[string]*pubsub.Topic
 	topicsLock  sync.Mutex
 	bootPeers   map[peer.ID]peer.AddrInfo
+	gater       *ChainConnectionGater
 	reonnecting sync.Map
 }
 
+// Send 发送消息
 func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *types.Message) error {
 	var err error
 	peerID := node.PeerID()
@@ -143,15 +150,18 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *
 	return nil
 }
 
+// AddHandler 添加消息处理器
 func (p *Peer) AddHandler(pid string, handler func(*types.Message) error) {
 	streamHandler := genStream(handler)
 	p.Host.SetStreamHandler(protocol.ID(pid), streamHandler)
 }
 
+// RemoveHandler 移除消息处理器
 func (t *Peer) RemoveHandler(pid protocol.ID) {
 	t.Host.RemoveStreamHandler(pid)
 }
 
+// Close 关闭 P2P 网络实例
 func (p *Peer) Close() error {
 	return p.Host.Close()
 }

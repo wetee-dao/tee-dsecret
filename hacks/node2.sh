@@ -12,7 +12,6 @@ cd $DIR/node2
 export PEER_PK=08011240c137a203132c2fb66f13de24f4e1db4177daa5d334c51afeb3aa195db414fea8a2babbb311378d1a707a940a171947d80202fdc1799923e9b045393f58d18472
 export TCP_PORT=31001
 export UDP_PORT=31001
-export BOOT_PEERS=/ip4/127.0.0.1/tcp/31000/p2p/12D3KooWPqAW35BWBWk9N6MwYwoCdzk4TKVKidhhoNpxwtekPsNM
 
 go build -o dsecret ../../main.go
 ./dsecret
