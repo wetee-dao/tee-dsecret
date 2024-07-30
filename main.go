@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
+	"crypto/ed25519"
 	"fmt"
 	"os"
 
@@ -21,7 +21,6 @@ func main() {
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
-	// bootPeers := util.GetEnv("BOOT_PEERS", "")
 
 	// 初始化数据库
 	err := store.InitDB()
@@ -38,7 +37,7 @@ func main() {
 	}
 
 	// 链接区块链
-	err = chain.InitChain("ws://127.0.0.1:9944", nodeSecret)
+	err = chain.InitChain("wss://xiaobai.asyou.me:30001", nodeSecret)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
@@ -63,14 +62,28 @@ func main() {
 		fmt.Println("Get node list error:", err)
 		os.Exit(1)
 	}
+	workersFromChain, err := chain.ChainClient.GetWorkerList()
+	if err != nil {
+		fmt.Println("Get worker list error:", err)
+		os.Exit(1)
+	}
 
 	// 获取阈值参数
-	nodeLen := len(nodesFromChain)
-	threshold := nodeLen * 2 / 3
+	threshold := len(nodesFromChain) * 2 / 3
 	nodes := []*types.Node{}
 	for _, n := range nodesFromChain {
+		var gopub ed25519.PublicKey = n.Pubkey[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
 		nodes = append(nodes, &types.Node{
-			ID: hex.EncodeToString(n.Pubkey[:]),
+			ID:   pub.String(),
+			Type: 1,
+		})
+	}
+	for _, w := range workersFromChain {
+		var gopub ed25519.PublicKey = w.Account[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
+		nodes = append(nodes, &types.Node{
+			ID: pub.String(),
 		})
 	}
 
@@ -79,16 +92,18 @@ func main() {
 
 	boots := make([]string, 0, len(bootPeers))
 	for _, b := range bootPeers {
+		var gopub ed25519.PublicKey = b.Id[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
 		n := &types.Node{
-			ID: hex.EncodeToString(b.Id[:]),
+			ID: pub.String(),
 		}
 		d := util.GetUrlFromIp1(b.Ip)
-		url := "/ip4/" + d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + string(n.PeerID())
+		url := d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + n.PeerID().String()
 		boots = append(boots, url)
 	}
 
 	// 启动 P2P 网络
-	peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, boots, uint32(tcpPort), uint32(udpPort))
+	peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, boots, nodes, uint32(tcpPort), uint32(udpPort))
 	if err != nil {
 		fmt.Println("Start P2P peer error:", err)
 		os.Exit(1)

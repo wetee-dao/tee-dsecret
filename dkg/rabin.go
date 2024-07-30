@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -53,32 +52,36 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 		return nil, errors.New("阈值必须小于参与者数量")
 	}
 
-	suite := suites.MustFind("Ed25519")
 	// 获取节点公钥列表。
-	participants := make([]kyber.Point, len(nodes))
-	for i, n := range nodes {
-		pk, err := types.PublicKeyFromHex(n.ID)
+	participants := make([]kyber.Point, 0, 100)
+	dkgNodes := make([]*types.Node, 0, 100)
+	for _, n := range nodes {
+		if n.Type != 1 {
+			continue
+		}
+		pk, err := types.PublicKeyFromLibp2pHex(n.ID)
 		if err != nil {
 			fmt.Println("解析 PKG_PUBS 失败:", err)
-			os.Exit(1)
+			continue
 		}
 		_, err = peer.IDFromPublicKey(pk)
 		if err != nil {
 			fmt.Println("IDFromPublicKey 失败:", err)
-			os.Exit(1)
+			continue
 		}
-		participants[i] = pk.Point()
+		participants = append(participants, pk.Point())
+		dkgNodes = append(dkgNodes, n)
 	}
 
 	// 创建 DKG 对象。
 	dkg := &DKG{
-		Suite:        suite,
+		Suite:        suites.MustFind("Ed25519"),
 		Participants: participants,
 		Threshold:    threshold,
 		Shares:       make(map[peer.ID]*share.PriShare),
 		NodeSecret:   NodeSecret.Scalar(),
 		Peer:         p,
-		Nodes:        nodes,
+		Nodes:        dkgNodes,
 		preRecerve:   make(map[string]chan *share.PubShare),
 	}
 
@@ -120,6 +123,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 		}
 	}
 
+	fmt.Println(deals)
 	for i, deal := range deals {
 		err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
 		if err != nil {
