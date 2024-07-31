@@ -11,6 +11,7 @@ type Node struct {
 	Type uint8  `json:"type"` // 0: worker, 1: dsecret
 }
 
+// 计算 PeerID
 func (n *Node) PeerID() peer.ID {
 	pk, err := PublicKeyFromLibp2pHex(n.ID)
 	if err != nil {

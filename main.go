@@ -117,7 +117,7 @@ func main() {
 	}
 
 	// 启动节点
-	peer.Start(ctx)
+	go peer.Start(ctx)
 
 	// 运行 DKG 协议。
 	if err := dkg.Start(ctx); err != nil {

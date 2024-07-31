@@ -65,6 +65,12 @@ func (p *Peer) Start(ctx context.Context) {
 			}
 		}
 	}()
+
+	for {
+		p.Discover(ctx)
+		fmt.Println("Peer len:", len(p.Network().Peers()))
+		time.Sleep(time.Second * 30)
+	}
 }
 
 func (p *Peer) reconnectToPeer(ctx context.Context, paddr peer.AddrInfo) {
@@ -132,7 +138,6 @@ func (p *Peer) Discover(ctx context.Context) error {
 		return fmt.Errorf("Find peers error: %w", err)
 	}
 
-	defer fmt.Println("Peer discovery finished...")
 	for peer := range peerChan {
 		if peer.ID == p.ID() {
 			continue

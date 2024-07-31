@@ -66,8 +66,10 @@ func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.Reencry
 		select {
 		case data := <-d.preRecerve[req.SecretId]:
 			fmt.Println("Received:", data)
-		case <-time.After(15 * time.Second):
+			psk = append(psk, data)
+		case <-time.After(30 * time.Second):
 			fmt.Println("Timeout receiving from channel")
+			return nil, fmt.Errorf("timeout receiving from channel")
 		}
 	}
 

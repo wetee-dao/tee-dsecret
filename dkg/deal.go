@@ -170,7 +170,7 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 	defer dkg.mu.Unlock()
 
 	// 转换协议对象
-	psc := &types.SecretCommits{}
+	psc := &types.SecretCommitJson{}
 	err := json.Unmarshal(data, psc)
 	if err != nil {
 		return fmt.Errorf("json.Unmarshal: %w", err)
@@ -192,12 +192,13 @@ func (dkg *DKG) HandleSecretCommits(data []byte) error {
 		return fmt.Errorf("rabin dkg dist key share: %w", err)
 	}
 
-	util.LogOk("DEAL", "身份认证完成 ================================================", distkey)
+	util.LogOk("DEAL", "身份认证完成 ================================================")
 	dkg.DkgKeyShare = types.DistKeyShare{
 		Commits:  distkey.Commitments(),
 		PriShare: distkey.PriShare(),
 	}
 	dkg.DkgPubKey = distkey.Public()
+	dkg.store()
 
 	return nil
 }

@@ -2,7 +2,6 @@ package dkg
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -43,6 +42,8 @@ type DKG struct {
 	DkgKeyShare types.DistKeyShare // DKG node private share
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan *share.PubShare
+	// 未初始化状态 => 0 | 初始化成功 => 1
+	status uint8
 }
 
 // NewRabinDKG 创建一个新的 Rabin DKG 实例。
@@ -56,19 +57,18 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 	participants := make([]kyber.Point, 0, 100)
 	dkgNodes := make([]*types.Node, 0, 100)
 	for _, n := range nodes {
+		// 过滤不是dkg节点
 		if n.Type != 1 {
 			continue
 		}
+
+		// 解析节点公钥
 		pk, err := types.PublicKeyFromLibp2pHex(n.ID)
 		if err != nil {
 			fmt.Println("解析 PKG_PUBS 失败:", err)
 			continue
 		}
-		_, err = peer.IDFromPublicKey(pk)
-		if err != nil {
-			fmt.Println("IDFromPublicKey 失败:", err)
-			continue
-		}
+
 		participants = append(participants, pk.Point())
 		dkgNodes = append(dkgNodes, n)
 	}
@@ -85,13 +85,18 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 		preRecerve:   make(map[string]chan *share.PubShare),
 	}
 
-	// 存储 DKG 对象
-	// dkg.restore()
+	// 复原 DKG 对象
+	dkg.restore()
 	return dkg, nil
 }
 
 // Start 启动 Rabin DKG 协议。
 func (dkg *DKG) Start(ctx context.Context) error {
+	// 如果已经初始化，则直接返回
+	if dkg.status == 1 {
+		return nil
+	}
+
 	var err error
 
 	// initialize vss dealer
@@ -110,12 +115,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	dkg.Peer.AddHandler("dkg", dkg.HandleMessage)
 
 	for {
-		err = dkg.Peer.Discover(ctx)
-		if err != nil {
-			fmt.Println("Discover error:", err)
-		}
-
-		if len(dkg.Peer.Network().Peers())+1 <= dkg.Threshold {
+		if dkg.nodeLen()+1 <= dkg.Threshold {
 			time.Sleep(time.Second * 10)
 			fmt.Println("")
 		} else {
@@ -123,7 +123,6 @@ func (dkg *DKG) Start(ctx context.Context) error {
 		}
 	}
 
-	fmt.Println(deals)
 	for i, deal := range deals {
 		err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
 		if err != nil {
@@ -132,6 +131,19 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (dkg *DKG) nodeLen() int {
+	var len int
+	peers := dkg.Peer.Network().Peers()
+	for _, p := range peers {
+		for _, node := range dkg.Nodes {
+			if p == node.PeerID() {
+				len = len + 1
+			}
+		}
+	}
+	return len
 }
 
 func (d *DKG) Share() types.DistKeyShare {
@@ -155,19 +167,20 @@ func (dkg *DKG) restore() error {
 	if err != nil {
 		return fmt.Errorf("get dkg: %w", err)
 	}
-	if v != nil {
-		err = json.Unmarshal(v, dkg)
-		if err != nil {
-			return fmt.Errorf("unmarshal dkg: %w", err)
-		}
+	d, err := types.DistKeyShareFromProtocol(dkg.Suite, v)
+	if err != nil {
+		return fmt.Errorf("unmarshal dkg: %w", err)
 	}
+	dkg.DkgKeyShare = *d
+	dkg.status = 1
 	return nil
 }
 
 func (dkg *DKG) store() error {
-	payload, err := json.Marshal(dkg)
+	payload, err := types.DistKeyShareToProtocol(&dkg.DkgKeyShare)
 	if err != nil {
 		return fmt.Errorf("marshal dkg: %w", err)
 	}
+
 	return store.SetKey("G", "dkg", payload)
 }
