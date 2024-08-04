@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/go-bip39"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"go.dedis.ch/kyber/v3/suites"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 

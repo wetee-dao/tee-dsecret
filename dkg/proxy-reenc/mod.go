@@ -10,7 +10,7 @@ import (
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/suites"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 const name = "elgamal"

@@ -6,7 +6,7 @@ import (
 
 	chain "github.com/wetee-dao/go-sdk"
 	"github.com/wetee-dao/go-sdk/core"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 var ChainClient *Chain

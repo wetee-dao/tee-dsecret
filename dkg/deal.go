@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 

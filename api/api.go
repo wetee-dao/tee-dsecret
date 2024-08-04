@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"wetee.app/dsecret/dkg"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 type API struct {

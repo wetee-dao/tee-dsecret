@@ -3,7 +3,7 @@ package dkg
 import (
 	"fmt"
 
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 

@@ -14,7 +14,7 @@ import (
 	"go.dedis.ch/kyber/v3/share"
 	proxy_reenc "wetee.app/dsecret/dkg/proxy-reenc"
 	"wetee.app/dsecret/store"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 // SendEncryptedSecretRequest sends a request to reencrypt a secret

@@ -4,7 +4,7 @@ import (
 	"crypto/ed25519"
 
 	"github.com/vedhavyas/go-subkey/v2"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 func main() {

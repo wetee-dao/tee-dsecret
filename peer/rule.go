@@ -5,7 +5,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 func newConnectionGater(nodes []*types.Node) *ChainConnectionGater {

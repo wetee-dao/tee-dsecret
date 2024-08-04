@@ -10,7 +10,7 @@ import (
 	"wetee.app/dsecret/dkg"
 	p2p "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/store"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 

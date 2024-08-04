@@ -14,7 +14,7 @@ import (
 	"go.dedis.ch/kyber/v3/suites"
 	p2peer "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/store"
-	"wetee.app/dsecret/types"
+	types "wetee.app/dsecret/type"
 )
 
 // DKG 代表 Rabin DKG 协议的实例。
