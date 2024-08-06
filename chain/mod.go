@@ -9,6 +9,7 @@ import (
 	types "wetee.app/dsecret/type"
 )
 
+// ChainClient
 var ChainClient *Chain
 
 // Chain
