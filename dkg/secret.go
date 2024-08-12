@@ -1,29 +1,24 @@
-package api
+package dkg
 
 import (
 	"context"
 	"fmt"
 
-	"wetee.app/dsecret/dkg"
 	types "wetee.app/dsecret/type"
 )
 
-type API struct {
-	DKG *dkg.DKG
+func (i *DKG) SetSecretApi(ctx context.Context, scrt []byte) (string, error) {
+	return i.SetSecret(ctx, scrt)
 }
 
-func (i *API) SetSecret(ctx context.Context, scrt []byte) (string, error) {
-	return i.DKG.SetSecret(ctx, scrt)
-}
-
-func (i *API) GetSecret(ctx context.Context, rdrPk types.PubKey, sid string) (xncCmt []byte, encScrt [][]byte, err error) {
+func (i *DKG) GetSecretApi(ctx context.Context, rdrPk types.PubKey, sid string) (xncCmt []byte, encScrt [][]byte, err error) {
 	req := &types.ReencryptSecretRequest{
 		SecretId: string(sid),
 		RdrPk:    &rdrPk,
 	}
 
 	// send request
-	rawXncCmt, err := i.DKG.SendEncryptedSecretRequest(ctx, req)
+	rawXncCmt, err := i.SendEncryptedSecretRequest(ctx, req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("send encrypted secret request: %w", err)
 	}
@@ -35,7 +30,7 @@ func (i *API) GetSecret(ctx context.Context, rdrPk types.PubKey, sid string) (xn
 	}
 
 	// get secret
-	scrt, err := i.DKG.GetSecret(ctx, string(sid))
+	scrt, err := i.GetSecret(ctx, string(sid))
 	if err != nil {
 		return nil, nil, fmt.Errorf("encrypted secret for %s not found", string(sid))
 	}

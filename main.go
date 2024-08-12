@@ -21,9 +21,10 @@ func main() {
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
+	password := util.GetEnv("PASSWORD", "")
 
 	// 初始化数据库
-	err := store.InitDB()
+	err := store.InitDB(password)
 	if err != nil {
 		fmt.Println("Init db error:", err)
 		os.Exit(1)

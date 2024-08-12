@@ -4,9 +4,18 @@ go 1.21.0
 
 toolchain go1.21.6
 
-require github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+require (
+	github.com/agnivade/levenshtein v1.1.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/sosodev/duration v1.3.1 // indirect
+	github.com/urfave/cli/v2 v2.27.2 // indirect
+	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
+)
 
 require (
+	github.com/99designs/gqlgen v0.17.49
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
 	github.com/edgelesssys/ego v1.5.3
 	github.com/fatih/color v1.17.0
@@ -16,6 +25,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.11.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/stretchr/testify v1.9.0
+	github.com/vektah/gqlparser/v2 v2.5.16
 	github.com/wetee-dao/go-sdk v1.0.0
 	go.dedis.ch/kyber/v3 v3.1.0
 )
@@ -114,7 +124,7 @@ require (
 	github.com/quic-go/webtransport-go v0.8.0 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/rs/cors v1.8.2 // indirect
+	github.com/rs/cors v1.11.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
@@ -127,22 +137,22 @@ require (
 	go.uber.org/dig v1.17.1 // indirect
 	go.uber.org/fx v1.22.1 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
 require (
-	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
+	github.com/ChainSafe/go-schnorrkel v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/base58 v1.0.4 // indirect
+	github.com/decred/base58 v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/edgelesssys/estore v1.1.0
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect

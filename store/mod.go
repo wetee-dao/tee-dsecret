@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"os"
 
 	"github.com/edgelesssys/ego/ecrypto"
@@ -12,17 +13,24 @@ const sealedKeyFile = "./db/key"
 
 var DB *estore.DB
 
-func InitDB() error {
-	encryptionKey := []byte{13, 72, 146, 87, 232, 212, 174, 12, 78, 40, 239, 24, 124, 79, 203, 205}
+func InitDB(password string) error {
+	var encryptionKey []byte
 
 	// Check if the database exists
-	if _, err := os.Stat(dbPath + "/CURRENT"); os.IsNotExist(err) {
+	if _, err := os.Stat(sealedKeyFile); os.IsNotExist(err) {
 		if err := os.Mkdir(dbPath, 0o700); err != nil {
 			return err
 		}
 
 		if _, err := os.Create(sealedKeyFile); err != nil {
 			return err
+		}
+
+		if len(encryptionKey) == 0 {
+			if password == "" {
+				return errors.New("password is empty")
+			}
+			encryptionKey = []byte(password)
 		}
 
 		sealedKey, err := ecrypto.SealWithUniqueKey(encryptionKey, nil)
