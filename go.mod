@@ -7,6 +7,7 @@ toolchain go1.21.6
 require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
@@ -19,6 +20,8 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
 	github.com/edgelesssys/ego v1.5.3
 	github.com/fatih/color v1.17.0
+	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/cors v1.2.1
 	github.com/ipfs/go-cid v0.4.1
 	github.com/libp2p/go-libp2p v0.35.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2

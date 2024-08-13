@@ -2,15 +2,39 @@
 
 package types
 
+// 环境变量
+// Environments
+type Env struct {
+	Envs  []*Kvalue `json:"envs"`
+	Files []*Kvalue `json:"files"`
+}
+
+type Kvalue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// 加密值
+// Secret value
+type LenValue struct {
+	Key string `json:"key"`
+	Len int    `json:"len"`
+}
+
 type Mutation struct {
 }
 
 type Query struct {
 }
 
+// 加密环境变量
+// Encrypt environment variables
 type SecretEnv struct {
-	Project  string `json:"project"`
-	Contract string `json:"contract"`
-	CodeHash string `json:"code_hash"`
-	Abi      string `json:"abi"`
+	Envs  []*LenValue `json:"envs"`
+	Files []*LenValue `json:"files"`
+}
+
+type SecretEnvWithHash struct {
+	Hash   string     `json:"hash"`
+	Secret *SecretEnv `json:"secret"`
 }

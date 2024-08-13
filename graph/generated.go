@@ -44,11 +44,17 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	AuthCheck func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
+	LenValue struct {
+		Key func(childComplexity int) int
+		Len func(childComplexity int) int
+	}
+
 	Mutation struct {
-		UploadSecret func(childComplexity int, project string) int
+		UploadSecret func(childComplexity int, secret types.Env) int
 	}
 
 	Query struct {
@@ -56,18 +62,21 @@ type ComplexityRoot struct {
 	}
 
 	SecretEnv struct {
-		Abi      func(childComplexity int) int
-		CodeHash func(childComplexity int) int
-		Contract func(childComplexity int) int
-		Project  func(childComplexity int) int
+		Envs  func(childComplexity int) int
+		Files func(childComplexity int) int
+	}
+
+	SecretEnvWithHash struct {
+		Hash   func(childComplexity int) int
+		Secret func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	UploadSecret(ctx context.Context, project string) (bool, error)
+	UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error)
 }
 type QueryResolver interface {
-	Secret(ctx context.Context, hash string) ([]*types.SecretEnv, error)
+	Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error)
 }
 
 type executableSchema struct {
@@ -89,6 +98,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "LenValue.key":
+		if e.complexity.LenValue.Key == nil {
+			break
+		}
+
+		return e.complexity.LenValue.Key(childComplexity), true
+
+	case "LenValue.len":
+		if e.complexity.LenValue.Len == nil {
+			break
+		}
+
+		return e.complexity.LenValue.Len(childComplexity), true
+
 	case "Mutation.upload_secret":
 		if e.complexity.Mutation.UploadSecret == nil {
 			break
@@ -99,7 +122,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UploadSecret(childComplexity, args["project"].(string)), true
+		return e.complexity.Mutation.UploadSecret(childComplexity, args["secret"].(types.Env)), true
 
 	case "Query.secret":
 		if e.complexity.Query.Secret == nil {
@@ -113,33 +136,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Secret(childComplexity, args["hash"].(string)), true
 
-	case "SecretEnv.abi":
-		if e.complexity.SecretEnv.Abi == nil {
+	case "SecretEnv.envs":
+		if e.complexity.SecretEnv.Envs == nil {
 			break
 		}
 
-		return e.complexity.SecretEnv.Abi(childComplexity), true
+		return e.complexity.SecretEnv.Envs(childComplexity), true
 
-	case "SecretEnv.code_hash":
-		if e.complexity.SecretEnv.CodeHash == nil {
+	case "SecretEnv.files":
+		if e.complexity.SecretEnv.Files == nil {
 			break
 		}
 
-		return e.complexity.SecretEnv.CodeHash(childComplexity), true
+		return e.complexity.SecretEnv.Files(childComplexity), true
 
-	case "SecretEnv.contract":
-		if e.complexity.SecretEnv.Contract == nil {
+	case "SecretEnvWithHash.hash":
+		if e.complexity.SecretEnvWithHash.Hash == nil {
 			break
 		}
 
-		return e.complexity.SecretEnv.Contract(childComplexity), true
+		return e.complexity.SecretEnvWithHash.Hash(childComplexity), true
 
-	case "SecretEnv.project":
-		if e.complexity.SecretEnv.Project == nil {
+	case "SecretEnvWithHash.secret":
+		if e.complexity.SecretEnvWithHash.Secret == nil {
 			break
 		}
 
-		return e.complexity.SecretEnv.Project(childComplexity), true
+		return e.complexity.SecretEnvWithHash.Secret(childComplexity), true
 
 	}
 	return 0, false
@@ -148,7 +171,10 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e, 0, 0, make(chan graphql.DeferredResult)}
-	inputUnmarshalMap := graphql.BuildUnmarshalerMap()
+	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputEnv,
+		ec.unmarshalInputKvalue,
+	)
 	first := true
 
 	switch rc.Operation.Operation {
@@ -159,7 +185,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			if first {
 				first = false
 				ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
-				data = ec._Query(ctx, rc.Operation.SelectionSet)
+				data = ec._queryMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error) {
+					return ec._Query(ctx, rc.Operation.SelectionSet), nil
+				})
 			} else {
 				if atomic.LoadInt32(&ec.pendingDeferred) > 0 {
 					result := <-ec.deferredResults
@@ -189,7 +217,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			}
 			first = false
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
-			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
+			data := ec._mutationMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error) {
+				return ec._Mutation(ctx, rc.Operation.SelectionSet), nil
+			})
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -267,15 +297,15 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["project"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("project"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+	var arg0 types.Env
+	if tmp, ok := rawArgs["secret"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("secret"))
+		arg0, err = ec.unmarshalNEnv2weteeᚗappᚋdsecretᚋtypeᚐEnv(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["project"] = arg0
+	args["secret"] = arg0
 	return args, nil
 }
 
@@ -343,9 +373,151 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    ************************** directives.gotpl **************************
 
+func (ec *executionContext) _queryMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
+
+	for _, d := range obj.Directives {
+		switch d.Name {
+		case "AuthCheck":
+			n := next
+			next = func(ctx context.Context) (interface{}, error) {
+				if ec.directives.AuthCheck == nil {
+					return nil, errors.New("directive AuthCheck is not implemented")
+				}
+				return ec.directives.AuthCheck(ctx, obj, n)
+			}
+		}
+	}
+	tmp, err := next(ctx)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if data, ok := tmp.(graphql.Marshaler); ok {
+		return data
+	}
+	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
+	return graphql.Null
+
+}
+
+func (ec *executionContext) _mutationMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
+
+	for _, d := range obj.Directives {
+		switch d.Name {
+		case "AuthCheck":
+			n := next
+			next = func(ctx context.Context) (interface{}, error) {
+				if ec.directives.AuthCheck == nil {
+					return nil, errors.New("directive AuthCheck is not implemented")
+				}
+				return ec.directives.AuthCheck(ctx, obj, n)
+			}
+		}
+	}
+	tmp, err := next(ctx)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if data, ok := tmp.(graphql.Marshaler); ok {
+		return data
+	}
+	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
+	return graphql.Null
+
+}
+
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _LenValue_key(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LenValue_key(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Key, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_LenValue_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LenValue",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LenValue_len(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LenValue_len(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Len, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_LenValue_len(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LenValue",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_upload_secret(ctx, field)
@@ -360,8 +532,28 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["project"].(string))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["secret"].(types.Env))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.AuthCheck == nil {
+				return nil, errors.New("directive AuthCheck is not implemented")
+			}
+			return ec.directives.AuthCheck(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*types.SecretEnvWithHash); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *wetee.app/dsecret/type.SecretEnvWithHash`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -373,9 +565,9 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*types.SecretEnvWithHash)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNSecretEnvWithHash2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnvWithHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -385,7 +577,13 @@ func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "hash":
+				return ec.fieldContext_SecretEnvWithHash_hash(ctx, field)
+			case "secret":
+				return ec.fieldContext_SecretEnvWithHash_secret(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SecretEnvWithHash", field.Name)
 		},
 	}
 	defer func() {
@@ -428,9 +626,9 @@ func (ec *executionContext) _Query_secret(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*types.SecretEnv)
+	res := resTmp.(*types.SecretEnvWithHash)
 	fc.Result = res
-	return ec.marshalNSecretEnv2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnvᚄ(ctx, field.Selections, res)
+	return ec.marshalNSecretEnvWithHash2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnvWithHash(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_secret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -441,16 +639,12 @@ func (ec *executionContext) fieldContext_Query_secret(ctx context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "project":
-				return ec.fieldContext_SecretEnv_project(ctx, field)
-			case "contract":
-				return ec.fieldContext_SecretEnv_contract(ctx, field)
-			case "code_hash":
-				return ec.fieldContext_SecretEnv_code_hash(ctx, field)
-			case "abi":
-				return ec.fieldContext_SecretEnv_abi(ctx, field)
+			case "hash":
+				return ec.fieldContext_SecretEnvWithHash_hash(ctx, field)
+			case "secret":
+				return ec.fieldContext_SecretEnvWithHash_secret(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type SecretEnv", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type SecretEnvWithHash", field.Name)
 		},
 	}
 	defer func() {
@@ -596,8 +790,8 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _SecretEnv_project(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SecretEnv_project(ctx, field)
+func (ec *executionContext) _SecretEnv_envs(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SecretEnv_envs(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -610,7 +804,107 @@ func (ec *executionContext) _SecretEnv_project(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Project, nil
+		return obj.Envs, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.LenValue)
+	fc.Result = res
+	return ec.marshalNLenValue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐLenValueᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SecretEnv_envs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SecretEnv",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "key":
+				return ec.fieldContext_LenValue_key(ctx, field)
+			case "len":
+				return ec.fieldContext_LenValue_len(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LenValue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SecretEnv_files(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SecretEnv_files(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Files, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*types.LenValue)
+	fc.Result = res
+	return ec.marshalNLenValue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐLenValueᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SecretEnv_files(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SecretEnv",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "key":
+				return ec.fieldContext_LenValue_key(ctx, field)
+			case "len":
+				return ec.fieldContext_LenValue_len(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LenValue", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SecretEnvWithHash_hash(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnvWithHash) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SecretEnvWithHash_hash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Hash, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -627,9 +921,9 @@ func (ec *executionContext) _SecretEnv_project(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_SecretEnv_project(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_SecretEnvWithHash_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "SecretEnv",
+		Object:     "SecretEnvWithHash",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -640,8 +934,8 @@ func (ec *executionContext) fieldContext_SecretEnv_project(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _SecretEnv_contract(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SecretEnv_contract(ctx, field)
+func (ec *executionContext) _SecretEnvWithHash_secret(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnvWithHash) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SecretEnvWithHash_secret(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -654,7 +948,7 @@ func (ec *executionContext) _SecretEnv_contract(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Contract, nil
+		return obj.Secret, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -666,107 +960,25 @@ func (ec *executionContext) _SecretEnv_contract(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*types.SecretEnv)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNSecretEnv2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnv(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_SecretEnv_contract(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_SecretEnvWithHash_secret(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "SecretEnv",
+		Object:     "SecretEnvWithHash",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SecretEnv_code_hash(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SecretEnv_code_hash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CodeHash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SecretEnv_code_hash(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SecretEnv",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SecretEnv_abi(ctx context.Context, field graphql.CollectedField, obj *types.SecretEnv) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SecretEnv_abi(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Abi, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SecretEnv_abi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SecretEnv",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "envs":
+				return ec.fieldContext_SecretEnv_envs(ctx, field)
+			case "files":
+				return ec.fieldContext_SecretEnv_files(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SecretEnv", field.Name)
 		},
 	}
 	return fc, nil
@@ -2545,6 +2757,74 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputEnv(ctx context.Context, obj interface{}) (types.Env, error) {
+	var it types.Env
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"envs", "files"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "envs":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("envs"))
+			data, err := ec.unmarshalNKvalue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐKvalueᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Envs = data
+		case "files":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("files"))
+			data, err := ec.unmarshalNKvalue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐKvalueᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Files = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputKvalue(ctx context.Context, obj interface{}) (types.Kvalue, error) {
+	var it types.Kvalue
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"key", "value"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "key":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Key = data
+		case "value":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Value = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2552,6 +2832,50 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(_ context.Context
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var lenValueImplementors = []string{"LenValue"}
+
+func (ec *executionContext) _LenValue(ctx context.Context, sel ast.SelectionSet, obj *types.LenValue) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, lenValueImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LenValue")
+		case "key":
+			out.Values[i] = ec._LenValue_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "len":
+			out.Values[i] = ec._LenValue_len(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
 
 var mutationImplementors = []string{"Mutation"}
 
@@ -2685,23 +3009,57 @@ func (ec *executionContext) _SecretEnv(ctx context.Context, sel ast.SelectionSet
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("SecretEnv")
-		case "project":
-			out.Values[i] = ec._SecretEnv_project(ctx, field, obj)
+		case "envs":
+			out.Values[i] = ec._SecretEnv_envs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "contract":
-			out.Values[i] = ec._SecretEnv_contract(ctx, field, obj)
+		case "files":
+			out.Values[i] = ec._SecretEnv_files(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "code_hash":
-			out.Values[i] = ec._SecretEnv_code_hash(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var secretEnvWithHashImplementors = []string{"SecretEnvWithHash"}
+
+func (ec *executionContext) _SecretEnvWithHash(ctx context.Context, sel ast.SelectionSet, obj *types.SecretEnvWithHash) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, secretEnvWithHashImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SecretEnvWithHash")
+		case "hash":
+			out.Values[i] = ec._SecretEnvWithHash_hash(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "abi":
-			out.Values[i] = ec._SecretEnv_abi(ctx, field, obj)
+		case "secret":
+			out.Values[i] = ec._SecretEnvWithHash_secret(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3069,7 +3427,49 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNSecretEnv2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnvᚄ(ctx context.Context, sel ast.SelectionSet, v []*types.SecretEnv) graphql.Marshaler {
+func (ec *executionContext) unmarshalNEnv2weteeᚗappᚋdsecretᚋtypeᚐEnv(ctx context.Context, v interface{}) (types.Env, error) {
+	res, err := ec.unmarshalInputEnv(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	res, err := graphql.UnmarshalInt(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNKvalue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐKvalueᚄ(ctx context.Context, v interface{}) ([]*types.Kvalue, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*types.Kvalue, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNKvalue2ᚖweteeᚗappᚋdsecretᚋtypeᚐKvalue(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNKvalue2ᚖweteeᚗappᚋdsecretᚋtypeᚐKvalue(ctx context.Context, v interface{}) (*types.Kvalue, error) {
+	res, err := ec.unmarshalInputKvalue(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNLenValue2ᚕᚖweteeᚗappᚋdsecretᚋtypeᚐLenValueᚄ(ctx context.Context, sel ast.SelectionSet, v []*types.LenValue) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3093,7 +3493,7 @@ func (ec *executionContext) marshalNSecretEnv2ᚕᚖweteeᚗappᚋdsecretᚋtype
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNSecretEnv2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnv(ctx, sel, v[i])
+			ret[i] = ec.marshalNLenValue2ᚖweteeᚗappᚋdsecretᚋtypeᚐLenValue(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3113,6 +3513,16 @@ func (ec *executionContext) marshalNSecretEnv2ᚕᚖweteeᚗappᚋdsecretᚋtype
 	return ret
 }
 
+func (ec *executionContext) marshalNLenValue2ᚖweteeᚗappᚋdsecretᚋtypeᚐLenValue(ctx context.Context, sel ast.SelectionSet, v *types.LenValue) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LenValue(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNSecretEnv2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnv(ctx context.Context, sel ast.SelectionSet, v *types.SecretEnv) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -3121,6 +3531,20 @@ func (ec *executionContext) marshalNSecretEnv2ᚖweteeᚗappᚋdsecretᚋtypeᚐ
 		return graphql.Null
 	}
 	return ec._SecretEnv(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSecretEnvWithHash2weteeᚗappᚋdsecretᚋtypeᚐSecretEnvWithHash(ctx context.Context, sel ast.SelectionSet, v types.SecretEnvWithHash) graphql.Marshaler {
+	return ec._SecretEnvWithHash(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSecretEnvWithHash2ᚖweteeᚗappᚋdsecretᚋtypeᚐSecretEnvWithHash(ctx context.Context, sel ast.SelectionSet, v *types.SecretEnvWithHash) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SecretEnvWithHash(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

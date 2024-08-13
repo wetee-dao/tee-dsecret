@@ -90,7 +90,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string) (*types.Reencry
 	}
 
 	rdrPk := req.RdrPk
-	scrt, err := d.GetSecret(context.TODO(), req.SecretId)
+	scrt, err := d.GetSecretData(context.TODO(), req.SecretId)
 	if err != nil {
 		return nil, fmt.Errorf("get secret: %w", err)
 	}
@@ -193,7 +193,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string) (*share.PubShar
 	distKeyShare := d.Share()
 	poly := share.NewPubPoly(ste, nil, distKeyShare.Commits)
 
-	scrt, err := d.GetSecret(context.TODO(), string(resp.SecretId))
+	scrt, err := d.GetSecretData(context.TODO(), string(resp.SecretId))
 	if err != nil {
 		return nil, fmt.Errorf("getting secret: %w", err)
 	}
@@ -258,7 +258,7 @@ func (r *DKG) SetSecret(ctx context.Context, scrt []byte) (string, error) {
 	return storeMsgID, nil
 }
 
-func (r *DKG) GetSecret(ctx context.Context, storeMsgID string) (*types.Secret, error) {
+func (r *DKG) GetSecretData(ctx context.Context, storeMsgID string) (*types.Secret, error) {
 	buf, err := store.GetKey("secret", storeMsgID)
 	if err != nil {
 		return nil, fmt.Errorf("get secret: %w", err)

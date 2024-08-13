@@ -6,18 +6,40 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	types "wetee.app/dsecret/type"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, project string) (bool, error) {
-	panic(fmt.Errorf("not implemented: UploadSecret - upload_secret"))
+func (r *mutationResolver) UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error) {
+	scrt, err := json.Marshal(secret)
+	if err != nil {
+		return nil, err
+	}
+	dkgIns.SetSecret(ctx, scrt)
+	return &types.SecretEnvWithHash{
+		Hash: "hash",
+		Secret: &types.SecretEnv{
+			Envs: []*types.LenValue{
+				{
+					Key: "key",
+					Len: 1,
+				},
+			},
+			Files: []*types.LenValue{
+				{
+					Key: "key",
+					Len: 1,
+				},
+			},
+		},
+	}, nil
 }
 
 // Secret is the resolver for the secret field.
-func (r *queryResolver) Secret(ctx context.Context, hash string) ([]*types.SecretEnv, error) {
+func (r *queryResolver) Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error) {
 	panic(fmt.Errorf("not implemented: Secret - secret"))
 }
 

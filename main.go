@@ -8,6 +8,7 @@ import (
 
 	"wetee.app/dsecret/chain"
 	"wetee.app/dsecret/dkg"
+	"wetee.app/dsecret/graph"
 	p2p "wetee.app/dsecret/peer"
 	"wetee.app/dsecret/store"
 	types "wetee.app/dsecret/type"
@@ -15,8 +16,6 @@ import (
 )
 
 func main() {
-	done := make(chan bool)
-
 	// 获取环境变量
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
@@ -126,8 +125,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	<-done
-	fmt.Println("Exit 0")
+	graph.StartServer(dkg)
 }
 
 // import (

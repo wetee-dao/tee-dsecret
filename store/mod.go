@@ -2,6 +2,8 @@ package store
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/edgelesssys/ego/ecrypto"
@@ -72,4 +74,42 @@ func SetKey(namespace, key string, value []byte) error {
 func GetKey(namespace, key string) ([]byte, error) {
 	value, _, err := DB.Get([]byte(namespace + "__" + key))
 	return value, err
+}
+
+func GetList(namespace string, page int, size int) ([][]byte, error) {
+	keyUpperBound := func(b []byte) []byte {
+		end := make([]byte, len(b))
+		copy(end, b)
+		for i := len(end) - 1; i >= 0; i-- {
+			end[i] = end[i] + 1
+			if end[i] != 0 {
+				return end[:i+1]
+			}
+		}
+		return nil // no upper-bound
+	}
+
+	prefixIterOptions := func(prefix []byte) *estore.IterOptions {
+		return &estore.IterOptions{
+			LowerBound: prefix,
+			UpperBound: keyUpperBound(prefix),
+		}
+	}
+
+	iter, err := DB.NewIter(prefixIterOptions([]byte(namespace)))
+	if err != nil {
+		return nil, err
+	}
+
+	value := make([][]byte, 0, page)
+	for iter.First(); iter.Valid(); iter.NextWithLimit() {
+		fmt.Printf("%s\n", iter.Value())
+		value = append(value, iter.Value())
+	}
+
+	if err := iter.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	return value, nil
 }
