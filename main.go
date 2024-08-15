@@ -15,11 +15,14 @@ import (
 	"wetee.app/dsecret/util"
 )
 
+var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:9944"
+
 func main() {
 	// 获取环境变量
 	peerSecret := util.GetEnv("PEER_PK", "")
 	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
 	udpPort := util.GetEnvInt("UDP_PORT", 61000)
+	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
 	password := util.GetEnv("PASSWORD", "")
 
 	// 初始化数据库
@@ -37,7 +40,7 @@ func main() {
 	}
 
 	// 链接区块链
-	err = chain.InitChain("wss://xiaobai.asyou.me:30001", nodeSecret)
+	err = chain.InitChain(chainAddr, nodeSecret)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
@@ -56,36 +59,14 @@ func main() {
 
 	// 检查节点代码是否和 wetee 上要求的版本一致
 
-	// 获取节点列表
-	nodesFromChain, err := chain.ChainClient.GetNodeList()
+	secretNodes, _, nodes, err := chain.ChainClient.GetNodes()
 	if err != nil {
 		fmt.Println("Get node list error:", err)
 		os.Exit(1)
 	}
-	workersFromChain, err := chain.ChainClient.GetWorkerList()
-	if err != nil {
-		fmt.Println("Get worker list error:", err)
-		os.Exit(1)
-	}
 
 	// 获取阈值参数
-	threshold := len(nodesFromChain) * 2 / 3
-	nodes := []*types.Node{}
-	for _, n := range nodesFromChain {
-		var gopub ed25519.PublicKey = n.Pubkey[:]
-		pub, _ := types.PubKeyFromStdPubKey(gopub)
-		nodes = append(nodes, &types.Node{
-			ID:   pub.String(),
-			Type: 1,
-		})
-	}
-	for _, w := range workersFromChain {
-		var gopub ed25519.PublicKey = w.Account[:]
-		pub, _ := types.PubKeyFromStdPubKey(gopub)
-		nodes = append(nodes, &types.Node{
-			ID: pub.String(),
-		})
-	}
+	threshold := len(secretNodes) * 2 / 3
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

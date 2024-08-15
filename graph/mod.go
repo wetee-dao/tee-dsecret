@@ -20,7 +20,7 @@ var dkgIns *dkg.DKG
 // StartServer starts the GraphQL server.
 func StartServer(d *dkg.DKG) {
 	dkgIns = d
-	port := util.GetEnvInt("PORT", 8880)
+	port := util.GetEnvInt("GQL_PORT", 8880)
 
 	// 创建路由
 	router := chi.NewRouter()

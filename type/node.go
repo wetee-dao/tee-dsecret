@@ -25,3 +25,27 @@ func (n *Node) PeerID() peer.ID {
 	}
 	return peer.ID(peerID)
 }
+
+// func NodeFromString(id string) (*Node, error) {
+// 	bt, err := b58.Decode(id)
+// 	if err != nil {
+// 		return nil, errors.New("b58.Decode error: " + err.Error())
+// 	}
+
+// 	pid := peer.ID(string(id))
+// 	pub, err := pid.ExtractPublicKey()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	bt, err = libp2pCrypto.MarshalPublicKey(pub)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	id = hex.EncodeToString(bt)
+
+// 	return &Node{
+// 		ID:   id,
+// 		Type: 0,
+// 	}, nil
+// }

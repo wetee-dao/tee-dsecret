@@ -3,11 +3,11 @@ package store
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/edgelesssys/ego/ecrypto"
 	"github.com/edgelesssys/estore"
+	"golang.org/x/crypto/blake2b"
 )
 
 const dbPath = "./db"
@@ -20,7 +20,7 @@ func InitDB(password string) error {
 
 	// Check if the database exists
 	if _, err := os.Stat(sealedKeyFile); os.IsNotExist(err) {
-		if err := os.Mkdir(dbPath, 0o700); err != nil {
+		if err := os.Mkdir(dbPath+"/addon", 0o700); err != nil {
 			return err
 		}
 
@@ -28,14 +28,14 @@ func InitDB(password string) error {
 			return err
 		}
 
-		if len(encryptionKey) == 0 {
-			if password == "" {
-				return errors.New("password is empty")
-			}
-			encryptionKey = []byte(password)
+		if password == "" {
+			return errors.New("password is empty")
 		}
 
-		sealedKey, err := ecrypto.SealWithUniqueKey(encryptionKey, nil)
+		hash := blake2b.Sum256([]byte(password))
+		encryptionKey = hash[:]
+
+		sealedKey, err := ecrypto.SealWithProductKey(encryptionKey, nil)
 		if err != nil {
 			return err
 		}
@@ -102,13 +102,13 @@ func GetList(namespace string, page int, size int) ([][]byte, error) {
 	}
 
 	value := make([][]byte, 0, page)
-	for iter.First(); iter.Valid(); iter.NextWithLimit() {
+	for iter.First(); iter.Valid(); iter.Next() {
 		fmt.Printf("%s\n", iter.Value())
 		value = append(value, iter.Value())
 	}
 
 	if err := iter.Close(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	return value, nil

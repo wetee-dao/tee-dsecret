@@ -1,12 +1,17 @@
 package chain
 
 import (
+	"crypto/ed25519"
+	"errors"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/go-sdk/core"
-	"github.com/wetee-dao/go-sdk/pallet/types"
+	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
 	"wetee.app/dsecret/util"
+
+	types "wetee.app/dsecret/type"
 )
 
 // RegisterNode register node
@@ -19,19 +24,50 @@ func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
 	return c.client.SignAndSubmit(signer, call, true)
 }
 
+func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, error) {
+	// 获取节点列表
+	secretNodes, err := c.GetNodeList()
+	if err != nil {
+		return nil, nil, nil, errors.New("Get node list error:" + err.Error())
+	}
+	workerNodes, err := c.GetWorkerList()
+	if err != nil {
+		return nil, nil, nil, errors.New("Get worker list error:" + err.Error())
+	}
+
+	nodes := []*types.Node{}
+	for _, n := range secretNodes {
+		var gopub ed25519.PublicKey = n[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
+		nodes = append(nodes, &types.Node{
+			ID:   pub.String(),
+			Type: 1,
+		})
+	}
+	for _, w := range workerNodes {
+		var gopub ed25519.PublicKey = w.Account[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
+		nodes = append(nodes, &types.Node{
+			ID: pub.String(),
+		})
+	}
+
+	return secretNodes, workerNodes, nodes, nil
+}
+
 // GetNodeList get node list
 // 获取节点列表
-func (c *Chain) GetNodeList() ([]*types.Node, error) {
+func (c *Chain) GetNodeList() ([][32]byte, error) {
 	ret, err := c.client.QueryMapAll("WeTEEDsecret", "Nodes")
 	if err != nil {
 		return nil, err
 	}
 
-	nodes := make([]*types.Node, 0)
+	nodes := make([][32]byte, 0)
 	for _, elem := range ret {
 		for _, change := range elem.Changes {
-			n := &types.Node{}
-			if err := codec.Decode(change.StorageData, n); err != nil {
+			n := [32]byte{}
+			if err := codec.Decode(change.StorageData, &n); err != nil {
 				util.LogError("codec.Decode", err)
 				continue
 			}
@@ -54,17 +90,17 @@ func (c *Chain) GetCodeMrsigner() ([]byte, error) {
 	return weteedsecret.GetCodeMrsignerLatest(c.client.Api.RPC.State)
 }
 
-func (c *Chain) GetWorkerList() ([]*types.K8sCluster, error) {
+func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 	ret, err := c.client.QueryMapAll("WeTEEWorker", "K8sClusters")
 	if err != nil {
 		return nil, err
 	}
 
 	// 获取节点列表
-	nodes := make([]*types.K8sCluster, 0)
+	nodes := make([]*gtypes.K8sCluster, 0)
 	for _, elem := range ret {
 		for _, change := range elem.Changes {
-			n := &types.K8sCluster{}
+			n := &gtypes.K8sCluster{}
 			if err := codec.Decode(change.StorageData, n); err != nil {
 				util.LogError("codec.Decode", err)
 				continue
@@ -76,6 +112,6 @@ func (c *Chain) GetWorkerList() ([]*types.K8sCluster, error) {
 	return nodes, nil
 }
 
-func (c *Chain) GetBootPeers() ([]types.P2PAddr, error) {
+func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
 	return weteeworker.GetBootPeersLatest(c.client.Api.RPC.State)
 }

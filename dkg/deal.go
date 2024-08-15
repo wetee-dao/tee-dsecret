@@ -61,7 +61,7 @@ func (dkg *DKG) HandleDeal(data []byte) error {
 	}
 
 	// 发送 deal resp
-	for _, node := range dkg.Nodes {
+	for _, node := range dkg.DkgNodes {
 		if node.PeerID() == dkg.Peer.ID() {
 			continue
 		}
@@ -122,7 +122,7 @@ func (dkg *DKG) HandleDealResp(data []byte) error {
 	}
 
 	// 发送 deal resp
-	for _, node := range dkg.Nodes {
+	for _, node := range dkg.DkgNodes {
 		if node.PeerID() == dkg.Peer.ID() {
 			continue
 		}

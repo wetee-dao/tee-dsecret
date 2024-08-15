@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"wetee.app/dsecret/tee"
 	types "wetee.app/dsecret/type"
 )
 
@@ -36,6 +37,26 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, secret types.Env) (
 			},
 		},
 	}, nil
+}
+
+// Test is the resolver for the test field.
+func (r *mutationResolver) Test(ctx context.Context, hash string) (bool, error) {
+	signer, _ := dkgIns.Signer.ToSigner()
+	repot, t, _ := tee.IssueReport(signer, nil)
+
+	param := types.TeeParam{
+		Report:  repot,
+		Time:    t,
+		TeeType: 0,
+		Address: signer.SS58Address(42),
+		Data:    nil,
+	}
+	bt, _ := json.Marshal(param)
+	dkgIns.HandleWorker(&types.Message{
+		Payload: bt,
+		Type:    "upload_cluster_proof",
+	})
+	return true, nil
 }
 
 // Secret is the resolver for the secret field.

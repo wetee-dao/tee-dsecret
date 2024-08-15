@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"crypto/ed25519"
 	"fmt"
 
 	chain "github.com/wetee-dao/go-sdk"
@@ -24,13 +23,7 @@ func InitChain(url string, pk *types.PrivKey) error {
 		return err
 	}
 
-	bt, err := pk.Raw()
-	if err != nil {
-		return err
-	}
-
-	var ed25519Key ed25519.PrivateKey = bt
-	p, err := core.Ed25519PairFromPk(ed25519Key, 42)
+	p, err := pk.ToSigner()
 	if err != nil {
 		return err
 	}
@@ -38,7 +31,7 @@ func InitChain(url string, pk *types.PrivKey) error {
 
 	ChainClient = &Chain{
 		client: client,
-		signer: &p,
+		signer: p,
 	}
 	return nil
 }

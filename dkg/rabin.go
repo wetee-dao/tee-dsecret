@@ -26,10 +26,14 @@ type DKG struct {
 	Suite suites.Suite
 	// NodeSecret 是长期的私钥。
 	NodeSecret kyber.Scalar
+	// Signer 是用于签名的私钥。
+	Signer *types.PrivKey
+	// AllNodes 是所有节点的集合
+	AllNodes []*types.Node
 	// Participants 是参与者的公钥列表。
 	Participants []kyber.Point
 	// Peer 是 P2P 网络主机。
-	Nodes []*types.Node
+	DkgNodes []*types.Node
 	// Threshold 是密钥重建所需的最小份额数量。
 	Threshold int
 	// Shares 是当前节点持有的密钥份额。
@@ -41,7 +45,7 @@ type DKG struct {
 	// DistKeyShare is the node private share
 	DkgKeyShare types.DistKeyShare // DKG node private share
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
-	preRecerve map[string]chan *share.PubShare
+	preRecerve map[string]chan interface{}
 	// 未初始化状态 => 0 | 初始化成功 => 1
 	status uint8
 }
@@ -76,13 +80,15 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 	// 创建 DKG 对象。
 	dkg := &DKG{
 		Suite:        suites.MustFind("Ed25519"),
+		NodeSecret:   NodeSecret.Scalar(),
+		Signer:       NodeSecret,
 		Participants: participants,
 		Threshold:    threshold,
 		Shares:       make(map[peer.ID]*share.PriShare),
-		NodeSecret:   NodeSecret.Scalar(),
 		Peer:         p,
-		Nodes:        dkgNodes,
-		preRecerve:   make(map[string]chan *share.PubShare),
+		AllNodes:     nodes,
+		DkgNodes:     dkgNodes,
+		preRecerve:   make(map[string]chan interface{}),
 	}
 
 	// 复原 DKG 对象
@@ -92,6 +98,10 @@ func NewRabinDKG(NodeSecret *types.PrivKey, nodes []*types.Node, threshold int, 
 
 // Start 启动 Rabin DKG 协议。
 func (dkg *DKG) Start(ctx context.Context) error {
+	// Add 请求回调 handler
+	dkg.Peer.AddHandler("dkg", dkg.HandleDkg)
+	dkg.Peer.AddHandler("worker", dkg.HandleWorker)
+
 	// 如果已经初始化，则直接返回
 	if dkg.status == 1 {
 		return nil
@@ -111,9 +121,6 @@ func (dkg *DKG) Start(ctx context.Context) error {
 		return fmt.Errorf("生成密钥份额失败: %w", err)
 	}
 
-	// Add 请求回调 handler
-	dkg.Peer.AddHandler("dkg", dkg.HandleMessage)
-
 	for {
 		if dkg.nodeLen()+1 <= dkg.Threshold {
 			time.Sleep(time.Second * 10)
@@ -124,7 +131,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	}
 
 	for i, deal := range deals {
-		err = dkg.SendDealMessage(ctx, dkg.Nodes[i], deal)
+		err = dkg.SendDealMessage(ctx, dkg.DkgNodes[i], deal)
 		if err != nil {
 			fmt.Println("Send error:", err)
 		}
@@ -137,7 +144,7 @@ func (dkg *DKG) nodeLen() int {
 	var len int
 	peers := dkg.Peer.Network().Peers()
 	for _, p := range peers {
-		for _, node := range dkg.Nodes {
+		for _, node := range dkg.DkgNodes {
 			if p == node.PeerID() {
 				len = len + 1
 			}
@@ -183,4 +190,36 @@ func (dkg *DKG) store() error {
 	}
 
 	return store.SetKey("G", "dkg", payload)
+}
+
+func (dkg *DKG) SendToNode(ctx context.Context, node *types.Node, pid string, message *types.Message) error {
+	if node == nil {
+		fmt.Println("node is nil")
+		return errors.New("node is nil")
+	}
+
+	message.OrgId = dkg.Peer.ID().String()
+	if dkg.Peer.ID() == node.PeerID() {
+		switch pid {
+		case "dkg":
+			go dkg.HandleDkg(message)
+			return nil
+		case "worker":
+			go dkg.HandleWorker(message)
+			return nil
+		default:
+			return errors.New("invalid pid")
+		}
+	}
+	return dkg.Peer.Send(ctx, node, pid, message)
+}
+
+func (dkg *DKG) GetNode(nodeId string) *types.Node {
+	for _, node := range dkg.DkgNodes {
+		if node.PeerID().String() == nodeId {
+			return node
+		}
+	}
+
+	return nil
 }

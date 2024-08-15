@@ -1,8 +1,8 @@
 package types
 
+import "go.dedis.ch/kyber/v3/share"
+
 type ReencryptSecretRequest struct {
-	// 来源ID
-	OrgId string `json:"org_id,omitempty"`
 	// 密文ID
 	SecretId string `json:"secret_id,omitempty"`
 	// 密文接收者公钥
@@ -10,8 +10,6 @@ type ReencryptSecretRequest struct {
 }
 
 type ReencryptedSecretShare struct {
-	// 来源ID
-	OrgId string `json:"org_id,omitempty"`
 	// 密文ID
 	SecretId string `json:"secret_id,omitempty"`
 	// 密文接收者公钥
@@ -27,4 +25,13 @@ type ReencryptedSecretShare struct {
 	// NIZK proofi of re-encryption
 	// NIZK 重新加密证明
 	Proofi []byte `json:"proofi,omitempty"`
+}
+
+type ReencryptedSecretShareReply struct {
+	// 密文ID
+	SecretId string `json:"secret_id,omitempty"`
+	// 密文接收者公钥
+	RdrPk *PubKey `json:"rdr_pk,omitempty"`
+	// 密钥碎片
+	Share share.PubShare
 }
