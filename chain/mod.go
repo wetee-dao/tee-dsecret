@@ -9,7 +9,7 @@ import (
 )
 
 // ChainClient
-var ChainClient *Chain
+var ChainIns *Chain
 
 // Chain
 type Chain struct {
@@ -29,9 +29,13 @@ func InitChain(url string, pk *types.PrivKey) error {
 	}
 	fmt.Println("Node chain pubkey:", p.Address)
 
-	ChainClient = &Chain{
+	ChainIns = &Chain{
 		client: client,
 		signer: p,
 	}
 	return nil
+}
+
+func (c *Chain) GetClient() *chain.ChainClient {
+	return c.client
 }

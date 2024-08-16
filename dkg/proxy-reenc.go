@@ -31,7 +31,7 @@ func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.Reencry
 	d.mu.Unlock()
 
 	for _, n := range d.DkgNodes {
-		err = d.SendToNode(context.Background(), n, "dkg", &types.Message{
+		err = d.SendToNode(context.Background(), n, "worker", &types.Message{
 			Type:    "reencrypt_secret_request",
 			Payload: payload,
 		})
@@ -117,7 +117,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	if n == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
-	err = d.SendToNode(context.Background(), n, "dkg", &types.Message{
+	err = d.SendToNode(context.Background(), n, "worker", &types.Message{
 		MsgID:   msgID,
 		Type:    "reencrypted_secret_reply",
 		Payload: bt,
@@ -195,9 +195,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 		return nil
 	}
 
-	d.mu.Lock()
 	d.preRecerve[msgID] <- &reply.Share
-	d.mu.Unlock()
 
 	return nil
 

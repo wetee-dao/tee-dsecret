@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// Get boot peers from chain
-	bootPeers, err := chain.ChainClient.GetBootPeers()
+	bootPeers, err := chain.ChainIns.GetBootPeers()
 	if err != nil {
 		fmt.Println("Get node list error:", err)
 		os.Exit(1)
@@ -59,7 +59,7 @@ func main() {
 
 	// 检查节点代码是否和 wetee 上要求的版本一致
 
-	secretNodes, _, nodes, err := chain.ChainClient.GetNodes()
+	secretNodes, _, nodes, err := chain.ChainIns.GetNodes()
 	if err != nil {
 		fmt.Println("Get node list error:", err)
 		os.Exit(1)

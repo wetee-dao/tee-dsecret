@@ -34,19 +34,6 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 			util.LogError("DEAL", "HandleSecretCommits err: ", err)
 		}
 		return err
-	/// -------------------- Reencrypt -----------------------
-	case "reencrypt_secret_request":
-		err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgID, msg.OrgId)
-		if err != nil {
-			util.LogError("DEAL", "HandleReencryptSecretRequest err: ", err)
-		}
-		return err
-	case "reencrypted_secret_reply":
-		err := dkg.HandleReencryptedShare(msg.Payload, msg.MsgID, msg.OrgId)
-		if err != nil {
-			util.LogError("DEAL", "HandleReencryptSecretRequest err: ", err)
-		}
-		return err
 	default:
 		return fmt.Errorf("unknown message type: %s", msg.Type)
 	}
@@ -54,22 +41,36 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 
 func (dkg *DKG) HandleWorker(msg *types.Message) error {
 	switch msg.Type {
+	/// -------------------- Proof -----------------------
 	case "upload_cluster_proof":
 		err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
 		if err != nil {
-			util.LogError("DEAL", "HandleUploadClusterProof err: ", err)
+			util.LogError("WORKER", "HandleUploadClusterProof err: ", err)
 		}
 		return err
 	case "sign_cluster_proof":
 		err := dkg.HandleSignClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
 		if err != nil {
-			util.LogError("DEAL", "HandleSignClusterProof err: ", err)
+			util.LogError("WORKER", "HandleSignClusterProof err: ", err)
 		}
 		return err
 	case "sign_cluster_proof_reply":
 		err := dkg.HandleSignClusterProofReply(msg.Payload, msg.MsgID, msg.OrgId)
 		if err != nil {
-			util.LogError("DEAL", "HandleSignClusterProofReply err: ", err)
+			util.LogError("WORKER", "HandleSignClusterProofReply err: ", err)
+		}
+		return err
+	/// -------------------- Reencrypt -----------------------
+	case "reencrypt_secret_request":
+		err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgID, msg.OrgId)
+		if err != nil {
+			util.LogError("secret", "HandleReencryptSecretRequest err: ", err)
+		}
+		return err
+	case "reencrypted_secret_reply":
+		err := dkg.HandleReencryptedShare(msg.Payload, msg.MsgID, msg.OrgId)
+		if err != nil {
+			util.LogError("secret", "HandleReencryptSecretRequest err: ", err)
 		}
 		return err
 	default:

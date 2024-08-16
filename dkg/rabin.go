@@ -19,7 +19,7 @@ import (
 
 // DKG 代表 Rabin DKG 协议的实例。
 type DKG struct {
-	mu sync.Mutex
+	mu sync.RWMutex
 	// Host 是 P2P 网络主机。
 	Peer *p2peer.Peer
 	// Suite 是加密套件。

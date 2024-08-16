@@ -17,7 +17,7 @@ require (
 
 require (
 	github.com/99designs/gqlgen v0.17.49
-	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.1
+	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.2-0.20240731190417-9d7be34be928
 	github.com/edgelesssys/ego v1.5.3
 	github.com/fatih/color v1.17.0
 	github.com/go-chi/chi/v5 v5.1.0
@@ -140,7 +140,7 @@ require (
 	go.uber.org/dig v1.17.1 // indirect
 	go.uber.org/fx v1.22.1 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/crypto v0.25.0
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
