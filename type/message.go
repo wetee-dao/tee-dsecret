@@ -7,4 +7,11 @@ type Message struct {
 	OrgId   string `json:"org_id,omitempty"`
 	Type    string `json:"type"`
 	Payload []byte `json:"payload"`
+	// 错误信息
+	Error string `json:"error"`
+}
+
+type Kvs struct {
+	K string `json:"key"`
+	V []byte `json:"value"`
 }

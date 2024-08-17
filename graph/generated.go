@@ -49,12 +49,11 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	LenValue struct {
-		Key func(childComplexity int) int
-		Len func(childComplexity int) int
+		K func(childComplexity int) int
+		V func(childComplexity int) int
 	}
 
 	Mutation struct {
-		Test         func(childComplexity int, hash string) int
 		UploadSecret func(childComplexity int, secret types.Env) int
 	}
 
@@ -75,7 +74,6 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error)
-	Test(ctx context.Context, hash string) (bool, error)
 }
 type QueryResolver interface {
 	Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error)
@@ -100,31 +98,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "LenValue.key":
-		if e.complexity.LenValue.Key == nil {
+	case "LenValue.k":
+		if e.complexity.LenValue.K == nil {
 			break
 		}
 
-		return e.complexity.LenValue.Key(childComplexity), true
+		return e.complexity.LenValue.K(childComplexity), true
 
-	case "LenValue.len":
-		if e.complexity.LenValue.Len == nil {
+	case "LenValue.v":
+		if e.complexity.LenValue.V == nil {
 			break
 		}
 
-		return e.complexity.LenValue.Len(childComplexity), true
-
-	case "Mutation.test":
-		if e.complexity.Mutation.Test == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_test_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.Test(childComplexity, args["hash"].(string)), true
+		return e.complexity.LenValue.V(childComplexity), true
 
 	case "Mutation.upload_secret":
 		if e.complexity.Mutation.UploadSecret == nil {
@@ -308,21 +294,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_test_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["hash"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["hash"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -460,8 +431,8 @@ func (ec *executionContext) _mutationMiddleware(ctx context.Context, obj *ast.Op
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _LenValue_key(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_LenValue_key(ctx, field)
+func (ec *executionContext) _LenValue_k(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LenValue_k(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -474,7 +445,7 @@ func (ec *executionContext) _LenValue_key(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Key, nil
+		return obj.K, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -491,7 +462,7 @@ func (ec *executionContext) _LenValue_key(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_LenValue_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_LenValue_k(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LenValue",
 		Field:      field,
@@ -504,8 +475,8 @@ func (ec *executionContext) fieldContext_LenValue_key(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _LenValue_len(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_LenValue_len(ctx, field)
+func (ec *executionContext) _LenValue_v(ctx context.Context, field graphql.CollectedField, obj *types.LenValue) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LenValue_v(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -518,7 +489,7 @@ func (ec *executionContext) _LenValue_len(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Len, nil
+		return obj.V, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -535,7 +506,7 @@ func (ec *executionContext) _LenValue_len(ctx context.Context, field graphql.Col
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_LenValue_len(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_LenValue_v(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LenValue",
 		Field:      field,
@@ -623,61 +594,6 @@ func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_upload_secret_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_test(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_test(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Test(rctx, fc.Args["hash"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Mutation_test(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_test_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -913,10 +829,10 @@ func (ec *executionContext) fieldContext_SecretEnv_envs(_ context.Context, field
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "key":
-				return ec.fieldContext_LenValue_key(ctx, field)
-			case "len":
-				return ec.fieldContext_LenValue_len(ctx, field)
+			case "k":
+				return ec.fieldContext_LenValue_k(ctx, field)
+			case "v":
+				return ec.fieldContext_LenValue_v(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LenValue", field.Name)
 		},
@@ -963,10 +879,10 @@ func (ec *executionContext) fieldContext_SecretEnv_files(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "key":
-				return ec.fieldContext_LenValue_key(ctx, field)
-			case "len":
-				return ec.fieldContext_LenValue_len(ctx, field)
+			case "k":
+				return ec.fieldContext_LenValue_k(ctx, field)
+			case "v":
+				return ec.fieldContext_LenValue_v(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LenValue", field.Name)
 		},
@@ -2882,27 +2798,27 @@ func (ec *executionContext) unmarshalInputKvalue(ctx context.Context, obj interf
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"key", "value"}
+	fieldsInOrder := [...]string{"k", "v"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "key":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
+		case "k":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("k"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Key = data
-		case "value":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("value"))
+			it.K = data
+		case "v":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("v"))
 			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Value = data
+			it.V = data
 		}
 	}
 
@@ -2928,13 +2844,13 @@ func (ec *executionContext) _LenValue(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("LenValue")
-		case "key":
-			out.Values[i] = ec._LenValue_key(ctx, field, obj)
+		case "k":
+			out.Values[i] = ec._LenValue_k(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "len":
-			out.Values[i] = ec._LenValue_len(ctx, field, obj)
+		case "v":
+			out.Values[i] = ec._LenValue_v(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -2983,13 +2899,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "upload_secret":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_upload_secret(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "test":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_test(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

@@ -13,7 +13,6 @@ import (
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
-	"golang.org/x/crypto/blake2b"
 
 	"wetee.app/dsecret/chain"
 	"wetee.app/dsecret/tee"
@@ -21,33 +20,35 @@ import (
 )
 
 // HandleDeal 处理密钥份额消息
-func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string) error {
+func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string) ([]byte, error) {
 	workerReport := &types.TeeParam{}
 	err := json.Unmarshal(data, workerReport)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 通过地址获取集群信息
-	_, account, _ := subkey.SS58Decode("5C5NWbLEkbb6gb7prqZEDcJnNe2y4SmBwZHbaoxyLdqHm3v2") //(workerReport.Address)
+	_, account, _ := subkey.SS58Decode(workerReport.Address)
 	var account32 [32]byte
 	copy(account32[:], account)
-	cid, ok, err := weteeworker.GetK8sClusterAccountsLatest(chain.ChainIns.GetClient().Api.RPC.State, account32)
+	clusterId, ok, err := weteeworker.GetK8sClusterAccountsLatest(chain.ChainIns.GetClient().Api.RPC.State, account32)
 	if err != nil || !ok {
-		return errors.New("get k8s cluster error")
+		return nil, errors.New("get k8s cluster error")
 	}
 
-	msgId := uuid.NewV4().String()
+	if msgID == "" {
+		msgID = uuid.NewV4().String()
+	}
 
 	dkg.mu.Lock()
-	dkg.preRecerve[msgId] = make(chan interface{})
+	dkg.preRecerve[msgID] = make(chan interface{})
 	dkg.mu.Unlock()
 
 	// 请求节点验证签名
 	errNum := 0
 	for _, node := range dkg.DkgNodes {
 		err := dkg.SendToNode(context.Background(), node, "worker", &types.Message{
-			MsgID:   msgId,
+			MsgID:   msgID,
 			Type:    "sign_cluster_proof",
 			Payload: data,
 		})
@@ -57,40 +58,56 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	}
 
 	if len(dkg.DkgNodes)-errNum < dkg.Threshold {
-		return errors.New("not enough nodes")
+		return nil, errors.New("not enough nodes")
 	}
 
 	pubs := make([][32]byte, 0, len(dkg.DkgNodes))
 	sigs := make([]gtypes.MultiSignature, 0, len(dkg.DkgNodes))
 	for i := 0; i <= dkg.Threshold; i++ {
 		select {
-		case d := <-dkg.preRecerve[msgId]:
+		case d := <-dkg.preRecerve[msgID]:
 			data := d.(*ReportSign)
 			pubs = append(pubs, data.account)
 			sigs = append(sigs, data.sig)
 		case <-time.After(30 * time.Second):
 			fmt.Println("Timeout receiving from channel")
-			return fmt.Errorf("timeout receiving from channel")
+			return nil, fmt.Errorf("timeout receiving from channel")
 		}
 	}
 
 	// 获取交易帐户
 	s, err := dkg.Signer.ToSigner()
 	if err != nil {
-		return errors.New("signer to signer: " + err.Error())
+		return nil, errors.New("signer to signer: " + err.Error())
 	}
 
 	dkg.mu.Lock()
-	delete(dkg.preRecerve, msgId)
+	delete(dkg.preRecerve, msgID)
 	dkg.mu.Unlock()
 
 	ins := chain.ChainIns.GetClient()
 	ins.CheckMetadata()
 
+	cid, err := types.CidFromBytes(workerReport.Report)
+	if err != nil {
+		return nil, errors.New("cid from bytes: " + err.Error())
+	}
+
 	// 提交证明
-	hash := blake2b.Sum512(workerReport.Report)
-	call := weteedsecret.MakeUploadClusterProofCall(cid, hash[:], pubs, sigs)
-	return ins.SignAndSubmit(s, call, false)
+	call := weteedsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
+	err = ins.SignAndSubmit(s, call, false)
+	if err != nil {
+		return nil, errors.New("submit: " + err.Error())
+	}
+
+	err = dkg.SetSecretData([]types.Kvs{
+		{K: cid.KeyString(), V: workerReport.Report},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("set secret: %w", err)
+	}
+
+	return cid.Bytes(), nil
 }
 
 func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) error {
@@ -119,8 +136,12 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 		return errors.New("signer to signer: " + err.Error())
 	}
 
-	hash := blake2b.Sum512(workerReport.Report)
-	sig, err := siger.Sign(hash[:])
+	// 计算 cid
+	cid, err := types.CidFromBytes(workerReport.Report)
+	if err != nil {
+		return errors.New("cid from bytes: " + err.Error())
+	}
+	sig, err := siger.Sign(cid.Bytes())
 	if err != nil {
 		return errors.New("sign: " + err.Error())
 	}

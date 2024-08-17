@@ -154,7 +154,7 @@ type Secret struct {
 }
 
 func CidFromBytes(b []byte) (cid.Cid, error) {
-	h, err := mh.Sum(b, mh.SHA2_256, -1)
+	h, err := mh.Sum(b, mh.BLAKE2B_MIN, -1)
 	if err != nil {
 		return cid.Undef, err
 	}

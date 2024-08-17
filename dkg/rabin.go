@@ -101,6 +101,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 	// Add 请求回调 handler
 	dkg.Peer.AddHandler("dkg", dkg.HandleDkg)
 	dkg.Peer.AddHandler("worker", dkg.HandleWorker)
+	go dkg.HandleSecretSave(ctx)
 
 	// 如果已经初始化，则直接返回
 	if dkg.status == 1 {
@@ -215,7 +216,7 @@ func (dkg *DKG) SendToNode(ctx context.Context, node *types.Node, pid string, me
 }
 
 func (dkg *DKG) GetNode(nodeId string) *types.Node {
-	for _, node := range dkg.DkgNodes {
+	for _, node := range dkg.AllNodes {
 		if node.PeerID().String() == nodeId {
 			return node
 		}

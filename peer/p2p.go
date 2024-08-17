@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
@@ -175,44 +174,4 @@ func (t *Peer) RemoveHandler(pid protocol.ID) {
 // Close 关闭 P2P 网络实例
 func (p *Peer) Close() error {
 	return p.Host.Close()
-}
-
-func genStream(handler func(*types.Message) error) func(network.Stream) {
-	return func(stream network.Stream) {
-		buf, err := io.ReadAll(stream)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Printf("read stream: %s", err)
-			}
-
-			err = stream.Reset()
-			if err != nil {
-				fmt.Printf("reset stream: %s", err)
-			}
-
-			return
-		}
-
-		protocolID := stream.Protocol()
-
-		err = stream.Close()
-		if err != nil {
-			fmt.Printf("close stream: %s", err)
-			return
-		}
-
-		data := &types.Message{}
-		err = json.Unmarshal(buf, data)
-		if err != nil {
-			fmt.Printf("unmarshal data: %s", err)
-			return
-		}
-
-		util.LogRevmsg("<<<<<< P2P  Rev()", "from ", stream.Conn().RemotePeer(), "| type:", data.Type+", ProtocolID =", protocolID)
-		err = handler(data)
-		if err != nil {
-			fmt.Printf("handle data: %s \n", err)
-			return
-		}
-	}
 }

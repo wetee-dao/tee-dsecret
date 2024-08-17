@@ -1,6 +1,8 @@
 package dkg
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	types "wetee.app/dsecret/type"
@@ -43,10 +45,26 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 	switch msg.Type {
 	/// -------------------- Proof -----------------------
 	case "upload_cluster_proof":
-		err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
-		if err != nil {
-			util.LogError("WORKER", "HandleUploadClusterProof err: ", err)
+		hash, err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
+		if msg.OrgId != "" && msg.MsgID != "" {
+			n := dkg.GetNode(msg.OrgId)
+			if n == nil {
+				return fmt.Errorf("node not found: %s", msg.OrgId)
+			}
+			errStr := ""
+			if err != nil {
+				errStr = err.Error()
+			}
+			if err := dkg.SendToNode(context.Background(), n, "worker", &types.Message{
+				MsgID:   msg.MsgID,
+				Type:    "upload_cluster_proof_reply",
+				Payload: hash[:],
+				Error:   errStr,
+			}); err != nil {
+				return errors.New("send to node: " + err.Error())
+			}
 		}
+
 		return err
 	case "sign_cluster_proof":
 		err := dkg.HandleSignClusterProof(msg.Payload, msg.MsgID, msg.OrgId)

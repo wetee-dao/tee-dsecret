@@ -6,62 +6,18 @@ package graph
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
-	"wetee.app/dsecret/tee"
 	types "wetee.app/dsecret/type"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
 func (r *mutationResolver) UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error) {
-	scrt, err := json.Marshal(secret)
-	if err != nil {
-		return nil, err
-	}
-	dkgIns.SetSecret(ctx, scrt)
-	return &types.SecretEnvWithHash{
-		Hash: "hash",
-		Secret: &types.SecretEnv{
-			Envs: []*types.LenValue{
-				{
-					Key: "key",
-					Len: 1,
-				},
-			},
-			Files: []*types.LenValue{
-				{
-					Key: "key",
-					Len: 1,
-				},
-			},
-		},
-	}, nil
-}
-
-// Test is the resolver for the test field.
-func (r *mutationResolver) Test(ctx context.Context, hash string) (bool, error) {
-	signer, _ := dkgIns.Signer.ToSigner()
-	repot, t, _ := tee.IssueReport(signer, nil)
-
-	param := types.TeeParam{
-		Report:  repot,
-		Time:    t,
-		TeeType: 0,
-		Address: signer.SS58Address(42),
-		Data:    nil,
-	}
-	bt, _ := json.Marshal(param)
-	dkgIns.HandleWorker(&types.Message{
-		Payload: bt,
-		Type:    "upload_cluster_proof",
-	})
-	return true, nil
+	return dkgIns.SetSecret(ctx, secret)
 }
 
 // Secret is the resolver for the secret field.
 func (r *queryResolver) Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error) {
-	panic(fmt.Errorf("not implemented: Secret - secret"))
+	return dkgIns.GetSecretPubData(ctx, hash)
 }
 
 // Mutation returns MutationResolver implementation.

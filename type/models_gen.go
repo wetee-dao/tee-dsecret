@@ -10,15 +10,15 @@ type Env struct {
 }
 
 type Kvalue struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	K string `json:"k"`
+	V string `json:"v"`
 }
 
 // 加密值
 // Secret value
 type LenValue struct {
-	Key string `json:"key"`
-	Len int    `json:"len"`
+	K string `json:"k"`
+	V int    `json:"v"`
 }
 
 type Mutation struct {
