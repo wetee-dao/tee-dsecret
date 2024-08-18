@@ -65,7 +65,6 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 				return errors.New("send to node: " + err.Error())
 			}
 		}
-
 		return err
 	case "sign_cluster_proof":
 		err := dkg.HandleSignClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
@@ -128,7 +127,7 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 			}
 
 			errStr := ""
-			var keyBt []byte
+			keyBt := []byte{}
 			if err != nil {
 				errStr = err.Error()
 			} else {
@@ -146,6 +145,6 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 		}
 		return err
 	default:
-		return fmt.Errorf("unknown message type: %s", msg.Type)
+		return nil
 	}
 }

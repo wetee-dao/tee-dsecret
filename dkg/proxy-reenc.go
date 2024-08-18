@@ -57,7 +57,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 	req := &types.ReencryptSecretRequest{}
 	err = json.Unmarshal(payload, req)
 	if err != nil {
-		return nil, fmt.Errorf("unmarshal reencrypt secret request: %w", err)
+		return nil, fmt.Errorf("unmarshal ReencryptSecretRequest: %w", err)
 	}
 
 	// get secret
@@ -78,7 +78,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	req := &types.ReencryptSecretRequest{}
 	err := json.Unmarshal(reqBt, req)
 	if err != nil {
-		return fmt.Errorf("unmarshal reencrypt secret request: %w", err)
+		return fmt.Errorf("HandleProcessReencrypt unmarshal reencrypt secret request: %w", err)
 	}
 
 	rdrPk := req.RdrPk
@@ -200,6 +200,5 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 	}
 
 	d.preRecerve[msgID] <- &reply.Share
-
 	return nil
 }

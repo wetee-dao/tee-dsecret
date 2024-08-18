@@ -14,10 +14,12 @@ import (
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
+	"golang.org/x/crypto/blake2b"
 
 	"wetee.app/dsecret/chain"
 	"wetee.app/dsecret/tee"
 	types "wetee.app/dsecret/type"
+	"wetee.app/dsecret/util"
 )
 
 // HandleDeal 处理密钥份额消息
@@ -205,6 +207,11 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 	// 解析请求
 	req := &types.LaunchRequest{}
 	err := json.Unmarshal(payload, req)
+	if err != nil {
+		return nil, errors.New("HandleWorkLaunchRequest unmarshal reencrypt secret request: " + err.Error())
+	}
+
+	wid := util.GetWorkTypeFromWorkId(req.WorkID)
 
 	// decode address
 	_, cpub, err := subkey.SS58Decode(req.Cluster.Address)
@@ -241,14 +248,14 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 	}
 
 	// 获取 secret
-	id, err := module.GetSecretEnv(chain.ChainIns.GetClient(), *req.WorkID)
+	id, isSome, err := module.GetSecretEnv(chain.ChainIns.GetClient(), wid)
 	if err != nil {
 		return nil, errors.New("get secret env: " + err.Error())
 	}
 
 	// 如无 secret env 则直接返回
-	if id == nil {
-		return nil, nil
+	if id == nil || !isSome {
+		return &types.ReencryptSecret{}, nil
 	}
 
 	deployerPub, err := types.PublicKeyFromLibp2pBytes(deployer)
@@ -262,24 +269,28 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 }
 
 func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error {
+	wid := util.GetWorkTypeFromWorkId(req.WorkID)
+
 	// 上传最新的应用deploy key
 	// 获取部署帐户
 	var deployKey [32]byte
 	copy(deployKey[:], deployer)
 
-	report, _ := json.Marshal(req.Libos)
+	reportData, _ := json.Marshal(req.Libos)
+	report := blake2b.Sum256(reportData)
 
 	// TODO 暂时全部设置为true
 	hasReport := true
 	if len(report) > 0 {
 		hasReport = true
 	}
+
 	runtimeCall := weteedsecret.MakeWorkLaunchCall(
-		*req.WorkID,
+		wid,
 		gtypes.OptionTByteSlice{
 			IsNone:       !hasReport,
 			IsSome:       hasReport,
-			AsSomeField0: report,
+			AsSomeField0: report[:],
 		},
 		deployKey,
 	)
