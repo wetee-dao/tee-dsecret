@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
-	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/share"
 
 	proxy_reenc "wetee.app/dsecret/dkg/proxy-reenc"
@@ -19,19 +17,13 @@ import (
 
 // SendEncryptedSecretRequest sends a request to reencrypt a secret
 // and waits for responses from all nodes.
-func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.ReencryptSecretRequest) (kyber.Point, error) {
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("marshal reencrypt secret request: %w", err)
-	}
-
-	msgId := uuid.NewV4().String()
+func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId string) (*types.ReencryptSecret, error) {
 	d.mu.Lock()
-	d.preRecerve[msgId] = make(chan interface{})
+	d.preRecerve[msgID] = make(chan interface{})
 	d.mu.Unlock()
 
 	for _, n := range d.DkgNodes {
-		err = d.SendToNode(context.Background(), n, "worker", &types.Message{
+		err := d.SendToNode(context.Background(), n, "worker", &types.Message{
 			Type:    "reencrypt_secret_request",
 			Payload: payload,
 		})
@@ -43,7 +35,7 @@ func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.Reencry
 	psk := make([]*share.PubShare, 0, len(d.DkgNodes))
 	for i := 0; i < d.Threshold; i++ {
 		select {
-		case d := <-d.preRecerve[msgId]:
+		case d := <-d.preRecerve[msgID]:
 			data := d.(*share.PubShare)
 			fmt.Println("Received:", data)
 			psk = append(psk, data)
@@ -54,7 +46,7 @@ func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.Reencry
 	}
 
 	d.mu.Lock()
-	delete(d.preRecerve, msgId)
+	delete(d.preRecerve, msgID)
 	d.mu.Unlock()
 
 	xncCmt, err := proxy_reenc.Recover(d.Suite, psk, d.Threshold, len(d.DkgNodes))
@@ -62,7 +54,23 @@ func (d *DKG) SendEncryptedSecretRequest(ctx context.Context, req *types.Reencry
 		return nil, fmt.Errorf("recover reencrypt reply: %s", err)
 	}
 
-	return xncCmt, nil
+	req := &types.ReencryptSecretRequest{}
+	err = json.Unmarshal(payload, req)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal reencrypt secret request: %w", err)
+	}
+
+	// get secret
+	scrt, err := d.GetSecretData(req.SecretId)
+	if err != nil {
+		return nil, fmt.Errorf("encrypted secret for %s not found", req.SecretId)
+	}
+
+	xncCmtBt, _ := xncCmt.MarshalBinary()
+	return &types.ReencryptSecret{
+		XncCmt:  xncCmtBt,
+		EncScrt: scrt.EncScrt,
+	}, nil
 }
 
 // HandleProcessReencrypt processes a reencrypt request.
@@ -74,14 +82,10 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	}
 
 	rdrPk := req.RdrPk
-	scrt, err := d.GetSecretData(context.TODO(), req.SecretId)
+	scrt, err := d.GetSecretData(req.SecretId)
 	if err != nil {
 		return fmt.Errorf("get secret: %w", err)
 	}
-
-	// if r.DKG.State() != d.CERTIFIED.String() {
-	// 	return nil, fmt.Errorf("dkg not certified yet: %s", r.DKG.State())
-	// }
 
 	share := d.Share()
 	reply, err := proxy_reenc.Reencrypt(share, scrt, *rdrPk)
@@ -173,7 +177,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 	distKeyShare := d.Share()
 	poly := share.NewPubPoly(ste, nil, distKeyShare.Commits)
 
-	scrt, err := d.GetSecretData(context.TODO(), string(req.SecretId))
+	scrt, err := d.GetSecretData(req.SecretId)
 	if err != nil {
 		return fmt.Errorf("getting secret: %w", err)
 	}
@@ -198,5 +202,4 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 	d.preRecerve[msgID] <- &reply.Share
 
 	return nil
-
 }

@@ -10,6 +10,7 @@ import (
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	uuid "github.com/satori/go.uuid"
 	"github.com/vedhavyas/go-subkey/v2"
+	"github.com/wetee-dao/go-sdk/module"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
@@ -101,7 +102,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	}
 
 	err = dkg.SetSecretData([]types.Kvs{
-		{K: cid.KeyString(), V: workerReport.Report},
+		{K: cid.String(), V: workerReport.Report},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("set secret: %w", err)
@@ -196,6 +197,94 @@ func (dkg *DKG) HandleSignClusterProofReply(data []byte, msgID string, OrgId str
 	}
 
 	return nil
+}
+
+// SendEncryptedSecretRequest sends a request to reencrypt a secret
+// and waits for responses from all nodes.
+func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string) (*types.ReencryptSecret, error) {
+	// 解析请求
+	req := &types.LaunchRequest{}
+	err := json.Unmarshal(payload, req)
+
+	// decode address
+	_, cpub, err := subkey.SS58Decode(req.Cluster.Address)
+	if err != nil {
+		return nil, errors.New("SS58 decode: " + err.Error())
+	}
+
+	_, err = tee.VerifyReport(req.Cluster.Report, req.Cluster.Data, cpub, req.Cluster.Time)
+	if err != nil {
+		return nil, errors.New("verify cluster report: " + err.Error())
+	}
+
+	// TODO
+	// 校验 worker 代码版本
+
+	// decode address
+	_, deployer, err := subkey.SS58Decode(req.Libos.Address)
+	if err != nil {
+		return nil, errors.New("SS58 decode: " + err.Error())
+	}
+
+	_, err = tee.VerifyReport(req.Libos.Report, req.Libos.Data, deployer, req.Libos.Time)
+	if err != nil {
+		return nil, errors.New("verify cluster report: " + err.Error())
+	}
+
+	// TODO
+	// 校验 libos 版本
+
+	// 提交 work 启动的参数到区块链
+	err = d.SubmitLaunchWork(deployer, req)
+	if err != nil {
+		return nil, errors.New("MakeWorkLaunchCall submit: " + err.Error())
+	}
+
+	// 获取 secret
+	id, err := module.GetSecretEnv(chain.ChainIns.GetClient(), *req.WorkID)
+	if err != nil {
+		return nil, errors.New("get secret env: " + err.Error())
+	}
+
+	// 如无 secret env 则直接返回
+	if id == nil {
+		return nil, nil
+	}
+
+	deployerPub, err := types.PublicKeyFromLibp2pBytes(deployer)
+	reencryptReq := &types.ReencryptSecretRequest{
+		RdrPk:    deployerPub,
+		SecretId: string(id),
+	}
+	rbt, _ := json.Marshal(reencryptReq)
+
+	return d.SendEncryptedSecretRequest(rbt, msgID, OrgId)
+}
+
+func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error {
+	// 上传最新的应用deploy key
+	// 获取部署帐户
+	var deployKey [32]byte
+	copy(deployKey[:], deployer)
+
+	report, _ := json.Marshal(req.Libos)
+
+	// TODO 暂时全部设置为true
+	hasReport := true
+	if len(report) > 0 {
+		hasReport = true
+	}
+	runtimeCall := weteedsecret.MakeWorkLaunchCall(
+		*req.WorkID,
+		gtypes.OptionTByteSlice{
+			IsNone:       !hasReport,
+			IsSome:       hasReport,
+			AsSomeField0: report,
+		},
+		deployKey,
+	)
+	signer, _ := d.Signer.ToSigner()
+	return chain.ChainIns.GetClient().SignAndSubmit(signer, runtimeCall, false)
 }
 
 type ReportSign struct {

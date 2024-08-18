@@ -10,33 +10,6 @@ import (
 	types "wetee.app/dsecret/type"
 )
 
-func (i *DKG) GetSecretApi(ctx context.Context, rdrPk types.PubKey, sid string) (xncCmt []byte, encScrt [][]byte, err error) {
-	req := &types.ReencryptSecretRequest{
-		SecretId: string(sid),
-		RdrPk:    &rdrPk,
-	}
-
-	// send request
-	rawXncCmt, err := i.SendEncryptedSecretRequest(ctx, req)
-	if err != nil {
-		return nil, nil, fmt.Errorf("send encrypted secret request: %w", err)
-	}
-
-	// marshal xncCmt
-	xncCmt, err = rawXncCmt.MarshalBinary()
-	if err != nil {
-		return nil, nil, fmt.Errorf("marshal xncCmt: %w", err)
-	}
-
-	// get secret
-	scrt, err := i.GetSecretData(ctx, string(sid))
-	if err != nil {
-		return nil, nil, fmt.Errorf("encrypted secret for %s not found", string(sid))
-	}
-
-	return xncCmt, scrt.EncScrt, nil
-}
-
 func (r *DKG) SetSecret(ctx context.Context, env types.Env) (*types.SecretEnvWithHash, error) {
 	scrt, err := json.Marshal(env)
 	if err != nil {
@@ -103,7 +76,7 @@ func (r *DKG) SetSecret(ctx context.Context, env types.Env) (*types.SecretEnvWit
 	}
 
 	// 保存数据
-	storeMsgID := cid.KeyString()
+	storeMsgID := cid.String()
 	err = r.SetSecretData([]types.Kvs{
 		{K: storeMsgID, V: payload},
 		{K: storeMsgID + "_pub", V: pub},
@@ -156,7 +129,7 @@ func (r *DKG) HandleSecretSave(ctx context.Context) {
 	}
 }
 
-func (r *DKG) GetSecretData(ctx context.Context, storeMsgID string) (*types.Secret, error) {
+func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
 	buf, err := store.GetKey("secret", storeMsgID)
 	if err != nil {
 		return nil, fmt.Errorf("get secret: %w", err)
