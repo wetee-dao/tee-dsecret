@@ -17,32 +17,25 @@ import (
 	"golang.org/x/crypto/blake2b"
 
 	"wetee.app/dsecret/chain"
-	"wetee.app/dsecret/tee"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 
-// HandleDeal 处理密钥份额消息
+// HandleUploadClusterProof 函数处理上传集群证明的逻辑
 func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string) ([]byte, error) {
+	// 解析 JSON 数据为 TEEParam 结构体
 	workerReport := &types.TeeParam{}
 	err := json.Unmarshal(data, workerReport)
 	if err != nil {
 		return nil, err
 	}
 
-	// 通过地址获取集群信息
-	_, account, _ := subkey.SS58Decode(workerReport.Address)
-	var account32 [32]byte
-	copy(account32[:], account)
-	clusterId, ok, err := weteeworker.GetK8sClusterAccountsLatest(chain.ChainIns.GetClient().Api.RPC.State, account32)
-	if err != nil || !ok {
-		return nil, errors.New("get k8s cluster error")
-	}
-
+	// 如果没有提供 msgID，则生成一个新的 UUID
 	if msgID == "" {
 		msgID = uuid.NewV4().String()
 	}
 
+	// 上锁，创建一个接收消息的管道，并解锁
 	dkg.mu.Lock()
 	dkg.preRecerve[msgID] = make(chan interface{})
 	dkg.mu.Unlock()
@@ -50,33 +43,47 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	// 请求节点验证签名
 	errNum := 0
 	for _, node := range dkg.DkgNodes {
+		// 向节点发送消息
 		err := dkg.SendToNode(context.Background(), node, "worker", &types.Message{
 			MsgID:   msgID,
 			Type:    "sign_cluster_proof",
 			Payload: data,
 		})
 		if err != nil {
+			// 统计发生错误的次数
 			errNum++
 		}
 	}
 
+	// 检查有效响应数量是否达到阈值
 	if len(dkg.DkgNodes)-errNum < dkg.Threshold {
 		return nil, errors.New("not enough nodes")
 	}
 
+	// 初始化变量，用于存储公钥和签名
 	pubs := make([][32]byte, 0, len(dkg.DkgNodes))
 	sigs := make([]gtypes.MultiSignature, 0, len(dkg.DkgNodes))
+
+	// 从通道中接收节点的响应
 	for i := 0; i <= dkg.Threshold; i++ {
 		select {
 		case d := <-dkg.preRecerve[msgID]:
+			// 将接收到的数据转换为 ReportSign 结构体
 			data := d.(*ReportSign)
+			// 将公钥和签名添加到各自的切片中
 			pubs = append(pubs, data.account)
 			sigs = append(sigs, data.sig)
 		case <-time.After(30 * time.Second):
+			// 设置超时时间，打印错误信息，并返回错误
 			fmt.Println("Timeout receiving from channel")
 			return nil, fmt.Errorf("timeout receiving from channel")
 		}
 	}
+
+	// 接收到足够的签名后，解锁并移除预留的消息通道
+	dkg.mu.Lock()
+	delete(dkg.preRecerve, msgID)
+	dkg.mu.Unlock()
 
 	// 获取交易帐户
 	s, err := dkg.Signer.ToSigner()
@@ -84,32 +91,43 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 		return nil, errors.New("signer to signer: " + err.Error())
 	}
 
-	dkg.mu.Lock()
-	delete(dkg.preRecerve, msgID)
-	dkg.mu.Unlock()
-
-	ins := chain.ChainIns.GetClient()
+	// 获取 ChainIns 结构体，检查元数据
+	ins := chain.ChainIns
 	ins.CheckMetadata()
 
+	// 从报告中提取 CID
 	cid, err := types.CidFromBytes(workerReport.Report)
 	if err != nil {
 		return nil, errors.New("cid from bytes: " + err.Error())
 	}
 
+	// 通过地址获取集群信息
+	_, account, _ := subkey.SS58Decode(workerReport.Address)
+	var account32 [32]byte
+	copy(account32[:], account)
+	clusterId, ok, err := weteeworker.GetK8sClusterAccountsLatest(chain.ChainIns.Api.RPC.State, account32)
+	if err != nil || !ok {
+		return nil, errors.New("get k8s cluster error")
+	}
+
 	// 提交证明
 	call := weteedsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
+	// 签署并提交交易
 	err = ins.SignAndSubmit(s, call, false)
 	if err != nil {
 		return nil, errors.New("submit: " + err.Error())
 	}
 
+	// 设置密钥数据
 	err = dkg.SetSecretData([]types.Kvs{
 		{K: cid.String(), V: workerReport.Report},
 	})
 	if err != nil {
+		// 返回错误信息，指出设置密钥数据时发生的问题
 		return nil, fmt.Errorf("set secret: %w", err)
 	}
 
+	// 返回 CID 的字节切片，作为提交成功的证明
 	return cid.Bytes(), nil
 }
 
@@ -120,19 +138,11 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 		return fmt.Errorf("unmarshal reencrypt secret reply: %w", err)
 	}
 
-	// decode address
-	_, signer, err := subkey.SS58Decode(workerReport.Address)
+	// 校验 Worker
+	_, err = dkg.VerifyWorker(workerReport)
 	if err != nil {
-		return errors.New("SS58 decode: " + err.Error())
+		return errors.New("HandleSignClusterProof verify worker: " + err.Error())
 	}
-
-	_, err = tee.VerifyReport(workerReport.Report, workerReport.Data, signer, workerReport.Time)
-	if err != nil {
-		return errors.New("verify report: " + err.Error())
-	}
-
-	// TODO
-	// 校验代码版本
 
 	siger, err := dkg.Signer.ToSigner()
 	if err != nil {
@@ -144,6 +154,8 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 	if err != nil {
 		return errors.New("cid from bytes: " + err.Error())
 	}
+
+	// 签名 report
 	sig, err := siger.Sign(cid.Bytes())
 	if err != nil {
 		return errors.New("sign: " + err.Error())
@@ -153,6 +165,8 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 	if n == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
+
+	// 回传到事务结点
 	if err := dkg.SendToNode(context.Background(), n, "worker", &types.Message{
 		MsgID:   msgID,
 		Type:    "sign_cluster_proof_reply",
@@ -211,35 +225,18 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 		return nil, errors.New("HandleWorkLaunchRequest unmarshal reencrypt secret request: " + err.Error())
 	}
 
+	// 校验 worker
+	_, err = d.VerifyWorker(req.Cluster)
+	if err != nil {
+		return nil, errors.New("HandleWorkLaunchRequest verify worker: " + err.Error())
+	}
+
+	// 校验 libos
 	wid := util.GetWorkTypeFromWorkId(req.WorkID)
-
-	// decode address
-	_, cpub, err := subkey.SS58Decode(req.Cluster.Address)
+	deployer, err := d.VerifyWorkLibos(wid, req.Libos)
 	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
+		return nil, errors.New("HandleWorkLaunchRequest verify worker: " + err.Error())
 	}
-
-	_, err = tee.VerifyReport(req.Cluster.Report, req.Cluster.Data, cpub, req.Cluster.Time)
-	if err != nil {
-		return nil, errors.New("verify cluster report: " + err.Error())
-	}
-
-	// TODO
-	// 校验 worker 代码版本
-
-	// decode address
-	_, deployer, err := subkey.SS58Decode(req.Libos.Address)
-	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
-	}
-
-	_, err = tee.VerifyReport(req.Libos.Report, req.Libos.Data, deployer, req.Libos.Time)
-	if err != nil {
-		return nil, errors.New("verify cluster report: " + err.Error())
-	}
-
-	// TODO
-	// 校验 libos 版本
 
 	// 提交 work 启动的参数到区块链
 	err = d.SubmitLaunchWork(deployer, req)
@@ -248,7 +245,7 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 	}
 
 	// 获取 secret
-	id, isSome, err := module.GetSecretEnv(chain.ChainIns.GetClient(), wid)
+	id, isSome, err := module.GetSecretEnv(chain.ChainIns.ChainClient, wid)
 	if err != nil {
 		return nil, errors.New("get secret env: " + err.Error())
 	}
@@ -263,8 +260,8 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 		RdrPk:    deployerPub,
 		SecretId: string(id),
 	}
-	rbt, _ := json.Marshal(reencryptReq)
 
+	rbt, _ := json.Marshal(reencryptReq)
 	return d.SendEncryptedSecretRequest(rbt, msgID, OrgId)
 }
 
@@ -295,7 +292,8 @@ func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error 
 		deployKey,
 	)
 	signer, _ := d.Signer.ToSigner()
-	return chain.ChainIns.GetClient().SignAndSubmit(signer, runtimeCall, false)
+
+	return chain.ChainIns.SignAndSubmit(signer, runtimeCall, false)
 }
 
 type ReportSign struct {

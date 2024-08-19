@@ -57,8 +57,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 检查节点代码是否和 wetee 上要求的版本一致
-
 	secretNodes, _, nodes, err := chain.ChainIns.GetNodes()
 	if err != nil {
 		fmt.Println("Get node list error:", err)

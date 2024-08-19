@@ -21,7 +21,7 @@ func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
 	copy(bt[:], pubkey)
 
 	call := weteedsecret.MakeRegisterNodeCall(bt)
-	return c.client.SignAndSubmit(signer, call, true)
+	return c.SignAndSubmit(signer, call, true)
 }
 
 func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, error) {
@@ -58,7 +58,7 @@ func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, err
 // GetNodeList get node list
 // 获取节点列表
 func (c *Chain) GetNodeList() ([][32]byte, error) {
-	ret, err := c.client.QueryMapAll("WeTEEDsecret", "Nodes")
+	ret, err := c.QueryMapAll("WeTEEDsecret", "Nodes")
 	if err != nil {
 		return nil, err
 	}
@@ -78,20 +78,10 @@ func (c *Chain) GetNodeList() ([][32]byte, error) {
 	return nodes, nil
 }
 
-// 获取全网当前程序的代码版本
-// Get CodeMrenclave
-func (c *Chain) GetCodeMrenclave() ([]byte, error) {
-	return weteedsecret.GetCodeMrenclaveLatest(c.client.Api.RPC.State)
-}
-
-// 获取全网当前程序的签名人
-// Get CodeMrsigner
-func (c *Chain) GetCodeMrsigner() ([]byte, error) {
-	return weteedsecret.GetCodeMrsignerLatest(c.client.Api.RPC.State)
-}
-
+// GetWorkerList get worker list
+// 获取矿工列表
 func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
-	ret, err := c.client.QueryMapAll("WeTEEWorker", "K8sClusters")
+	ret, err := c.QueryMapAll("WeTEEWorker", "K8sClusters")
 	if err != nil {
 		return nil, err
 	}
@@ -113,5 +103,5 @@ func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 }
 
 func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
-	return weteeworker.GetBootPeersLatest(c.client.Api.RPC.State)
+	return weteeworker.GetBootPeersLatest(c.Api.RPC.State)
 }

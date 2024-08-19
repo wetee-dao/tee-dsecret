@@ -13,7 +13,7 @@ var ChainIns *Chain
 
 // Chain
 type Chain struct {
-	client *chain.ChainClient
+	*chain.ChainClient
 	signer *core.Signer
 }
 
@@ -30,12 +30,12 @@ func InitChain(url string, pk *types.PrivKey) error {
 	fmt.Println("Node chain pubkey:", p.Address)
 
 	ChainIns = &Chain{
-		client: client,
-		signer: p,
+		ChainClient: client,
+		signer:      p,
 	}
 	return nil
 }
 
-func (c *Chain) GetClient() *chain.ChainClient {
-	return c.client
-}
+// func (c *Chain) GetClient() *chain.ChainClient {
+// 	return c.client
+// }
