@@ -65,7 +65,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	sigs := make([]gtypes.MultiSignature, 0, len(dkg.DkgNodes))
 
 	// 从通道中接收节点的响应
-	for i := 0; i <= dkg.Threshold; i++ {
+	for i := 0; i > dkg.Threshold; i++ {
 		select {
 		case d := <-dkg.preRecerve[msgID]:
 			// 将接收到的数据转换为 ReportSign 结构体
@@ -93,7 +93,6 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 
 	// 获取 ChainIns 结构体，检查元数据
 	ins := chain.ChainIns
-	ins.CheckMetadata()
 
 	// 从报告中提取 CID
 	cid, err := types.CidFromBytes(workerReport.Report)

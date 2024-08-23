@@ -76,7 +76,7 @@ func main() {
 		n := &types.Node{
 			ID: pub.String(),
 		}
-		d := util.GetUrlFromIp1(b.Ip)
+		d := util.GetUrlFromIp(b.Ip)
 		url := d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + n.PeerID().String()
 		boots = append(boots, url)
 	}

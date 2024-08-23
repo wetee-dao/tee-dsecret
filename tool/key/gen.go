@@ -51,7 +51,7 @@ func main() {
 	var accpunt [32]byte
 	copy(accpunt[:], pub.(ed25519.PublicKey))
 	b := gtypes.P2PAddr{
-		Ip: gtypes.Ip1{
+		Ip: gtypes.Ip{
 			Ipv4: gtypes.OptionTUint32{
 				IsNone: true,
 			},
@@ -74,7 +74,7 @@ func main() {
 	n := &types.Node{
 		ID: pub2.String(),
 	}
-	d := util.GetUrlFromIp1(b.Ip)
+	d := util.GetUrlFromIp(b.Ip)
 	fmt.Println(n.PeerID().String())
 	url := d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + n.PeerID().String()
 	fmt.Println(url)

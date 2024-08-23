@@ -75,7 +75,6 @@ func (d *DKG) VerifyDsecret(reportData *types.TeeParam) ([]byte, error) {
 }
 
 // VerifyWorker 函数验证工人报告并返回签名者或错误
-
 func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *types.TeeParam) ([]byte, error) {
 	// 解码地址
 	_, signer, err := subkey.SS58Decode(reportData.Address)

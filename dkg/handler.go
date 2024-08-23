@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"wetee.app/dsecret/chain"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
@@ -43,6 +44,12 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 }
 
 func (dkg *DKG) HandleWorker(msg *types.Message) error {
+	err := chain.ChainIns.CheckMetadata()
+	if err != nil {
+		util.LogError("CheckMetadata", err)
+		return err
+	}
+
 	switch msg.Type {
 	/// -------------------- Proof -----------------------
 	case "upload_cluster_proof":
