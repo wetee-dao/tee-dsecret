@@ -20,7 +20,7 @@ func (d *DKG) VerifyWorker(reportData *types.TeeParam) ([]byte, error) {
 		return nil, errors.New("SS58 decode: " + err.Error())
 	}
 
-	report, err := tee.VerifyReport(reportData.Report, reportData.Data, signer, reportData.Time)
+	report, err := tee.VerifyReport(reportData)
 	if err != nil {
 		return nil, errors.New("verify cluster report: " + err.Error())
 	}
@@ -31,11 +31,11 @@ func (d *DKG) VerifyWorker(reportData *types.TeeParam) ([]byte, error) {
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}
 	if len(codeHash) > 0 || len(codeSigner) > 0 {
-		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.UniqueID) {
+		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.CodeSignature) {
 			return nil, errors.New("worker code hash error")
 		}
 
-		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.SignerID) {
+		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.CodeSigner) {
 			return nil, errors.New("worker signer error")
 		}
 	}
@@ -51,7 +51,7 @@ func (d *DKG) VerifyDsecret(reportData *types.TeeParam) ([]byte, error) {
 		return nil, errors.New("SS58 decode: " + err.Error())
 	}
 
-	report, err := tee.VerifyReport(reportData.Report, reportData.Data, signer, reportData.Time)
+	report, err := tee.VerifyReport(reportData)
 	if err != nil {
 		return nil, errors.New("verify cluster report: " + err.Error())
 	}
@@ -62,11 +62,11 @@ func (d *DKG) VerifyDsecret(reportData *types.TeeParam) ([]byte, error) {
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}
 	if len(codeHash) > 0 || len(codeSigner) > 0 {
-		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.UniqueID) {
+		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.CodeSignature) {
 			return nil, errors.New("worker code hash error")
 		}
 
-		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.SignerID) {
+		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.CodeSigner) {
 			return nil, errors.New("worker signer error")
 		}
 	}
@@ -82,7 +82,7 @@ func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *types.TeeParam) ([]
 		return nil, errors.New("SS58 decode: " + err.Error())
 	}
 
-	report, err := tee.VerifyReport(reportData.Report, reportData.Data, signer, reportData.Time)
+	report, err := tee.VerifyReport(reportData)
 	if err != nil {
 		return nil, errors.New("verify cluster report: " + err.Error())
 	}
@@ -93,11 +93,11 @@ func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *types.TeeParam) ([]
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}
 	if len(codeHash) > 0 || len(codeSigner) > 0 {
-		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.UniqueID) {
+		if hex.EncodeToString(codeHash) != hex.EncodeToString(report.CodeSignature) {
 			return nil, errors.New("worker code hash error")
 		}
 
-		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.SignerID) {
+		if hex.EncodeToString(codeSigner) != hex.EncodeToString(report.CodeSigner) {
 			return nil, errors.New("worker signer error")
 		}
 	}

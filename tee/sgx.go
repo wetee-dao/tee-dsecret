@@ -9,13 +9,15 @@ import (
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
 	"github.com/edgelesssys/ego/enclave"
+	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/wetee-dao/go-sdk/core"
 
+	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 
-func IssueReport(pk *core.Signer, data []byte) ([]byte, int64, error) {
+func IssueReport(pk *core.Signer, data []byte) (*types.TeeParam, error) {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer
@@ -26,18 +28,40 @@ func IssueReport(pk *core.Signer, data []byte) ([]byte, int64, error) {
 	}
 	sig, err := pk.Sign(buf.Bytes())
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	report, err := enclave.GetRemoteReport(sig)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	return report, timestamp, nil
+	return &types.TeeParam{
+		Time:    timestamp,
+		Address: pk.SS58Address(42),
+		Report:  report,
+		Data:    data,
+	}, nil
 }
 
-func VerifyReport(reportBytes, msgBytes, signer []byte, timestamp int64) (*attestation.Report, error) {
+func VerifyReport(workerReport *types.TeeParam) (*types.TeeReport, error) {
+	// TODO SEV/TDX not support
+	if workerReport.TeeType != 0 {
+		return &types.TeeReport{
+			CodeSignature: []byte{},
+			CodeSigner:    []byte{},
+			CodeProductID: []byte{},
+		}, nil
+	}
+
+	var reportBytes, msgBytes, timestamp = workerReport.Report, workerReport.Data, workerReport.Time
+
+	// decode address
+	_, signer, err := subkey.SS58Decode(workerReport.Address)
+	if err != nil {
+		return nil, errors.New("SS58 decode: " + err.Error())
+	}
+
 	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
 		fmt.Printf("Warning: TCB level is invalid: %v\n%v\n", report.TCBStatus, tcbstatus.Explain(report.TCBStatus))
@@ -67,5 +91,10 @@ func VerifyReport(reportBytes, msgBytes, signer []byte, timestamp int64) (*attes
 		return nil, errors.New("debug mode is not allowed")
 	}
 
-	return &report, nil
+	return &types.TeeReport{
+		TeeType:       workerReport.TeeType,
+		CodeSigner:    report.SignerID,
+		CodeSignature: report.UniqueID,
+		CodeProductID: report.ProductID,
+	}, nil
 }
