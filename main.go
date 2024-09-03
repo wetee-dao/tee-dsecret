@@ -32,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 初始化加密套件。
+	// 初始化加密套件
 	nodeSecret, err := types.PrivateKeyFromLibp2pHex(peerSecret)
 	if err != nil {
 		fmt.Println("Marshal PKG_PK error:", err)

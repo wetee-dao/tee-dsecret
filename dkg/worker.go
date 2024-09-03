@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -118,13 +119,9 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	}
 
 	// 设置密钥数据
-	err = dkg.SetSecretData([]types.Kvs{
+	go dkg.SetData([]types.Kvs{
 		{K: cid.String(), V: workerReport.Report},
 	})
-	if err != nil {
-		// 返回错误信息，指出设置密钥数据时发生的问题
-		return nil, fmt.Errorf("set secret: %w", err)
-	}
 
 	// 返回 CID 的字节切片，作为提交成功的证明
 	return cid.Bytes(), nil
@@ -291,6 +288,11 @@ func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error 
 		deployKey,
 	)
 	signer, _ := d.Signer.ToSigner()
+
+	// 保存 report 到所有节点
+	go d.SetData([]types.Kvs{
+		{K: hex.EncodeToString(report[:]), V: reportData},
+	})
 
 	return chain.ChainIns.SignAndSubmit(signer, runtimeCall, false)
 }

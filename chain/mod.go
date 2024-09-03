@@ -35,7 +35,3 @@ func InitChain(url string, pk *types.PrivKey) error {
 	}
 	return nil
 }
-
-// func (c *Chain) GetClient() *chain.ChainClient {
-// 	return c.client
-// }

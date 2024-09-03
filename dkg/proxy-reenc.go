@@ -12,6 +12,7 @@ import (
 	"go.dedis.ch/kyber/v3/share"
 
 	proxy_reenc "wetee.app/dsecret/dkg/proxy-reenc"
+	"wetee.app/dsecret/store"
 	types "wetee.app/dsecret/type"
 )
 
@@ -201,4 +202,19 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 
 	d.preRecerve[msgID] <- &reply.Share
 	return nil
+}
+
+func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
+	buf, err := store.GetKey("secret", storeMsgID)
+	if err != nil {
+		return nil, fmt.Errorf("get secret: %w", err)
+	}
+
+	s := new(types.Secret)
+	err = json.Unmarshal(buf, s)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal encrypted secret: %w", err)
+	}
+
+	return s, nil
 }

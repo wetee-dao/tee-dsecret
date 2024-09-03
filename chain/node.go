@@ -24,6 +24,7 @@ func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
 	return c.SignAndSubmit(signer, call, true)
 }
 
+// GetNodes 函数用于获取节点列表，包括 Secret 节点和 Worker 节点，以及转换为自定义的 Node 类型。
 func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, error) {
 	// 获取节点列表
 	secretNodes, err := c.GetNodeList()
@@ -102,6 +103,7 @@ func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 	return nodes, nil
 }
 
+// GetBootPeers get boot peers
 func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
 	return weteeworker.GetBootPeersLatest(c.Api.RPC.State)
 }

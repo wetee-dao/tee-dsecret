@@ -6,18 +6,40 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/vektah/gqlparser/v2/gqlerror"
 	types "wetee.app/dsecret/type"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
 func (r *mutationResolver) UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error) {
-	return dkgIns.SetSecret(ctx, secret)
+	return dkgIns.SetSecretEnv(ctx, secret)
 }
 
 // Secret is the resolver for the secret field.
 func (r *queryResolver) Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error) {
-	return dkgIns.GetSecretPubData(ctx, hash)
+	return dkgIns.GetSecretPubEnvData(ctx, hash)
+}
+
+// TeeReport is the resolver for the tee_report field.
+func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, error) {
+	/// 获取报告
+	param, report, err := dkgIns.GetReport(hash)
+	if err != nil {
+		return "", gqlerror.Errorf("GetReport:" + err.Error())
+	}
+
+	// 组合报告
+	result := map[string]interface{}{
+		"param":  param,
+		"report": report,
+	}
+	bt, err := json.Marshal(result)
+	if err != nil {
+		return "", gqlerror.Errorf("Marshal:" + err.Error())
+	}
+	return string(bt), nil
 }
 
 // Mutation returns MutationResolver implementation.

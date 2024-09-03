@@ -10,7 +10,7 @@ import (
 	types "wetee.app/dsecret/type"
 )
 
-func (r *DKG) SetSecret(ctx context.Context, env types.Env) (*types.SecretEnvWithHash, error) {
+func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnvWithHash, error) {
 	scrt, err := json.Marshal(env)
 	if err != nil {
 		return nil, err
@@ -77,13 +77,10 @@ func (r *DKG) SetSecret(ctx context.Context, env types.Env) (*types.SecretEnvWit
 
 	// 保存数据
 	storeMsgID := cid.String()
-	err = r.SetSecretData([]types.Kvs{
+	go r.SetData([]types.Kvs{
 		{K: storeMsgID, V: payload},
 		{K: storeMsgID + "_pub", V: pub},
 	})
-	if err != nil {
-		return nil, fmt.Errorf("set secret: %w", err)
-	}
 
 	return &types.SecretEnvWithHash{
 		Hash:   storeMsgID,
@@ -91,60 +88,7 @@ func (r *DKG) SetSecret(ctx context.Context, env types.Env) (*types.SecretEnvWit
 	}, nil
 }
 
-func (r *DKG) SetSecretData(datas []types.Kvs) error {
-	// 保存数据
-	for _, data := range datas {
-		err := store.SetKey("secret", data.K, data.V)
-		if err != nil {
-			return fmt.Errorf("set key: %w", err)
-		}
-	}
-	bt, _ := json.Marshal(datas)
-	return r.Peer.Pub(context.Background(), "secret", bt)
-}
-
-func (r *DKG) HandleSecretSave(ctx context.Context) {
-	sub, err := r.Peer.Sub(ctx, "secret")
-	if err != nil {
-		return
-	}
-
-	for {
-		msg, err := sub.Next(ctx)
-		if err != nil {
-			fmt.Println("Error receiving message:", err)
-			continue
-		}
-
-		// 解析消息
-		var datas []types.Kvs
-		err = json.Unmarshal(msg.Data, &datas)
-		for _, data := range datas {
-			err := store.SetKey("secret", data.K, data.V)
-			if err != nil {
-				fmt.Println("set key: %w", err)
-				continue
-			}
-		}
-	}
-}
-
-func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
-	buf, err := store.GetKey("secret", storeMsgID)
-	if err != nil {
-		return nil, fmt.Errorf("get secret: %w", err)
-	}
-
-	s := new(types.Secret)
-	err = json.Unmarshal(buf, s)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal encrypted secret: %w", err)
-	}
-
-	return s, nil
-}
-
-func (r *DKG) GetSecretPubData(ctx context.Context, storeMsgID string) (*types.SecretEnvWithHash, error) {
+func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*types.SecretEnvWithHash, error) {
 	buf, err := store.GetKey("secret", storeMsgID+"_pub")
 	if err != nil {
 		return nil, fmt.Errorf("get secret: %w", err)

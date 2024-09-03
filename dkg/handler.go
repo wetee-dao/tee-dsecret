@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"wetee.app/dsecret/chain"
+	"wetee.app/dsecret/store"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
@@ -43,6 +44,7 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 	}
 }
 
+// Handle dkg message
 func (dkg *DKG) HandleWorker(msg *types.Message) error {
 	err := chain.ChainIns.CheckMetadata()
 	if err != nil {
@@ -153,5 +155,32 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 		return err
 	default:
 		return nil
+	}
+}
+
+func (r *DKG) HandleSecretSave(ctx context.Context) {
+	sub, err := r.Peer.Sub(ctx, "secret")
+	if err != nil {
+		return
+	}
+
+	for {
+		msg, err := sub.Next(ctx)
+		if err != nil {
+			fmt.Println("Error receiving message:", err)
+			continue
+		}
+
+		// 解析消息
+		var datas []types.Kvs
+		err = json.Unmarshal(msg.Data, &datas)
+		for _, data := range datas {
+			fmt.Println("-------------------------Save key: ", data.K)
+			err := store.SetKey("secret", data.K, data.V)
+			if err != nil {
+				fmt.Println("set key: %w", err)
+				continue
+			}
+		}
 	}
 }
