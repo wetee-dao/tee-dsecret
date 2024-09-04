@@ -12,6 +12,12 @@
             "target": "/db",
             "type": "hostfs",
             "readOnly": false
+        },
+        {
+            "source": "/home/wetee/work/wetee/tee-dsecret/hack/node1/ssl/",
+            "target": "/ssl",
+            "type": "hostfs",
+            "readOnly": false
         }
     ],
     "env": [
