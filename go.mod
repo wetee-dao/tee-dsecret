@@ -29,7 +29,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	github.com/wetee-dao/go-sdk v1.0.0
+	github.com/wetee-dao/go-sdk v0.1.1-0.20240914015130-c89d1edc0b89
 	go.dedis.ch/kyber/v3 v3.1.0
 )
 
@@ -188,4 +188,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/wetee-dao/go-sdk v1.0.0 => ../go-sdk
+// replace github.com/wetee-dao/go-sdk v1.0.0 => ../go-sdk
