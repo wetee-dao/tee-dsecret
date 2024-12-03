@@ -6,9 +6,9 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/go-sdk/core"
+	"github.com/wetee-dao/go-sdk/pallet/dsecret"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
-	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
+	"github.com/wetee-dao/go-sdk/pallet/worker"
 	"wetee.app/dsecret/util"
 
 	types "wetee.app/dsecret/type"
@@ -20,7 +20,7 @@ func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
 	var bt [32]byte
 	copy(bt[:], pubkey)
 
-	call := weteedsecret.MakeRegisterNodeCall(bt)
+	call := dsecret.MakeRegisterNodeCall(bt)
 	return c.SignAndSubmit(signer, call, true)
 }
 
@@ -105,5 +105,5 @@ func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 
 // GetBootPeers get boot peers
 func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
-	return weteeworker.GetBootPeersLatest(c.Api.RPC.State)
+	return worker.GetBootPeersLatest(c.Api.RPC.State)
 }

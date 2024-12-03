@@ -12,9 +12,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/wetee-dao/go-sdk/module"
+	"github.com/wetee-dao/go-sdk/pallet/dsecret"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
-	"github.com/wetee-dao/go-sdk/pallet/weteeworker"
+	"github.com/wetee-dao/go-sdk/pallet/worker"
 	"golang.org/x/crypto/blake2b"
 
 	"wetee.app/dsecret/chain"
@@ -105,13 +105,13 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	_, account, _ := subkey.SS58Decode(workerReport.Address)
 	var account32 [32]byte
 	copy(account32[:], account)
-	clusterId, ok, err := weteeworker.GetK8sClusterAccountsLatest(chain.ChainIns.Api.RPC.State, account32)
+	clusterId, ok, err := worker.GetK8sClusterAccountsLatest(chain.ChainIns.Api.RPC.State, account32)
 	if err != nil || !ok {
 		return nil, errors.New("get k8s cluster error")
 	}
 
 	// 提交证明
-	call := weteedsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
+	call := dsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
 	// 签署并提交交易
 	err = ins.SignAndSubmit(s, call, false)
 	if err != nil {
@@ -278,7 +278,7 @@ func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error 
 		hasReport = true
 	}
 
-	runtimeCall := weteedsecret.MakeWorkLaunchCall(
+	runtimeCall := dsecret.MakeWorkLaunchCall(
 		wid,
 		gtypes.OptionTByteSlice{
 			IsNone:       !hasReport,

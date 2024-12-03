@@ -7,8 +7,8 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/go-sdk"
+	"github.com/wetee-dao/go-sdk/pallet/dsecret"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/weteedsecret"
 	"golang.org/x/crypto/blake2b"
 	types "wetee.app/dsecret/type"
 )
@@ -48,7 +48,7 @@ func main() {
 
 	var account32 [32]byte
 	copy(account32[:], signer.Public())
-	call := weteedsecret.MakeUploadClusterProofCall(
+	call := dsecret.MakeUploadClusterProofCall(
 		1,
 		hash[:],
 		[][32]byte{account32, account32},
