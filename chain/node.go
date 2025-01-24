@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	"github.com/wetee-dao/go-sdk/core"
+	chain "github.com/wetee-dao/go-sdk"
 	"github.com/wetee-dao/go-sdk/pallet/dsecret"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"github.com/wetee-dao/go-sdk/pallet/worker"
@@ -16,7 +16,7 @@ import (
 
 // RegisterNode register node
 // 注册节点
-func (c *Chain) RegisterNode(signer *core.Signer, pubkey []byte) error {
+func (c *Chain) RegisterNode(signer *chain.Signer, pubkey []byte) error {
 	var bt [32]byte
 	copy(bt[:], pubkey)
 
@@ -59,7 +59,7 @@ func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, err
 // GetNodeList get node list
 // 获取节点列表
 func (c *Chain) GetNodeList() ([][32]byte, error) {
-	ret, err := c.QueryMapAll("WeTEEDsecret", "Nodes")
+	ret, err := c.QueryMapAll("DSecret", "Nodes")
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (c *Chain) GetNodeList() ([][32]byte, error) {
 // GetWorkerList get worker list
 // 获取矿工列表
 func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
-	ret, err := c.QueryMapAll("WeTEEWorker", "K8sClusters")
+	ret, err := c.QueryMapAll("Worker", "K8sClusters")
 	if err != nil {
 		return nil, err
 	}

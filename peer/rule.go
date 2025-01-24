@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"fmt"
+
 	"github.com/libp2p/go-libp2p/core/control"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -19,6 +21,7 @@ type ChainConnectionGater struct {
 
 // 过滤非网络节点，减轻网络压力
 func (g *ChainConnectionGater) chainRoutingTableFilter(dht interface{}, p peer.ID) bool {
+	fmt.Println(g.Nodes)
 	if len(g.Nodes) > 0 {
 		for _, n := range g.Nodes {
 			if n.PeerID() == p {

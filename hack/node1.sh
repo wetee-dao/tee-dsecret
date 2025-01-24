@@ -14,7 +14,7 @@ export TCP_PORT=31000
 export UDP_PORT=31000
 export GQL_PORT=31001
 export PASSWORD=123456
-export CHAIN_ADDR=ws://192.168.111.105:30002
+export CHAIN_ADDR=ws://xiaobai.asyou.me:30002/ws
 
 ego-go build -o dsecret ../../main.go
 ego sign dsecret

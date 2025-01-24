@@ -11,13 +11,13 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
-	"github.com/wetee-dao/go-sdk/core"
+	chain "github.com/wetee-dao/go-sdk"
 
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 
-func IssueReport(pk *core.Signer, data []byte) (*types.TeeParam, error) {
+func IssueReport(pk *chain.Signer, data []byte) (*types.TeeParam, error) {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer

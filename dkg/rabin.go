@@ -116,7 +116,7 @@ func (dkg *DKG) Start(ctx context.Context) error {
 		return fmt.Errorf("初始化 VSS 协议失败: %w", err)
 	}
 
-	// 获取当前节点的
+	// 获取当前节点的协议
 	deals, err := dkg.DistKeyGenerator.Deals()
 	if err != nil {
 		return fmt.Errorf("生成密钥份额失败: %w", err)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	chain "github.com/wetee-dao/go-sdk"
-	"github.com/wetee-dao/go-sdk/core"
 	types "wetee.app/dsecret/type"
 )
 
@@ -14,7 +13,7 @@ var ChainIns *Chain
 // Chain
 type Chain struct {
 	*chain.ChainClient
-	signer *core.Signer
+	signer *chain.Signer
 }
 
 func InitChain(url string, pk *types.PrivKey) error {

@@ -137,7 +137,6 @@ var (
 // }
 
 func Reencrypt(distKeyShare types.DistKeyShare, scrt *types.Secret, rdrPk types.PubKey) (ReencryptReply, error) {
-
 	var reply ReencryptReply
 	ste, err := types.SuiteForType(rdrPk.Type())
 	if err != nil {
