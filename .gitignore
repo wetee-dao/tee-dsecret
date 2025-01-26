@@ -31,4 +31,5 @@ mint/chain/gen/wetee-meta.json
 **/db/
 bin/
 **/dsecret
+**/nohup.out
 hack/node1/ssl

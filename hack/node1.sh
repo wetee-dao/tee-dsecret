@@ -18,4 +18,4 @@ export CHAIN_ADDR=ws://xiaobai.asyou.me:30002/ws
 
 ego-go build -o dsecret ../../main.go
 ego sign dsecret
-ego run dsecret
+nohup ego run dsecret &
