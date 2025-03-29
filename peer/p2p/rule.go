@@ -1,4 +1,4 @@
-package peer
+package p2p
 
 import (
 	"fmt"
@@ -24,7 +24,7 @@ func (g *ChainConnectionGater) chainRoutingTableFilter(dht interface{}, p peer.I
 	fmt.Println(g.Nodes)
 	if len(g.Nodes) > 0 {
 		for _, n := range g.Nodes {
-			if n.PeerID() == p {
+			if n.PeerID().String() == p.String() {
 				return true
 			}
 		}
@@ -37,7 +37,7 @@ func (g *ChainConnectionGater) chainRoutingTableFilter(dht interface{}, p peer.I
 func (g *ChainConnectionGater) InterceptPeerDial(p peer.ID) bool {
 	if len(g.Nodes) > 0 {
 		for _, n := range g.Nodes {
-			if n.PeerID() == p {
+			if n.PeerID().String() == p.String() {
 				return true
 			}
 		}
@@ -57,14 +57,14 @@ func (g *ChainConnectionGater) InterceptAccept(addrs network.ConnMultiaddrs) boo
 	return true
 }
 
-// 这个方法在节点成功建立一个安全的连接时被调用。
-// 开发者可以在这个方法中实现对连接安全性的进一步检查,比如验证对方节点的身份、检查加密算法的强度等。
+// 这个方法在节点成功建立一个安全的连接时被调用
+// 开发者可以在这个方法中实现对连接安全性的进一步检查,比如验证对方节点的身份、检查加密算法的强度等
 func (g *ChainConnectionGater) InterceptSecured(network.Direction, peer.ID, network.ConnMultiaddrs) (allow bool) {
 	return true
 }
 
-// 这个方法在节点成功将一个原始连接升级为一个多路复用的连接时被调用。
-// 开发者可以在这个方法中实现对连接升级过程的检查和验证,比如确保升级后的连接仍然满足安全性要求。
+// 这个方法在节点成功将一个原始连接升级为一个多路复用的连接时被调用
+// 开发者可以在这个方法中实现对连接升级过程的检查和验证,比如确保升级后的连接仍然满足安全性要求
 func (g *ChainConnectionGater) InterceptUpgraded(network.Conn) (allow bool, reason control.DisconnectReason) {
 	return true, control.DisconnectReason(0)
 }

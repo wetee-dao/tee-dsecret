@@ -1,6 +1,6 @@
 package types
 
-import "go.dedis.ch/kyber/v3/share"
+import "go.dedis.ch/kyber/v4/share"
 
 type ReencryptSecretRequest struct {
 	// 密文ID

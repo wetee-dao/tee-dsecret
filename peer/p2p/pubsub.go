@@ -1,7 +1,7 @@
 // / Copyright (c) 2022 Sourcenetwork Developers. All rights reserved.
 // / copy from https://github.com/sourcenetwork/orbis-go
 
-package peer
+package p2p
 
 import (
 	"context"

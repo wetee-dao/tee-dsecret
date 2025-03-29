@@ -15,42 +15,35 @@ import (
 	"wetee.app/dsecret/util"
 )
 
-// HandleDkg 处理不同的DKG消息类型。
-// msg: 被处理的消息对象。
-// 返回：可能的错误。
+// HandleDkg 处理不同的DKG消息类型
+// msg: 被处理的消息对象
+// 返回：可能的错误
 func (dkg *DKG) HandleDkg(msg *types.Message) error {
-	// 根据消息类型执行相应的处理逻辑。
+	// 根据消息类型执行相应的处理逻辑
 	switch msg.Type {
 	case "deal":
-		// 处理交易消息。
-		err := dkg.HandleDeal(msg.Payload)
+		// 处理交易消息
+		err := dkg.HandleDeal(msg.OrgId, msg.Payload)
 		if err != nil {
-			util.LogError("DEAL", "HandleDeal err: ", err)
+			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
 		}
 		return err
 	case "deal_resp":
-		// 处理交易响应消息。
-		err := dkg.HandleDealResp(msg.Payload)
+		// 处理交易响应消息
+		err := dkg.HandleDealResp(msg.OrgId, msg.Payload)
 		if err != nil {
-			util.LogError("DEAL", "HandleDealResp err: ", err)
+			util.LogError("DEAL <<<<<<<<<<<<<<<< ERROR", "HandleDealResp:", err)
 		}
 		return err
 	case "justification":
-		// 处理证明消息。
-		err := dkg.HandleJustification(msg.Payload)
+		// 处理证明消息
+		err := dkg.HandleJustification(msg.OrgId, msg.Payload)
 		if err != nil {
-			util.LogError("DEAL", "HandleJustification err: ", err)
-		}
-		return err
-	case "secret_commits":
-		// 处理秘密提交消息。
-		err := dkg.HandleSecretCommits(msg.Payload)
-		if err != nil {
-			util.LogError("DEAL", "HandleSecretCommits err: ", err)
+			util.LogError("DEAL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ERROR", "HandleJustification:", err)
 		}
 		return err
 	default:
-		// 如果消息类型未知，返回错误。
+		// 如果消息类型未知，返回错误
 		return fmt.Errorf("unknown message type: %s", msg.Type)
 	}
 }

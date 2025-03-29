@@ -1,7 +1,7 @@
 // / Copyright (c) 2022 Sourcenetwork Developers. All rights reserved.
 // / copy from https://github.com/sourcenetwork/orbis-go
 
-package peer
+package p2p
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/libp2p/go-libp2p/core/event"
-	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
@@ -25,53 +23,6 @@ const (
 	reconnectBackOffBaseSeconds        = 3
 	dialRandomizerIntervalMilliseconds = 3000
 )
-
-func (p *Peer) Start(ctx context.Context) {
-	for _, peer := range p.bootPeers {
-		if err := p.Connect(ctx, peer); err != nil {
-			fmt.Println("Can't connect to peer:", peer, err)
-		} else {
-			fmt.Println("Connected to bootstrap node:", peer)
-		}
-	}
-
-	go func() {
-		subCh, err := p.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
-		if err != nil {
-			fmt.Printf("Error subscribing to peer connectedness changes: %s \n", err)
-		}
-		defer subCh.Close()
-		for {
-			select {
-			case ev, ok := <-subCh.Out():
-				fmt.Println(ev)
-				if !ok {
-					return
-				}
-
-				evt := ev.(event.EvtPeerConnectednessChanged)
-				if evt.Connectedness != network.NotConnected {
-					continue
-				}
-
-				if _, ok := p.bootPeers[evt.Peer]; !ok {
-					continue
-				}
-
-				paddr := p.bootPeers[evt.Peer]
-				go p.reconnectToPeer(ctx, paddr)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	for {
-		p.Discover(ctx)
-		fmt.Println("Peer len:", len(p.Network().Peers()))
-		time.Sleep(time.Second * 30)
-	}
-}
 
 func (p *Peer) reconnectToPeer(ctx context.Context, paddr peer.AddrInfo) {
 	if _, ok := p.reonnecting.Load(paddr.ID.String()); ok {

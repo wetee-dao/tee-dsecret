@@ -3,57 +3,120 @@ package types
 import (
 	"fmt"
 
-	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
-	vss "go.dedis.ch/kyber/v3/share/vss/rabin"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
+	"go.dedis.ch/kyber/v4/suites"
 )
 
-func DealToProtocol(deal *rabin.Deal) (*Deal, error) {
-	dkheyBytes, err := deal.Deal.DHKey.MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("marshal dhkey: %w", err)
+type Deal struct {
+	DealerIndex uint32
+	Deals       []pedersen.Deal
+	// Public coefficients of the public polynomial used to create the shares
+	Public [][]byte
+	// SessionID of the current run
+	SessionID []byte
+	// Signature over the hash of the whole bundle
+	Signature []byte
+}
+
+func DealToProtocol(deal *pedersen.DealBundle) (*Deal, error) {
+	public := deal.Public
+	points := make([][]byte, len(public))
+	for i, p := range public {
+		b, err := p.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("MarshalBinary public error: %w", err)
+		}
+		points[i] = b
 	}
 
 	return &Deal{
-		Index: deal.Index,
-		Deal: &EncryptedDeal{
-			DHKey:     dkheyBytes,
-			Signature: deal.Deal.Signature,
-			Nonce:     deal.Deal.Nonce,
-			Cipher:    deal.Deal.Cipher,
-		},
+		DealerIndex: deal.DealerIndex,
+		Deals:       deal.Deals,
+		Public:      points,
+		SessionID:   deal.SessionID,
+		Signature:   deal.Signature,
 	}, nil
 }
 
-func ProtocolToDeal(suite suites.Suite, deal *Deal) (*rabin.Deal, error) {
-	p := suite.Point()
-	err := p.UnmarshalBinary(deal.Deal.DHKey)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal dhkey: %w", err)
+func ProtocolToDeal(suite suites.Suite, deal *Deal) (*pedersen.DealBundle, error) {
+	public := deal.Public
+	points := make([]kyber.Point, len(public))
+	for i, p := range public {
+		point := suite.Point()
+		err := point.UnmarshalBinary(p)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal commitment: %w", err)
+		}
+
+		points[i] = point
 	}
-	return &rabin.Deal{
-		Index: deal.Index,
-		Deal: &vss.EncryptedDeal{
-			DHKey:     p,
-			Signature: deal.Deal.Signature,
-			Nonce:     deal.Deal.Nonce,
-			Cipher:    deal.Deal.Cipher,
-		},
+
+	return &pedersen.DealBundle{
+		DealerIndex: deal.DealerIndex,
+		Deals:       deal.Deals,
+		Public:      points,
+		SessionID:   deal.SessionID,
+		Signature:   deal.Signature,
 	}, nil
 }
 
-type Deal struct {
-	Index uint32
-	Deal  *EncryptedDeal
+type JustificationBundle struct {
+	DealerIndex    uint32
+	Justifications []Justification
+	// SessionID of the current run
+	SessionID []byte
+	// Signature over the hash of the whole bundle
+	Signature []byte
 }
 
-type EncryptedDeal struct {
-	// Ephemeral Diffie Hellman key
-	DHKey []byte
-	// Signature of the DH key by the longterm key of the dealer
-	Signature []byte
-	// Nonce used for the encryption
-	Nonce []byte
-	// AEAD encryption of the deal marshalled by protobuf
-	Cipher []byte
+type Justification struct {
+	ShareIndex uint32
+	Share      []byte
+}
+
+func JustificationToProtocol(deal *pedersen.JustificationBundle) (*JustificationBundle, error) {
+	js := deal.Justifications
+	newJs := make([]Justification, len(js))
+	for i, p := range js {
+		b, err := p.Share.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("MarshalBinary public error: %w", err)
+		}
+		newJs[i] = Justification{
+			ShareIndex: p.ShareIndex,
+			Share:      b,
+		}
+	}
+
+	return &JustificationBundle{
+		DealerIndex:    deal.DealerIndex,
+		Justifications: newJs,
+		SessionID:      deal.SessionID,
+		Signature:      deal.Signature,
+	}, nil
+}
+
+func ProtocolToJustification(suite suites.Suite, deal *JustificationBundle) (*pedersen.JustificationBundle, error) {
+	js := deal.Justifications
+	newJs := make([]pedersen.Justification, len(js))
+	for i, p := range js {
+		point := suite.Scalar()
+		err := point.UnmarshalBinary(p.Share)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal commitment: %w", err)
+		}
+
+		newJs[i] = pedersen.Justification{
+			ShareIndex: p.ShareIndex,
+			Share:      point,
+		}
+	}
+
+	return &pedersen.JustificationBundle{
+		DealerIndex:    deal.DealerIndex,
+		Justifications: newJs,
+		SessionID:      deal.SessionID,
+		Signature:      deal.Signature,
+	}, nil
 }

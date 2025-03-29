@@ -7,24 +7,25 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/suites"
-	"go.dedis.ch/kyber/v3/util/random"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/suites"
+	"go.dedis.ch/kyber/v4/util/random"
 )
 
 func TestReencryptAndVerify(t *testing.T) {
-
 	var (
-		n       = 5
-		th      = 3
-		ste     = suites.MustFind("ed25519")
-		s       = ste.Scalar().Pick(ste.RandomStream())
-		priPoly = share.NewPriPoly(ste, th, s, ste.RandomStream())
-		pubPoly = priPoly.Commit(nil)
-		dkgPk   = pubPoly.Commit()
+		n     = 5 //参与者的数量
+		th    = 3 // 门限值
+		suite = suites.MustFind("Ed25519")
 
-		rdrSk = ste.Scalar().Pick(ste.RandomStream())
-		rdrPk = ste.Point().Mul(rdrSk, nil)
+		s       = suite.Scalar().Pick(suite.RandomStream())
+		priPoly = share.NewPriPoly(suite, th, s, suite.RandomStream())
+		pubPoly = priPoly.Commit(nil)
+
+		dkgPk = pubPoly.Commit() // DKG 公钥
+
+		rdrSk = suite.Scalar().Pick(suite.RandomStream())
+		rdrPk = suite.Point().Mul(rdrSk, nil)
 	)
 
 	var pubShares []*share.PubShare
@@ -34,32 +35,32 @@ func TestReencryptAndVerify(t *testing.T) {
 	random.Bytes(scrt, random.New())
 
 	// 1. Encrypt the secret under the DKG public key.
-	encCmt, encScrt := EncryptSecret(ste, dkgPk, scrt)
+	encCmt, encScrt := EncryptSecret(suite, dkgPk, scrt)
 
-	for idx := 0; idx < n; idx++ {
+	for idx := range n {
 
-		dkgSki := priPoly.Eval(idx).V
-		dkgCmt := pubPoly.Eval(idx).V
+		dkgSki := priPoly.Eval(uint32(idx)).V
+		dkgCmt := pubPoly.Eval(uint32(idx)).V
 
 		// 2. Re-encrypt the key under the reader's public key.
-		xncSki, chlgi, proofi, err := reencrypt(ste, dkgSki, rdrPk, encCmt)
+		xncSki, chlgi, proofi, err := reencrypt(suite, dkgSki, rdrPk, encCmt)
 		require.NoErrorf(t, err, "failed to reencrypt for share %d", idx)
 
 		// 3. Verify the re-encryption from other nodes.
-		err = verify(ste, rdrPk, encCmt, xncSki, chlgi, proofi, dkgCmt)
+		err = verify(suite, rdrPk, encCmt, xncSki, chlgi, proofi, dkgCmt)
 		require.NoErrorf(t, err, "failed to verify reencryption for share %d", idx)
 
-		pubShare := &share.PubShare{I: idx, V: xncSki}
+		pubShare := &share.PubShare{I: uint32(idx), V: xncSki}
 		pubShares = append(pubShares, pubShare)
 	}
 
 	// 4 - Recover re-encrypted commmitment using Lagrange interpolation.
 	// ski * (xG + rG) => rsG + xsG
-	xncCmt, err := share.RecoverCommit(ste, pubShares, th, n)
+	xncCmt, err := share.RecoverCommit(suite, pubShares, th, n)
 	require.NoErrorf(t, err, "failed to recover commit")
 
 	// 5 - Decode encrypted key with re-encrypted commitment and reader's privatekey.
-	scrtHat, err := DecryptSecret(ste, encScrt, dkgPk, xncCmt, rdrSk)
+	scrtHat, err := DecryptSecret(suite, encScrt, dkgPk, xncCmt, rdrSk)
 	require.NoErrorf(t, err, "failed to decode key")
 	require.Equal(t, scrt, scrtHat)
 }

@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmos/go-bip39"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4/suites"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
@@ -72,10 +72,10 @@ func main() {
 
 	fmt.Println("pub2", pub2)
 	n := &types.Node{
-		ID: pub2.String(),
+		ID: *pub2,
 	}
 	d := util.GetUrlFromIp(b.Ip)
-	fmt.Println(n.PeerID().String())
+	fmt.Println(n.PeerID())
 	url := d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + n.PeerID().String()
 	fmt.Println(url)
 }

@@ -181,10 +181,7 @@ func (dkg *DKG) HandleSignClusterProofReply(data []byte, msgID string, OrgId str
 	}
 
 	// 还原公钥
-	pub, err := types.PublicKeyFromLibp2pHex(account.ID)
-	if err != nil {
-		return errors.New("public key from libp2p hex: " + err.Error())
-	}
+	pub := account.ID
 
 	// 计算 account32
 	bt, err := pub.Raw()

@@ -1,7 +1,8 @@
-package peer
+package p2p
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/event"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -21,13 +23,20 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	"github.com/wetee-dao/go-sdk/pallet/session"
 
+	"wetee.app/dsecret/chain"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 
-// NewP2PNetwork 创建一个新的 P2P 网络实例。
-func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nodes []*types.Node, tcp, udp uint32) (*Peer, error) {
+// NewP2PNetwork 创建一个新的 P2P 网络实例
+func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, tcp, udp uint32) (*Peer, error) {
+	nodes, boots, version, err := GetChainNodes()
+	if err != nil {
+		return nil, err
+	}
+
 	var idht *dht.IpfsDHT
 	var dhtOptions []dht.Option
 
@@ -55,7 +64,7 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nod
 		connmgr.WithGracePeriod(time.Minute), // 1 minute grace period
 	)
 
-	// 创建 P2P 网络主机。
+	// 创建 P2P 网络主机
 	host, err := libp2p.New(
 		libp2p.Identity(priv.PrivKey),
 		libp2p.ListenAddrStrings(
@@ -76,7 +85,7 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nod
 		libp2p.ConnectionGater(gater),
 	)
 
-	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/" + fmt.Sprint(tcp) + "/p2p/" + fmt.Sprint(host.ID()))
+	fmt.Println("Local P2P addr: /ip4/0.0.0.0/tcp/"+fmt.Sprint(tcp)+"/p2p/"+fmt.Sprint(host.ID()), " --- ", priv.GetPublic().SS58())
 
 	// 创建 gossipsub 实例
 	pubsubTracer := new(pubsubTracer)
@@ -107,6 +116,12 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nod
 		topics:    make(map[string]*pubsub.Topic),
 		bootPeers: bootPeers,
 		gater:     gater,
+		nodes:     nodes,
+		version:   version,
+		netHook: func() error {
+			fmt.Println("network hook not implement")
+			return nil
+		},
 	}
 
 	return peer, nil
@@ -123,6 +138,30 @@ type Peer struct {
 	bootPeers   map[peer.ID]peer.AddrInfo
 	gater       *ChainConnectionGater
 	reonnecting sync.Map
+	nodes       []*types.Node
+	netHook     func() error
+	version     uint32
+}
+
+func (p *Peer) PeerStrID() string {
+	return p.ID().String()
+}
+
+func (p *Peer) NodeIds() []string {
+	peers := p.Network().Peers()
+	nodes := make([]string, len(peers))
+	for i, peer := range peers {
+		nodes[i] = peer.String()
+	}
+	return nodes
+}
+
+func (p *Peer) Nodes() []*types.Node {
+	return p.nodes
+}
+
+func (p *Peer) Version() uint32 {
+	return p.version
 }
 
 // Send 发送消息
@@ -131,19 +170,22 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *
 	peerID := node.PeerID()
 	protocolID := protocol.ConvertFromStrings([]string{pid})
 
-	util.LogSendmsg(">>>>>> P2P Send()", "to", peerID, "| type:", message.Type+", ProtocolID =", protocolID)
+	fmt.Println(p.Network().Peers())
+
+	util.LogSendmsg(">>>>>> P2P Send()", "to", peerID, "-", node.ID.SS58(), "| type:", pid+"."+message.Type)
 	var stream network.Stream
 	newStream := func() error {
-		stream, err = p.Host.NewStream(ctx, peerID, protocolID...)
+		stream, err = p.Host.NewStream(ctx, peer.ID(peerID), protocolID...)
 		return err
 	}
+
+	// 生成消息串流
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = 10 * time.Second
 	bctx := backoff.WithContext(b, ctx)
-
 	err = backoff.Retry(newStream, bctx)
 	if err != nil {
-		return fmt.Errorf("new stream: %v", err)
+		return fmt.Errorf("Host.NewStream error: %v", err)
 	}
 	defer stream.Close()
 
@@ -167,11 +209,110 @@ func (p *Peer) AddHandler(pid string, handler func(*types.Message) error) {
 }
 
 // RemoveHandler 移除消息处理器
-func (t *Peer) RemoveHandler(pid protocol.ID) {
-	t.Host.RemoveStreamHandler(pid)
+func (t *Peer) RemoveHandler(pid string) {
+	t.Host.RemoveStreamHandler(protocol.ID(pid))
+}
+
+func (p *Peer) NetResetHook(hook func() error) {
+	p.netHook = hook
+}
+
+func (p *Peer) Start(ctx context.Context) {
+	for _, peer := range p.bootPeers {
+		if err := p.Connect(ctx, peer); err != nil {
+			fmt.Println("Can't connect to peer:", peer, err)
+		} else {
+			fmt.Println("Connected to bootstrap node:", peer)
+		}
+	}
+
+	go func() {
+		for {
+			nodes, _, version, err := GetChainNodes()
+			if err == nil {
+				p.version = version
+				p.nodes = nodes
+				p.gater.Nodes = nodes
+
+				// 触发网络钩子
+				p.netHook()
+			}
+
+			p.Discover(ctx)
+			fmt.Println("Peer len:", len(p.Network().Peers()))
+			time.Sleep(time.Second * 30)
+		}
+	}()
+
+	subCh, err := p.EventBus().Subscribe(new(event.EvtPeerConnectednessChanged))
+	if err != nil {
+		fmt.Printf("Error subscribing to peer connectedness changes: %s \n", err)
+	}
+	defer subCh.Close()
+
+	for {
+		select {
+		case ev, ok := <-subCh.Out():
+			if !ok {
+				return
+			}
+
+			evt := ev.(event.EvtPeerConnectednessChanged)
+			if evt.Connectedness != network.NotConnected {
+				continue
+			}
+
+			if _, ok := p.bootPeers[evt.Peer]; !ok {
+				continue
+			}
+
+			paddr := p.bootPeers[evt.Peer]
+			go p.reconnectToPeer(ctx, paddr)
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // Close 关闭 P2P 网络实例
 func (p *Peer) Close() error {
 	return p.Host.Close()
+}
+
+func GetChainNodes() ([]*types.Node, []string, uint32, error) {
+	// Get session index
+	version, err := session.GetCurrentIndexLatest(chain.ChainIns.Api.RPC.State)
+	if err != nil {
+		fmt.Println("Get session index error:", err)
+		return nil, nil, 0, err
+	}
+
+	// Get boot peers from chain
+	bootPeers, err := chain.ChainIns.GetBootPeers()
+	if err != nil {
+		fmt.Println("Get node list error:", err)
+		return nil, nil, 0, err
+	}
+
+	// get node list from chain
+	_, _, nodes, err := chain.ChainIns.GetNodes()
+	if err != nil {
+		fmt.Println("Get node list error:", err)
+		return nil, nil, 0, err
+	}
+
+	// 计算 p2p 地址
+	boots := make([]string, 0, len(bootPeers))
+	for _, b := range bootPeers {
+		var gopub ed25519.PublicKey = b.Id[:]
+		pub, _ := types.PubKeyFromStdPubKey(gopub)
+		n := &types.Node{
+			ID: *pub,
+		}
+		d := util.GetUrlFromIp(b.Ip)
+		url := d + "/tcp/" + fmt.Sprint(b.Port) + "/p2p/" + n.PeerID().String()
+		boots = append(boots, url)
+	}
+
+	return nodes, boots, version, nil
 }

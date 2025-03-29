@@ -8,7 +8,6 @@ import (
 	chain "github.com/wetee-dao/go-sdk"
 	"github.com/wetee-dao/go-sdk/pallet/dsecret"
 	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/worker"
 	"wetee.app/dsecret/util"
 
 	types "wetee.app/dsecret/type"
@@ -24,7 +23,7 @@ func (c *Chain) RegisterNode(signer *chain.Signer, pubkey []byte) error {
 	return c.SignAndSubmit(signer, call, true)
 }
 
-// GetNodes 函数用于获取节点列表，包括 Secret 节点和 Worker 节点，以及转换为自定义的 Node 类型。
+// GetNodes 函数用于获取节点列表，包括 Secret 节点和 Worker 节点，以及转换为自定义的 Node 类型
 func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, error) {
 	// 获取节点列表
 	secretNodes, err := c.GetNodeList()
@@ -41,7 +40,7 @@ func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, err
 		var gopub ed25519.PublicKey = n[:]
 		pub, _ := types.PubKeyFromStdPubKey(gopub)
 		nodes = append(nodes, &types.Node{
-			ID:   pub.String(),
+			ID:   *pub,
 			Type: 1,
 		})
 	}
@@ -49,7 +48,7 @@ func (c *Chain) GetNodes() ([][32]byte, []*gtypes.K8sCluster, []*types.Node, err
 		var gopub ed25519.PublicKey = w.Account[:]
 		pub, _ := types.PubKeyFromStdPubKey(gopub)
 		nodes = append(nodes, &types.Node{
-			ID: pub.String(),
+			ID: *pub,
 		})
 	}
 
@@ -105,5 +104,5 @@ func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 
 // GetBootPeers get boot peers
 func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
-	return worker.GetBootPeersLatest(c.Api.RPC.State)
+	return dsecret.GetBootPeersLatest(c.Api.RPC.State)
 }

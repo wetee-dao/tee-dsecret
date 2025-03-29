@@ -6,51 +6,10 @@ import (
 
 	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
-	rabin "go.dedis.ch/kyber/v3/share/dkg/rabin"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/suites"
 )
-
-// SecretCommits to SecretCommits
-func SecretCommitsToProtocol(sc *rabin.SecretCommits) (*SecretCommitJson, error) {
-	points := make([][]byte, len(sc.Commitments))
-	for i, c := range sc.Commitments {
-		cBytes, err := c.MarshalBinary()
-		if err != nil {
-			return nil, fmt.Errorf("marshal commitment: %w", err)
-		}
-		points[i] = cBytes
-	}
-
-	return &SecretCommitJson{
-		Index: sc.Index,
-		// TargetIndex: sc.TargetIndex,
-		Commitments: points,
-		SessionID:   sc.SessionID,
-		Signature:   sc.Signature,
-	}, nil
-}
-
-func SecretCommitsFromProtocol(suite suites.Suite, sc *SecretCommitJson) (*rabin.SecretCommits, error) {
-	// convert kyber points
-	points := make([]kyber.Point, len(sc.Commitments))
-	for i, c := range sc.Commitments {
-		commitPoint := suite.Point()
-		err := commitPoint.UnmarshalBinary(c)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshal commitment: %w", err)
-		}
-		points[i] = commitPoint
-	}
-
-	return &rabin.SecretCommits{
-		Index:       sc.Index,
-		Commitments: points,
-		SessionID:   sc.SessionID,
-		Signature:   sc.Signature,
-	}, nil
-}
 
 // SecretCommits
 type SecretCommitJson struct {
@@ -74,7 +33,7 @@ type DistKeyShare struct {
 }
 
 type PriShareJson struct {
-	I int
+	I uint32
 	V []byte
 }
 

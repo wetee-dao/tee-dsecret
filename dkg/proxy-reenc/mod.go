@@ -7,9 +7,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/share"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/share"
+	"go.dedis.ch/kyber/v4/suites"
 	types "wetee.app/dsecret/type"
 )
 
@@ -187,6 +187,7 @@ func Verify(rdrPk types.PubKey, dkgCmt *share.PubPoly, encCmt kyber.Point, r Ree
 		r.Proof,
 		dkgCmt.Eval(idx).V,
 	)
+
 	if err != nil {
 		return fmt.Errorf("verification: %w", err)
 	}
@@ -320,7 +321,6 @@ func EncryptSecret(
 	encCmt kyber.Point,
 	encScrt []kyber.Point,
 ) {
-
 	r := ste.Scalar().Pick(ste.RandomStream())
 	encCmt = ste.Point().Mul(r, nil) // rG = r * G
 	rsG := ste.Point().Mul(r, dkgPk) // rsG = r * sG
@@ -364,7 +364,6 @@ func DecryptSecret(
 	// we must deduct the encryption point (rsG). This can be inferred from
 	// the re-encrypted schnorr-commit (rsG + xsG) by removing the product of
 	// the reader's secret key (x) and the aggregate public key from the DKG (sG).
-
 	xsG := ste.Point().Mul(rdrSk, dkgPk) // xsG = x * sG
 	rsG := ste.Point().Sub(xncCmt, xsG)  // rsG = (rsG + xsG) - xsG
 

@@ -1,12 +1,18 @@
 module wetee.app/dsecret
 
-go 1.21.0
+go 1.22
 
-toolchain go1.21.6
+toolchain go1.23.7
 
 require (
+	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
+	github.com/cloudflare/circl v1.3.9 // indirect
+	github.com/cockroachdb/crlib v0.0.0-20241015224233-894974b3ad94 // indirect
+	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
+	github.com/cockroachdb/swiss v0.0.0-20240612210725-f4de07ae6964 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/kilic/bls12-381 v0.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -18,6 +24,7 @@ require (
 require (
 	github.com/99designs/gqlgen v0.17.49
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.2.2-0.20240731190417-9d7be34be928
+	github.com/cockroachdb/pebble/v2 v2.0.3
 	github.com/edgelesssys/ego v1.5.3
 	github.com/fatih/color v1.17.0
 	github.com/go-chi/chi/v5 v5.1.0
@@ -29,8 +36,8 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	github.com/wetee-dao/go-sdk v0.1.2-0.20250124054825-aa0db97641fe
-	go.dedis.ch/kyber/v3 v3.1.0
+	github.com/wetee-dao/go-sdk v0.1.2-0.20250328115845-7d96af80b44d
+	go.dedis.ch/kyber/v4 v4.0.0-pre2.0.20250219110603-23debab3f61d
 )
 
 require (
@@ -53,7 +60,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v0.0.5-0.20231225225746-43d5d4cd4e0e // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -132,7 +139,6 @@ require (
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	go.dedis.ch/fixbuf v1.0.3 // indirect
-	go.dedis.ch/protobuf v1.0.11 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
@@ -157,7 +163,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/base58 v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
-	github.com/edgelesssys/estore v1.1.0
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect

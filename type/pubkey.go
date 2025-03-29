@@ -10,9 +10,9 @@ import (
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/group/edwards25519"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/group/edwards25519"
+	"go.dedis.ch/kyber/v4/suites"
 )
 
 type PubKey struct {
@@ -54,6 +54,15 @@ func (p *PubKey) PeerID() peer.ID {
 		return peer.ID("")
 	}
 	return peerID
+}
+
+func (p *PubKey) SS58() string {
+	k, err := p.Std()
+	if err != nil {
+		return "error key"
+	}
+
+	return SS58Encode(k.(ed25519.PublicKey), 42)
 }
 
 func PublicKeyFromLibp2pHex(hexStr string) (*PubKey, error) {

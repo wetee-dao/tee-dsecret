@@ -14,8 +14,11 @@ export TCP_PORT=31000
 export UDP_PORT=31000
 export GQL_PORT=31001
 export PASSWORD=123456
-export CHAIN_ADDR=ws://xiaobai.asyou.me:30002/ws
+export CHAIN_ADDR=ws://paseo.asyou.me/ws
 
 ego-go build -o dsecret ../../main.go
 ego sign dsecret
+
+rm nohup.out
+
 nohup ego run dsecret &
