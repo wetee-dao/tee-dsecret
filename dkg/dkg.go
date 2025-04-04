@@ -8,9 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p/core/peer"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/share"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/kyber/v4/suites"
@@ -38,21 +36,21 @@ type DKG struct {
 	// Threshold 是密钥重建所需的最小份额数量
 	Threshold int
 
+	// dkg loger
+	log pedersen.Logger
+
 	// DistKeyGenerator
 	DistKeyGenerator *pedersen.DistKeyGenerator
 	// DistPubKey globle public key
 	DkgPubKey kyber.Point
+	// DistKeyShare is the node private share
+	DkgKeyShare types.DistKeyShare
 
 	// cache the deal, response, justification, result
 	deals     map[string]*pedersen.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
 	results   *pedersen.Result
-
-	// Shares 是当前节点持有的密钥份额
-	Shares map[peer.ID]*share.PriShare
-	// DistKeyShare is the node private share
-	DkgKeyShare types.DistKeyShare
 
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan any
@@ -84,7 +82,6 @@ func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
 		NodeSecret: NodeSecret.Scalar(),
 		Signer:     NodeSecret,
 		Threshold:  threshold,
-		Shares:     make(map[peer.ID]*share.PriShare),
 		Peer:       p,
 		AllNodes:   nodes,
 		DkgNodes:   dkgNodes,
@@ -92,6 +89,8 @@ func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
 		deals:      make(map[string]*pedersen.DealBundle),
 		responses:  make(map[string]*pedersen.ResponseBundle),
 	}
+	dkg.Peer.AddHandler("dkg", dkg.HandleDkg)
+	dkg.Peer.AddHandler("worker", dkg.HandleWorker)
 
 	// 添加网络节点变化回调
 	p.NetResetHook(dkg.ReShare)
@@ -104,9 +103,7 @@ func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
 
 // Start 启动 Rabin DKG 协议
 func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
-	// Add 请求回调 handler
-	dkg.Peer.AddHandler("dkg", dkg.HandleDkg)
-	dkg.Peer.AddHandler("worker", dkg.HandleWorker)
+	dkg.log = log
 
 	if flag.Lookup("test.v") == nil {
 		go dkg.HandleSecretSave(ctx)
@@ -147,9 +144,9 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 
 	// 等待节点连接
 	for {
-		if dkg.nodeLen()+1 < len(dkg.DkgNodes) {
+		if dkg.connectLen()+1 < len(dkg.DkgNodes) {
 			time.Sleep(time.Second * 10)
-			fmt.Println("Number of nodes:", dkg.nodeLen(), " len(dkg.DkgNodes) ", len(dkg.DkgNodes))
+			fmt.Println("Number of nodes:", dkg.connectLen(), " len(dkg.DkgNodes) ", len(dkg.DkgNodes))
 			fmt.Println("The number of nodes is insufficient, please wait for more nodes to join")
 		} else {
 			break
@@ -164,31 +161,132 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 
 	// 开启节点共识
 	for _, node := range dkg.DkgNodes {
-		err = dkg.SendDealMessage(ctx, node, deal)
+		err = dkg.SendDealMessage(ctx, node, deal, 0)
 		if err != nil {
 			fmt.Println("Send error:", err)
 		}
 	}
 
-	// 等待节点完成重组
+	// // 等待节点完成重组
+	// for {
+	// 	if dkg.DkgKeyShare.PriShare != nil {
+	// 		break
+	// 	}
+	// 	fmt.Println("Wait for the DKG network to complete reorganization")
+	// 	time.Sleep(time.Second * 5)
+	// }
+	// fmt.Println("The DKG protocol has been successfully initiated")
+
+	return nil
+}
+
+func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
+	peerNodes := dkg.Peer.Nodes()
+	// 获取节点公钥列表
+	dkgNodes := make([]*types.Node, 0, len(peerNodes))
+	for _, n := range peerNodes {
+		// 过滤不是dkg节点
+		if n.Type != 1 {
+			continue
+		}
+
+		dkgNodes = append(dkgNodes, n)
+	}
+
+	// dkg 节点列表
+	nodes := make([]pedersen.Node, 0, len(dkgNodes))
+	for i, p := range dkgNodes {
+		nodes = append(nodes, pedersen.Node{
+			Index:  uint32(i),
+			Public: p.ID.Point(),
+		})
+	}
+
+	// 获取旧节点列表
+	oldNodes := make([]pedersen.Node, 0, len(dkgNodes))
+	for i, p := range dkg.DkgNodes {
+		oldNodes = append(oldNodes, pedersen.Node{
+			Index:  uint32(i),
+			Public: p.ID.Point(),
+		})
+	}
+
+	threshold := len(dkgNodes) * 2 / 3
+
+	// 初始化协议配置
+	conf := pedersen.Config{
+		OldNodes:     oldNodes, // 获取当前节点列表
+		OldThreshold: dkg.Threshold,
+		Threshold:    threshold, // 新的节点列表
+		NewNodes:     nodes,
+		Nonce:        Version2Nonce(dkg.Peer.Version()),
+		Suite:        dkg.Suite, // 不变的参数
+		Auth:         schnorr.NewScheme(dkg.Suite),
+		FastSync:     true,
+		Longterm:     dkg.NodeSecret,
+		Log:          dkg.log,
+	}
+
+	if dkg.DkgKeyShare.PriShare != nil {
+		conf.Share = &pedersen.DistKeyShare{
+			Commits: dkg.DkgKeyShare.Commits,
+			Share:   dkg.DkgKeyShare.PriShare,
+		}
+	} else {
+		conf.PublicCoeffs = coeffs
+	}
+
+	var err error
+	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
+	if err != nil {
+		return err
+	}
+
+	priShare := dkg.DkgKeyShare.PriShare
+
+	// 重置 DKG 对象
+	dkg.AllNodes = peerNodes
+	dkg.DkgNodes = dkgNodes
+	dkg.deals = map[string]*pedersen.DealBundle{}
+	dkg.responses = map[string]*pedersen.ResponseBundle{}
+	dkg.justifs = []*pedersen.JustificationBundle{}
+	dkg.results = nil
+	dkg.DkgKeyShare = types.DistKeyShare{}
+
+	// old node issue deals
+	if priShare != nil {
+		// 获取当前节点的协议
+		deal, err := dkg.DistKeyGenerator.Deals()
+		if err != nil {
+			return fmt.Errorf("Failed to generate key shares: %w", err)
+		}
+
+		ctx := context.Background()
+
+		fmt.Println("ReShare DkgNodes ---------------------------------------------------------------------", len(dkg.DkgNodes))
+		// 开启节点共识
+		for _, node := range dkg.DkgNodes {
+			err = dkg.SendDealMessage(ctx, node, deal, len(oldNodes))
+			if err != nil {
+				fmt.Println("Send error:", err)
+			}
+		}
+	}
+
+	// 等待节点完成重组s
 	for {
 		if dkg.DkgKeyShare.PriShare != nil {
 			break
 		}
-		fmt.Println("Wait for the DKG network to complete reorganization")
 		time.Sleep(time.Second * 5)
 	}
-	fmt.Println("The DKG protocol has been successfully initiated")
+	fmt.Println("The DKG protocol has been successfully reshare <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
+	dkg.Threshold = threshold
 	return nil
 }
 
-func (dkg *DKG) ReShare() error {
-	fmt.Println("ReShare")
-	return nil
-}
-
-func (dkg *DKG) nodeLen() int {
+func (dkg *DKG) connectLen() int {
 	var len int
 	peers := dkg.Peer.NodeIds()
 	for _, p := range peers {

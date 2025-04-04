@@ -31,7 +31,7 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 	}
 
 	// 组合报告
-	result := map[string]interface{}{
+	result := map[string]any{
 		"param":  param,
 		"report": report,
 	}

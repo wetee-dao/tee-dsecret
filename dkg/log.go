@@ -7,10 +7,16 @@ type Logger struct {
 }
 
 func (l Logger) Info(keyvals ...any) {
-	fmt.Println("NODE ==========", l.NodeIndex, " INFO  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println(keyvals...)
+	logs := []any{"NODE ==========", l.NodeIndex, " Info  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"}
+	for _, v := range keyvals {
+		logs = append(logs, v)
+	}
+	fmt.Println(logs...)
 }
 func (l Logger) Error(keyvals ...any) {
-	fmt.Println("NODE ==========", l.NodeIndex, " Error  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	fmt.Println(keyvals...)
+	logs := []any{"NODE ==========", l.NodeIndex, " Error  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"}
+	for _, v := range keyvals {
+		logs = append(logs, v)
+	}
+	fmt.Println(logs...)
 }

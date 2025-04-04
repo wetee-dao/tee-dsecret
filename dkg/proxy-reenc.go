@@ -24,7 +24,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 	// 同步访问共享资源
 	d.mu.Lock()
 	// 为消息ID预分配一个通道，用于接收响应
-	d.preRecerve[msgID] = make(chan interface{})
+	d.preRecerve[msgID] = make(chan any)
 	d.mu.Unlock()
 
 	// 向所有节点发送加密秘密请求
@@ -40,7 +40,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 
 	// 准备收集至少达到阈值数量的节点响应
 	psk := make([]*share.PubShare, 0, len(d.DkgNodes))
-	for i := 0; i < d.Threshold; i++ {
+	for range d.Threshold {
 		select {
 		case d := <-d.preRecerve[msgID]:
 			data := d.(*share.PubShare)
@@ -145,6 +145,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	if n == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
+
 	// 向目标节点发送重新加密的密文份额
 	err = d.SendToNode(context.Background(), n, "worker", &types.Message{
 		MsgID:   msgID,

@@ -24,6 +24,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
 	"github.com/wetee-dao/go-sdk/pallet/session"
+	"go.dedis.ch/kyber/v4"
 
 	"wetee.app/dsecret/chain"
 	types "wetee.app/dsecret/type"
@@ -118,7 +119,7 @@ func NewP2PNetwork(ctx context.Context, priv *types.PrivKey, tcp, udp uint32) (*
 		gater:     gater,
 		nodes:     nodes,
 		version:   version,
-		netHook: func() error {
+		netHook: func([]kyber.Point) error {
 			fmt.Println("network hook not implement")
 			return nil
 		},
@@ -139,7 +140,7 @@ type Peer struct {
 	gater       *ChainConnectionGater
 	reonnecting sync.Map
 	nodes       []*types.Node
-	netHook     func() error
+	netHook     func([]kyber.Point) error
 	version     uint32
 }
 
@@ -213,7 +214,7 @@ func (t *Peer) RemoveHandler(pid string) {
 	t.Host.RemoveStreamHandler(protocol.ID(pid))
 }
 
-func (p *Peer) NetResetHook(hook func() error) {
+func (p *Peer) NetResetHook(hook func([]kyber.Point) error) {
 	p.netHook = hook
 }
 
@@ -230,12 +231,15 @@ func (p *Peer) Start(ctx context.Context) {
 		for {
 			nodes, _, version, err := GetChainNodes()
 			if err == nil {
-				p.version = version
-				p.nodes = nodes
-				p.gater.Nodes = nodes
+				if p.version != version {
+					// 重新加载节点
+					p.version = version
+					p.nodes = nodes
+					p.gater.Nodes = nodes
 
-				// 触发网络钩子
-				p.netHook()
+					// 触发网络钩子
+					p.netHook([]kyber.Point{})
+				}
 			}
 
 			p.Discover(ctx)

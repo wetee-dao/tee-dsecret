@@ -4,6 +4,7 @@ import (
 	"context"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"go.dedis.ch/kyber/v4"
 	types "wetee.app/dsecret/type"
 )
 
@@ -29,5 +30,5 @@ type Peer interface {
 	NodeIds() []string
 	Nodes() []*types.Node
 	Version() uint32
-	NetResetHook(hook func() error)
+	NetResetHook(hook func([]kyber.Point) error)
 }

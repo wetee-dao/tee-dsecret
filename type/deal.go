@@ -17,6 +17,7 @@ type Deal struct {
 	SessionID []byte
 	// Signature over the hash of the whole bundle
 	Signature []byte
+	Reshare   int
 }
 
 func DealToProtocol(deal *pedersen.DealBundle) (*Deal, error) {

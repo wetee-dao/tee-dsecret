@@ -7,12 +7,17 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
+	"go.dedis.ch/kyber/v4"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
 
-var peers = make(map[string]*Peer)
-var GlobleNodes = make([]*types.Node, 0, 100)
+var (
+	peers       = make(map[string]*Peer)
+	GlobleNodes = make([]*types.Node, 0, 100)
+	Version     uint32
+	Commits     []kyber.Point
+)
 
 func NewNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nodes []*types.Node, tcp, udp uint32) (*Peer, error) {
 	id := priv.GetPublic().PeerID().String()
@@ -23,10 +28,11 @@ func NewNetwork(ctx context.Context, priv *types.PrivKey, boots []string, nodes 
 		privKey:  priv.PrivKey,
 		nodes:    nodes,
 		handlers: make(map[string]func(*types.Message) error),
-		netHook: func() error {
-			fmt.Println("network hook not implement")
+		netHook: func([]kyber.Point) error {
+			fmt.Println("::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: netHook not found error")
 			return nil
 		},
+		version: 1,
 	}
 
 	peers[id] = peer
@@ -39,7 +45,8 @@ type Peer struct {
 	privKey  libp2pCrypto.PrivKey
 	nodes    []*types.Node
 	handlers map[string]func(*types.Message) error
-	netHook  func() error
+	netHook  func([]kyber.Point) error
+	version  uint32
 }
 
 func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *types.Message) error {
@@ -47,6 +54,8 @@ func (p *Peer) Send(ctx context.Context, node *types.Node, pid string, message *
 	peer := peers[node.PeerID().String()]
 	if handler, ok := peer.handlers[pid]; ok {
 		go handler(message)
+	} else {
+		fmt.Println("handler not found for pid: ", node.ID.PeerID())
 	}
 	return nil
 }
@@ -64,12 +73,16 @@ func (p *Peer) Close() error {
 }
 
 func (p *Peer) Start(ctx context.Context) {
-	time.Sleep(time.Second * 2)
-
 	p.nodes = GlobleNodes
+	p.version = Version
+
+	time.Sleep(500 * time.Millisecond)
 
 	// 触发网络钩子
-	p.netHook()
+	err := p.netHook(Commits)
+	if err != nil {
+		fmt.Println("netHook error: ", err)
+	}
 }
 
 func (p *Peer) Discover(ctx context.Context) error {
@@ -88,7 +101,7 @@ func (p *Peer) Sub(ctx context.Context, topic string) (*pubsub.Subscription, err
 	panic("Sub not implement")
 }
 
-func (p *Peer) NetResetHook(hook func() error) {
+func (p *Peer) NetResetHook(hook func([]kyber.Point) error) {
 	p.netHook = hook
 }
 
@@ -106,5 +119,5 @@ func (p *Peer) Nodes() []*types.Node {
 }
 
 func (p *Peer) Version() uint32 {
-	return 1
+	return p.version
 }

@@ -35,13 +35,13 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 			util.LogError("DEAL <<<<<<<<<<<<<<<< ERROR", "HandleDealResp:", err)
 		}
 		return err
-	case "justification":
-		// 处理证明消息
-		err := dkg.HandleJustification(msg.OrgId, msg.Payload)
-		if err != nil {
-			util.LogError("DEAL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ERROR", "HandleJustification:", err)
-		}
-		return err
+	// case "justification":
+	// 	// 处理证明消息
+	// 	err := dkg.HandleJustification(msg.OrgId, msg.Payload)
+	// 	if err != nil {
+	// 		util.LogError("DEAL <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ERROR", "HandleJustification:", err)
+	// 	}
+	// 	return err
 	default:
 		// 如果消息类型未知，返回错误
 		return fmt.Errorf("unknown message type: %s", msg.Type)

@@ -3,7 +3,6 @@ package dkg
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
@@ -26,12 +25,13 @@ import (
 //
 // 返回值:
 // - error: 如果转换、序列化或发送过程中发生错误，则返回相应的错误
-func (dkg *DKG) SendDealMessage(ctx context.Context, node *types.Node, message *pedersen.DealBundle) error {
+func (dkg *DKG) SendDealMessage(ctx context.Context, node *types.Node, message *pedersen.DealBundle, reshare int) error {
 	// 将交易信息转换为协议消息格式
 	pmessage, err := types.DealToProtocol(message)
 	if err != nil {
 		return err
 	}
+	pmessage.Reshare = reshare
 
 	// 将协议消息序列化为JSON字节切片
 	bt, err := json.Marshal(pmessage)
@@ -68,7 +68,11 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 	}
 
 	dkg.deals[OrgId] = deal
-	if len(dkg.deals) < len(dkg.DkgNodes) {
+	num := len(dkg.DkgNodes)
+	if pmessage.Reshare > 0 {
+		num = pmessage.Reshare
+	}
+	if len(dkg.deals) < num {
 		// 如果交易数量小于阈值，则返回错误
 		return nil
 	}
@@ -85,10 +89,18 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 	}
 
 	// 如果交易未被批准，则返回错误
+	// all nodes in the new group should have reported an error
+	errNum := 0
+	var errorLog []any = []any{"ProcessDeals ===> "}
 	for _, r := range resp.Responses {
+		errorLog = append(errorLog, fmt.Sprint(r.DealerIndex)+"="+fmt.Sprint(r.Status))
 		if r.Status != pedersen.Success {
-			return errors.New("deal rejected")
+			errNum++
 		}
+	}
+	fmt.Println(errorLog...)
+	if errNum > 1 {
+		return fmt.Errorf("ProcessDeals error: %w", err)
 	}
 
 	// 将响应对象序列化为字节切片
@@ -149,7 +161,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	}
 
 	// 检查是否生成了密钥份额
-	if res != nil && justification == nil {
+	if res != nil {
 		dkg.results = res
 		dkg.DkgKeyShare = types.DistKeyShare{
 			Commits:  res.Key.Commits,
@@ -165,36 +177,50 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	// 检查是否生成了交易证明
 	// Justification，证明 Deal 消息的无效性
 	if justification == nil {
-		return fmt.Errorf("justification: is nil")
-	}
-
-	// 将交易信息转换为协议消息格式
-	pmessage, err := types.JustificationToProtocol(justification)
-	if err != nil {
-		return err
-	}
-
-	// 将协议格式的秘密提交序列化为JSON
-	bt, err := json.Marshal(pmessage)
-	if err != nil {
-		// 如果序列化失败，返回错误
-		return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
-	}
-
-	// 向所有DKG节点广播秘密提交
-	for _, node := range dkg.DkgNodes {
-		// 发送秘密提交给其他节点
-		err = dkg.SendToNode(context.Background(), node, "dkg", &types.Message{
-			Type:    "justification",
-			Payload: bt,
-		})
+		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err != nil {
-			// 如果发送失败，记录错误
-			util.LogError("DEAL", "Send justification error", err)
+			return fmt.Errorf("ProcessJustifications: %w", err)
 		}
+
+		dkg.results = res
+		dkg.DkgKeyShare = types.DistKeyShare{
+			Commits:  res.Key.Commits,
+			PriShare: res.Key.Share,
+		}
+		dkg.DkgPubKey = res.Key.Public()
+
+		// 保存密钥份额
+		dkg.saveStore()
+		return nil
 	}
 
-	return nil
+	// // 将交易信息转换为协议消息格式
+	// pmessage, err := types.JustificationToProtocol(justification)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // 将协议格式的秘密提交序列化为JSON
+	// bt, err := json.Marshal(pmessage)
+	// if err != nil {
+	// 	// 如果序列化失败，返回错误
+	// 	return fmt.Errorf("HandleDealResp json.Marshal: %w", err)
+	// }
+
+	// // 向所有DKG节点广播秘密提交
+	// for _, node := range dkg.DkgNodes {
+	// 	// 发送秘密提交给其他节点
+	// 	err = dkg.SendToNode(context.Background(), node, "dkg", &types.Message{
+	// 		Type:    "justification",
+	// 		Payload: bt,
+	// 	})
+	// 	if err != nil {
+	// 		// 如果发送失败，记录错误
+	// 		util.LogError("DEAL", "Send justification error", err)
+	// 	}
+	// }
+
+	return fmt.Errorf("HandleDealResp not implemented")
 }
 
 // HandleJustification 处理合理性证明消息
@@ -205,54 +231,54 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 //
 // 返回值:
 //   - error: 如果解析或处理消息过程中发生错误，则返回该错误
-func (dkg *DKG) HandleJustification(OrgId string, data []byte) error {
-	// 加锁以确保线程安全
-	dkg.mu.Lock()
-	defer dkg.mu.Unlock()
+// func (dkg *DKG) HandleJustification(OrgId string, data []byte) error {
+// 	// 加锁以确保线程安全
+// 	dkg.mu.Lock()
+// 	defer dkg.mu.Unlock()
 
-	// 初始化交易消息结构体
-	pmessage := &types.JustificationBundle{}
-	err := json.Unmarshal(data, pmessage)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+// 	// 初始化交易消息结构体
+// 	pmessage := &types.JustificationBundle{}
+// 	err := json.Unmarshal(data, pmessage)
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return err
+// 	}
 
-	// 将协议消息转换为交易对象
-	message, err := types.ProtocolToJustification(dkg.Suite, pmessage)
-	if err != nil {
-		return err
-	}
+// 	// 将协议消息转换为交易对象
+// 	message, err := types.ProtocolToJustification(dkg.Suite, pmessage)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	// 如果消息索引与当前节点ID不匹配，则忽略该消息
-	// 这里假设ID为-1表示无效或未初始化的节点
-	if dkg.ID() == -1 || uint32(dkg.ID()) != message.DealerIndex {
-		return nil
-	}
+// 	// 如果消息索引与当前节点ID不匹配，则忽略该消息
+// 	// 这里假设ID为-1表示无效或未初始化的节点
+// 	if dkg.ID() == -1 || uint32(dkg.ID()) != message.DealerIndex {
+// 		return nil
+// 	}
 
-	dkg.justifs = append(dkg.justifs, message)
-	if len(dkg.responses) < len(dkg.DkgNodes) {
-		// 如果交易数量小于阈值，则返回错误
-		return nil
-	}
+// 	dkg.justifs = append(dkg.justifs, message)
+// 	if len(dkg.responses) < len(dkg.DkgNodes) {
+// 		// 如果交易数量小于阈值，则返回错误
+// 		return nil
+// 	}
 
-	// 调用分布式密钥生成器的 ProcessJustification 方法处理合理性证明消息
-	res, err := dkg.DistKeyGenerator.ProcessJustifications(dkg.justifs)
-	if err != nil || res == nil {
-		// 如果处理过程中发生错误，返回一个带有错误详情的新错误
-		return fmt.Errorf("ProcessJustification: %w", err)
-	}
+// 	// 调用分布式密钥生成器的 ProcessJustification 方法处理合理性证明消息
+// 	res, err := dkg.DistKeyGenerator.ProcessJustifications(dkg.justifs)
+// 	if err != nil || res == nil {
+// 		// 如果处理过程中发生错误，返回一个带有错误详情的新错误
+// 		return fmt.Errorf("ProcessJustification: %w", err)
+// 	}
 
-	dkg.results = res
-	dkg.DkgKeyShare = types.DistKeyShare{
-		Commits:  res.Key.Commits,
-		PriShare: res.Key.Share,
-	}
-	dkg.DkgPubKey = res.Key.Public()
+// 	dkg.results = res
+// 	dkg.DkgKeyShare = types.DistKeyShare{
+// 		Commits:  res.Key.Commits,
+// 		PriShare: res.Key.Share,
+// 	}
+// 	dkg.DkgPubKey = res.Key.Public()
 
-	// 保存密钥份额
-	dkg.saveStore()
+// 	// 保存密钥份额
+// 	dkg.saveStore()
 
-	// 如果一切顺利，返回nil表示没有错误
-	return nil
-}
+// 	// 如果一切顺利，返回nil表示没有错误
+// 	return nil
+// }

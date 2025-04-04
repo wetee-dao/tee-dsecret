@@ -161,7 +161,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/decred/base58 v1.0.5 // indirect
+	github.com/decred/base58 v1.0.5
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
