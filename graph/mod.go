@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
-	"wetee.app/dsecret/dkg"
+	"wetee.app/dsecret/internal/dkg"
 	"wetee.app/dsecret/util"
 )
 

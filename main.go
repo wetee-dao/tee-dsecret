@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"wetee.app/dsecret/chain"
-	"wetee.app/dsecret/dkg"
 	"wetee.app/dsecret/graph"
-	"wetee.app/dsecret/peer/p2p"
-	"wetee.app/dsecret/store"
+	"wetee.app/dsecret/internal/chain"
+	"wetee.app/dsecret/internal/dkg"
+	"wetee.app/dsecret/internal/peer/p2p"
+	"wetee.app/dsecret/internal/store"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
