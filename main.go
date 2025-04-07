@@ -66,9 +66,7 @@ func main() {
 	go peer.Start(ctx)
 
 	// 运行 DKG 协议
-	if err := dkgIns.Start(ctx, dkg.Logger{
-		NodeIndex: 1,
-	}); err != nil {
+	if err := dkgIns.Start(ctx, nil); err != nil {
 		fmt.Println("Start DKG error:", err)
 		os.Exit(1)
 	}

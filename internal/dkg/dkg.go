@@ -50,7 +50,7 @@ type DKG struct {
 	deals     map[string]*pedersen.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
-	results   *pedersen.Result
+	// results   *pedersen.Result
 
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan any
@@ -250,7 +250,6 @@ func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
 	dkg.deals = map[string]*pedersen.DealBundle{}
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
-	dkg.results = nil
 	dkg.DkgKeyShare = types.DistKeyShare{}
 
 	// old node issue deals

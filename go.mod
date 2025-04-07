@@ -1,6 +1,6 @@
 module wetee.app/dsecret
 
-go 1.22
+go 1.23
 
 toolchain go1.23.7
 

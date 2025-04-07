@@ -230,16 +230,14 @@ func (p *Peer) Start(ctx context.Context) {
 	go func() {
 		for {
 			nodes, _, version, err := GetChainNodes()
-			if err == nil {
-				if p.version != version {
-					// 重新加载节点
-					p.version = version
-					p.nodes = nodes
-					p.gater.Nodes = nodes
+			if err == nil && p.version != version {
+				// 重新加载节点
+				p.version = version
+				p.nodes = nodes
+				p.gater.Nodes = nodes
 
-					// 触发网络钩子
-					p.netHook([]kyber.Point{})
-				}
+				// 触发网络钩子
+				p.netHook([]kyber.Point{})
 			}
 
 			p.Discover(ctx)

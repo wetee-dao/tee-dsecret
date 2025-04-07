@@ -162,7 +162,6 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 
 	// 检查是否生成了密钥份额
 	if res != nil {
-		dkg.results = res
 		dkg.DkgKeyShare = types.DistKeyShare{
 			Commits:  res.Key.Commits,
 			PriShare: res.Key.Share,
@@ -174,24 +173,21 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 		return nil
 	}
 
-	// 检查是否生成了交易证明
-	// Justification，证明 Deal 消息的无效性
+	// Justification 为 nil
 	if justification == nil {
+		// reshare 可能在这里获取私钥
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
-		if err != nil {
-			return fmt.Errorf("ProcessJustifications: %w", err)
-		}
+		if err == nil {
+			dkg.DkgKeyShare = types.DistKeyShare{
+				Commits:  res.Key.Commits,
+				PriShare: res.Key.Share,
+			}
+			dkg.DkgPubKey = res.Key.Public()
 
-		dkg.results = res
-		dkg.DkgKeyShare = types.DistKeyShare{
-			Commits:  res.Key.Commits,
-			PriShare: res.Key.Share,
+			// 保存密钥份额
+			dkg.saveStore()
+			return nil
 		}
-		dkg.DkgPubKey = res.Key.Public()
-
-		// 保存密钥份额
-		dkg.saveStore()
-		return nil
 	}
 
 	// // 将交易信息转换为协议消息格式
