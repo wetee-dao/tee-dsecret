@@ -1,0 +1,43 @@
+{
+    "exe": "./dsecret",
+    "key": "./keys/private.pem",
+    "debug": false,
+    "heapSize": 512,
+    "executableHeap": false,
+    "productID": 1,
+    "securityVersion": 1,
+    "mounts": [
+        {
+            "source": "/home/wetee/work/wetee/tee-dsecret/hack/node2/db/",
+            "target": "/db",
+            "type": "hostfs",
+            "readOnly": false
+        }
+    ],
+    "env": [
+        {
+            "name": "PEER_PK",
+            "fromHost": true
+        },
+        {
+            "name": "TCP_PORT",
+            "fromHost": true
+        },
+        {
+            "name": "UDP_PORT",
+            "fromHost": true
+        },
+        {
+            "name": "PASSWORD",
+            "fromHost": true
+        },
+        {
+            "name": "CHAIN_ADDR",
+            "fromHost": true
+        },
+        {
+            "name": "GQL_PORT",
+            "fromHost": true
+        }
+    ]
+}

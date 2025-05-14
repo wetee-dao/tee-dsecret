@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/suites"
+	"go.dedis.ch/kyber/v4"
+	"go.dedis.ch/kyber/v4/suites"
 )
 
 func HexToScalar(suite suites.Suite, hexStr string) (kyber.Scalar, error) {
