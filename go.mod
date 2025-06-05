@@ -2,7 +2,7 @@ module wetee.app/dsecret
 
 go 1.23
 
-toolchain go1.23.7
+toolchain go1.23.8
 
 require (
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
