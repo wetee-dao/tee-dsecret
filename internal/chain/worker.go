@@ -1,17 +1,17 @@
-package module
+package chain
 
 import (
 	"errors"
 	"fmt"
 	"math/big"
 
-	chain "github.com/wetee-dao/go-sdk"
+	chain "github.com/wetee-dao/ink.go"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/worker"
+	gtypes "wetee.app/dsecret/type/pallet/types"
+	"wetee.app/dsecret/type/pallet/worker"
 )
 
 // Worker
@@ -30,7 +30,12 @@ func (w *Worker) ClusterRegister(name string, ip []gtypes.Ip, port uint32, level
 		level,
 	)
 
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 // 集群抵押
@@ -50,7 +55,12 @@ func (w *Worker) ClusterMortgage(id uint64, cpu uint32, mem uint32, cvm_cpu uint
 		types.UCompact(*d),
 	)
 
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 func (w *Worker) ClusterWithdrawal(id gtypes.WorkId, val int64, untilFinalized bool) error {
@@ -59,7 +69,12 @@ func (w *Worker) ClusterWithdrawal(id gtypes.WorkId, val int64, untilFinalized b
 		types.NewU128(*big.NewInt(val)),
 	)
 
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 func (w *Worker) ClusterUnmortgage(clusterID uint64, id uint64, untilFinalized bool) error {
@@ -68,7 +83,12 @@ func (w *Worker) ClusterUnmortgage(clusterID uint64, id uint64, untilFinalized b
 		uint32(id),
 	)
 
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 func (w *Worker) ClusterStop(clusterID uint64, untilFinalized bool) error {
@@ -76,7 +96,12 @@ func (w *Worker) ClusterStop(clusterID uint64, untilFinalized bool) error {
 		clusterID,
 	)
 
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 func (w *Worker) Getk8sClusterAccounts(publey []byte) (uint64, error) {
@@ -165,7 +190,13 @@ func (w *Worker) WorkProofUpload(workId gtypes.WorkId, logHash []byte, crHash []
 			AsSomeField0: pubkey,
 		},
 	)
-	return w.Client.SignAndSubmit(w.Signer, runtimeCall, untilFinalized)
+
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
 }
 
 func (w *Worker) GetStage() (uint32, error) {

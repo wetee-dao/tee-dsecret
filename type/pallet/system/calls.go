@@ -1,6 +1,6 @@
 package system
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // Make some on-chain remark.
 //

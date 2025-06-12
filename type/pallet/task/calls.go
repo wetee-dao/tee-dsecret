@@ -1,6 +1,6 @@
 package task
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // Task create
 // 注册任务

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	proxy_reenc "wetee.app/dsecret/internal/dkg/proxy-reenc"
-	"wetee.app/dsecret/internal/store"
+	"wetee.app/dsecret/internal/model"
 	types "wetee.app/dsecret/type"
 )
 
@@ -108,7 +108,7 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnv
 // 以及一个错误类型，用于指示操作过程中是否发生了错误
 func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*types.SecretEnvWithHash, error) {
 	// 从存储中获取特定标识的密钥信息
-	buf, err := store.GetKey("secret", storeMsgID+"_pub")
+	buf, err := model.GetKey("secret", storeMsgID+"_pub")
 	if err != nil {
 		// 如果获取密钥过程中发生错误，则返回错误信息
 		return nil, fmt.Errorf("get secret: %w", err)

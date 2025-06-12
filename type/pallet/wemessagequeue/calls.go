@@ -1,6 +1,6 @@
 package wemessagequeue
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // Remove a page which has no more messages remaining to be processed or is stale.
 func MakeReapPageCall(messageOrigin0 types.MessageOrigin, pageIndex1 uint32) types.RuntimeCall {

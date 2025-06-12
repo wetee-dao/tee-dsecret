@@ -1,6 +1,6 @@
 package grandpa
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // Report voter equivocation/misbehavior. This method will verify the
 // equivocation proof and validate the given key ownership proof

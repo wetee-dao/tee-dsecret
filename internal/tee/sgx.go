@@ -11,7 +11,7 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
-	chain "github.com/wetee-dao/go-sdk"
+	chain "github.com/wetee-dao/ink.go"
 
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"

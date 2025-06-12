@@ -12,7 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/share"
 
 	proxy_reenc "wetee.app/dsecret/internal/dkg/proxy-reenc"
-	"wetee.app/dsecret/internal/store"
+	"wetee.app/dsecret/internal/model"
 	types "wetee.app/dsecret/type"
 )
 
@@ -252,7 +252,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 // 返回值 *types.Secret 是解析后的密钥对象指针，error 是错误信息（如果有的话）
 func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
 	// 从存储中获取与密钥ID对应的加密数据
-	buf, err := store.GetKey("secret", storeMsgID)
+	buf, err := model.GetKey("secret", storeMsgID)
 	if err != nil {
 		// 如果获取过程中出现错误，则返回错误信息
 		return nil, fmt.Errorf("get secret: %w", err)

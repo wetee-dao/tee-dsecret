@@ -12,8 +12,8 @@ import (
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/kyber/v4/suites"
+	"wetee.app/dsecret/internal/model"
 	p2peer "wetee.app/dsecret/internal/peer"
-	"wetee.app/dsecret/internal/store"
 	types "wetee.app/dsecret/type"
 )
 
@@ -50,7 +50,6 @@ type DKG struct {
 	deals     map[string]*pedersen.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
-	// results   *pedersen.Result
 
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan any
@@ -123,12 +122,13 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 		})
 	}
 
+	signer := schnorr.NewScheme(dkg.Suite)
 	// 初始化协议配置
 	conf := pedersen.Config{
 		Suite:     dkg.Suite,
 		NewNodes:  nodes,
 		Threshold: dkg.Threshold,
-		Auth:      schnorr.NewScheme(dkg.Suite),
+		Auth:      signer,
 		FastSync:  true,
 		Longterm:  dkg.NodeSecret,
 		Nonce:     Version2Nonce(dkg.Peer.Version()),
@@ -139,7 +139,7 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 	var err error
 	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
 	if err != nil {
-		return fmt.Errorf("Failed to initialize DKG protocol: %w", err)
+		return fmt.Errorf("failed to initialize DKG protocol: %w", err)
 	}
 
 	// 等待节点连接
@@ -156,7 +156,7 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 	// 获取当前节点的协议
 	deal, err := dkg.DistKeyGenerator.Deals()
 	if err != nil {
-		return fmt.Errorf("Failed to generate key shares: %w", err)
+		return fmt.Errorf("failed to generate key shares: %w", err)
 	}
 
 	// 开启节点共识
@@ -257,7 +257,7 @@ func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
 		// 获取当前节点的协议
 		deal, err := dkg.DistKeyGenerator.Deals()
 		if err != nil {
-			return fmt.Errorf("Failed to generate key shares: %w", err)
+			return fmt.Errorf("failed to generate key shares: %w", err)
 		}
 
 		ctx := context.Background()
@@ -315,7 +315,7 @@ func (dkg *DKG) ID() int {
 }
 
 func (dkg *DKG) reStore() error {
-	v, err := store.GetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58())
+	v, err := model.GetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58())
 	if err != nil {
 		return fmt.Errorf("get dkg: %w", err)
 	}
@@ -336,7 +336,7 @@ func (dkg *DKG) saveStore() error {
 		return fmt.Errorf("marshal dkg: %w", err)
 	}
 
-	return store.SetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58(), payload)
+	return model.SetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58(), payload)
 }
 
 func (dkg *DKG) SendToNode(ctx context.Context, node *types.Node, pid string, message *types.Message) error {

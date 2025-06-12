@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	"github.com/cosmos/go-bip39"
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"go.dedis.ch/kyber/v4/suites"
 	types "wetee.app/dsecret/type"
+	gtypes "wetee.app/dsecret/type/pallet/types"
 	"wetee.app/dsecret/util"
 )
 

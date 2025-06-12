@@ -2,7 +2,7 @@ package store
 
 import (
 	types1 "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types "github.com/wetee-dao/go-sdk/pallet/types"
+	types "wetee.app/dsecret/type/pallet/types"
 )
 
 func MakeRegisterAppCall(name0 []byte, meta1 []byte, ty2 types.AppType, images3 []types.Image, run4 types.TEEVersion) types.RuntimeCall {

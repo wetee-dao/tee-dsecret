@@ -1,6 +1,6 @@
 package gpu
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // App create
 // 注册任务

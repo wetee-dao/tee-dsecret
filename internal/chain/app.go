@@ -1,9 +1,9 @@
-package module
+package chain
 
 import (
-	chain "github.com/wetee-dao/go-sdk"
-	"github.com/wetee-dao/go-sdk/pallet/app"
-	"github.com/wetee-dao/go-sdk/pallet/types"
+	chain "github.com/wetee-dao/ink.go"
+	"wetee.app/dsecret/type/pallet/app"
+	"wetee.app/dsecret/type/pallet/types"
 
 	"errors"
 )

@@ -1,6 +1,6 @@
 package wesudo
 
-import types "github.com/wetee-dao/go-sdk/pallet/types"
+import types "wetee.app/dsecret/type/pallet/types"
 
 // Execute external transactions as root
 // 以 root 账户执行函数

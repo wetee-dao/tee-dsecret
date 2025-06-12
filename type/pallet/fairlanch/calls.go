@@ -2,7 +2,7 @@ package fairlanch
 
 import (
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types1 "github.com/wetee-dao/go-sdk/pallet/types"
+	types1 "wetee.app/dsecret/type/pallet/types"
 )
 
 // 质押 vtoken

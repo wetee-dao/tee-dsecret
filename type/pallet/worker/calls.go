@@ -2,7 +2,7 @@ package worker
 
 import (
 	types1 "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types "github.com/wetee-dao/go-sdk/pallet/types"
+	types "wetee.app/dsecret/type/pallet/types"
 )
 
 // Worker cluster register

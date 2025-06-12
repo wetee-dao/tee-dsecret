@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"wetee.app/dsecret/internal/store"
+	"wetee.app/dsecret/internal/model"
 	types "wetee.app/dsecret/type"
 )
 
@@ -42,5 +42,5 @@ func (r *DKG) SetData(datas []types.Kvs) error {
 //
 // 该函数通过调用store的getKey方法，使用"k"作为前缀和给定的键(k)来组合查询存储中的"secret"数据
 func (r *DKG) GetData(k string) ([]byte, error) {
-	return store.GetKey("secret", k)
+	return model.GetKey("secret", k)
 }

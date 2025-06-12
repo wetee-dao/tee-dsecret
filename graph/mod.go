@@ -48,9 +48,9 @@ func StartServer(d *dkg.DKG) {
 	// main graphql
 	router.Handle("/gql", srv)
 
-	if util.IsFileExists("./ssl/ser.pem") && util.IsFileExists("./ssl/ser.key") {
+	if util.IsFileExists("./chain_data/ssl/ser.pem") && util.IsFileExists("./chain_data/ssl/ser.key") {
 		log.Printf("connect to https://0.0.0.0:%s/ for GraphQL playground", fmt.Sprint(port))
-		http.ListenAndServeTLS(":"+fmt.Sprint(port), "./ssl/ser.pem", "./ssl/ser.key", router)
+		http.ListenAndServeTLS(":"+fmt.Sprint(port), "./chain_data/ssl/ser.pem", "./chain_data/ssl/ser.key", router)
 	} else {
 		log.Printf("connect to http://0.0.0.0:%s/ for GraphQL playground", fmt.Sprint(port))
 		http.ListenAndServe(":"+fmt.Sprint(port), router)

@@ -23,7 +23,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	libp2ptls "github.com/libp2p/go-libp2p/p2p/security/tls"
-	"github.com/wetee-dao/go-sdk/pallet/session"
 	"go.dedis.ch/kyber/v4"
 
 	"wetee.app/dsecret/internal/chain"
@@ -283,11 +282,13 @@ func (p *Peer) Close() error {
 
 func GetChainNodes() ([]*types.Node, []string, uint32, error) {
 	// Get session index
-	version, err := session.GetCurrentIndexLatest(chain.ChainIns.Api.RPC.State)
-	if err != nil {
-		fmt.Println("Get session index error:", err)
-		return nil, nil, 0, err
-	}
+	// version, err := session.GetCurrentIndexLatest(chain.ChainIns.Api.RPC.State)
+	// if err != nil {
+	// 	fmt.Println("Get session index error:", err)
+	// 	return nil, nil, 0, err
+	// }
+
+	var version uint32 = 1
 
 	// Get boot peers from chain
 	bootPeers, err := chain.ChainIns.GetBootPeers()

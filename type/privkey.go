@@ -11,7 +11,7 @@ import (
 
 	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
 	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
-	chain "github.com/wetee-dao/go-sdk"
+	chain "github.com/wetee-dao/ink.go"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/suites"
 )

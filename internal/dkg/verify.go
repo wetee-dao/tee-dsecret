@@ -5,11 +5,10 @@ import (
 	"errors"
 
 	"github.com/vedhavyas/go-subkey/v2"
-	"github.com/wetee-dao/go-sdk/module"
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
 	"wetee.app/dsecret/internal/chain"
 	"wetee.app/dsecret/internal/tee"
 	types "wetee.app/dsecret/type"
+	gtypes "wetee.app/dsecret/type/pallet/types"
 )
 
 // VerifyWorker 函数验证工人报告并返回签名者或错误
@@ -26,7 +25,7 @@ func (d *DKG) VerifyWorker(reportData *types.TeeParam) ([]byte, error) {
 	}
 
 	// 校验 worker 代码版本
-	codeHash, codeSigner, err := module.GetWorkerCode(chain.ChainIns.ChainClient)
+	codeHash, codeSigner, err := chain.GetWorkerCode(chain.ChainIns.ChainClient)
 	if err != nil {
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}
@@ -57,7 +56,7 @@ func (d *DKG) VerifyDsecret(reportData *types.TeeParam) ([]byte, error) {
 	}
 
 	// 校验 worker 代码版本
-	codeHash, codeSigner, err := module.GetDsecretCode(chain.ChainIns.ChainClient)
+	codeHash, codeSigner, err := chain.GetDsecretCode(chain.ChainIns.ChainClient)
 	if err != nil {
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}
@@ -88,7 +87,7 @@ func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *types.TeeParam) ([]
 	}
 
 	// 校验 worker 代码版本
-	codeHash, codeSigner, err := module.GetWorkCode(chain.ChainIns.ChainClient, wid)
+	codeHash, codeSigner, err := chain.GetWorkCode(chain.ChainIns.ChainClient, wid)
 	if err != nil {
 		return nil, errors.New("GetWorkerCode error:" + err.Error())
 	}

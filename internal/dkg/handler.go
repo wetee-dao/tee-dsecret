@@ -10,7 +10,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"wetee.app/dsecret/internal/chain"
-	"wetee.app/dsecret/internal/store"
+	"wetee.app/dsecret/internal/model"
 	types "wetee.app/dsecret/type"
 	"wetee.app/dsecret/util"
 )
@@ -227,7 +227,7 @@ func (r *DKG) HandleSecretSave(ctx context.Context) {
 
 		for _, data := range datas {
 			fmt.Println("-------------------------Save key: ", data.K)
-			err := store.SetKey("secret", data.K, data.V)
+			err := model.SetKey("secret", data.K, data.V)
 			if err != nil {
 				fmt.Println("Error setting key: ", err)
 				continue

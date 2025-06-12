@@ -6,11 +6,11 @@ import (
 	"time"
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	chain "github.com/wetee-dao/go-sdk"
-	"github.com/wetee-dao/go-sdk/pallet/dsecret"
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
+	chain "github.com/wetee-dao/ink.go"
 	"golang.org/x/crypto/blake2b"
 	types "wetee.app/dsecret/type"
+	"wetee.app/dsecret/type/pallet/dsecret"
+	gtypes "wetee.app/dsecret/type/pallet/types"
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 
 	var account32 [32]byte
 	copy(account32[:], signer.Public())
-	call := dsecret.MakeUploadClusterProofCall(
+	runtimeCall := dsecret.MakeUploadClusterProofCall(
 		1,
 		hash[:],
 		[][32]byte{account32, account32},
@@ -56,6 +56,11 @@ func main() {
 	)
 
 	time.Sleep(5 * time.Second)
+
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		panic(err)
+	}
 
 	err = client.SignAndSubmit(signer, call, true)
 	if err != nil {

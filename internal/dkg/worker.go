@@ -11,11 +11,10 @@ import (
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	uuid "github.com/satori/go.uuid"
 	"github.com/vedhavyas/go-subkey/v2"
-	"github.com/wetee-dao/go-sdk/module"
-	"github.com/wetee-dao/go-sdk/pallet/dsecret"
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
-	"github.com/wetee-dao/go-sdk/pallet/worker"
 	"golang.org/x/crypto/blake2b"
+	"wetee.app/dsecret/type/pallet/dsecret"
+	gtypes "wetee.app/dsecret/type/pallet/types"
+	"wetee.app/dsecret/type/pallet/worker"
 
 	"wetee.app/dsecret/internal/chain"
 	types "wetee.app/dsecret/type"
@@ -111,7 +110,13 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	}
 
 	// 提交证明
-	call := dsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
+	runtimeCall := dsecret.MakeUploadClusterProofCall(clusterId, cid.Bytes(), pubs, sigs)
+
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return nil, errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
 	// 签署并提交交易
 	err = ins.SignAndSubmit(s, call, false)
 	if err != nil {
@@ -238,7 +243,7 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 	}
 
 	// 获取 secret
-	id, isSome, err := module.GetSecretEnv(chain.ChainIns.ChainClient, wid)
+	id, isSome, err := chain.GetSecretEnv(chain.ChainIns.ChainClient, wid)
 	if err != nil {
 		return nil, errors.New("get secret env: " + err.Error())
 	}
@@ -249,6 +254,9 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 	}
 
 	deployerPub, err := types.PublicKeyFromLibp2pBytes(deployer)
+	if err != nil {
+		return nil, errors.New("deployer public key from libp2p bytes: " + err.Error())
+	}
 	reencryptReq := &types.ReencryptSecretRequest{
 		RdrPk:    deployerPub,
 		SecretId: string(id),
@@ -291,7 +299,12 @@ func (d *DKG) SubmitLaunchWork(deployer []byte, req *types.LaunchRequest) error 
 		{K: hex.EncodeToString(report[:]), V: reportData},
 	})
 
-	return chain.ChainIns.SignAndSubmit(signer, runtimeCall, false)
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
+	return chain.ChainIns.SignAndSubmit(signer, call, false)
 }
 
 type ReportSign struct {

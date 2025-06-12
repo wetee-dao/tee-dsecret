@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	chain "github.com/wetee-dao/go-sdk"
-	"github.com/wetee-dao/go-sdk/pallet/dsecret"
-	gtypes "github.com/wetee-dao/go-sdk/pallet/types"
+	chain "github.com/wetee-dao/ink.go"
+	"wetee.app/dsecret/type/pallet/dsecret"
+	gtypes "wetee.app/dsecret/type/pallet/types"
 	"wetee.app/dsecret/util"
 
 	types "wetee.app/dsecret/type"
@@ -19,7 +19,13 @@ func (c *Chain) RegisterNode(signer *chain.Signer, pubkey []byte) error {
 	var bt [32]byte
 	copy(bt[:], pubkey)
 
-	call := dsecret.MakeRegisterNodeCall(bt)
+	runtimeCall := dsecret.MakeRegisterNodeCall(bt)
+
+	call, err := (runtimeCall).AsCall()
+	if err != nil {
+		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
+	}
+
 	return c.SignAndSubmit(signer, call, true)
 }
 
@@ -104,5 +110,5 @@ func (c *Chain) GetWorkerList() ([]*gtypes.K8sCluster, error) {
 
 // GetBootPeers get boot peers
 func (c *Chain) GetBootPeers() ([]gtypes.P2PAddr, error) {
-	return dsecret.GetBootPeersLatest(c.Api.RPC.State)
+	return []gtypes.P2PAddr{}, nil
 }

@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/peer"
 	"wetee.app/dsecret/internal/peer/local"
-	"wetee.app/dsecret/internal/store"
 	types "wetee.app/dsecret/type"
 )
 
@@ -29,7 +30,7 @@ func TestNetwork(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := store.InitDB("")
+	err := model.NewDB()
 	if err != nil {
 		require.NoErrorf(t, err, "failed store.InitDB")
 		os.Exit(1)

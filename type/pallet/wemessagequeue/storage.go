@@ -5,7 +5,7 @@ import (
 	state "github.com/centrifuge/go-substrate-rpc-client/v4/rpc/state"
 	types1 "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	codec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	types "github.com/wetee-dao/go-sdk/pallet/types"
+	types "wetee.app/dsecret/type/pallet/types"
 )
 
 // Make a storage key for BookStateFor

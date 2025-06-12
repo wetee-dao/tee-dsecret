@@ -2,7 +2,7 @@ package bridge
 
 import (
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types1 "github.com/wetee-dao/go-sdk/pallet/types"
+	types1 "wetee.app/dsecret/type/pallet/types"
 )
 
 func MakeInkCallbackCall(clusterId0 uint64, callId1 types.U128, args2 []types1.InkArg, value3 types.U128, error4 types1.OptionTByteSlice) types1.RuntimeCall {
