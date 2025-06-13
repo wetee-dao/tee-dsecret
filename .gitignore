@@ -27,10 +27,10 @@ Dockerfile.cross
 *.swp
 *.swo
 *~
-mint/chain/gen/wetee-meta.json
+
 **/db/
-bin/
 **/dsecret
 **/nohup.out
+bin/
 hack/node1/
 hack/node2/

@@ -72,6 +72,10 @@ func GetJson[T any](namespace, key string) (*T, error) {
 		return nil, err
 	}
 
+	if len(v) == 0 {
+		return nil, nil
+	}
+
 	val := new(T)
 	err = json.Unmarshal(v, val)
 
@@ -117,6 +121,10 @@ func GetAbciMessage[T any](namespace, key string) (*T, error) {
 	v, err := GetKey(namespace, key)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(v) == 0 {
+		return nil, nil
 	}
 
 	value, err := Unseal(v, nil)

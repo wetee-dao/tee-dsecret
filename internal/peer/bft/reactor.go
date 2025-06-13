@@ -44,11 +44,11 @@ func NewBTFReactor(name string) *BTFReactor {
 
 // 实现 Service 接口的 OnStart 生命周期钩子
 func (r *BTFReactor) OnStart() error {
-	outbound, inbound, dialing := r.Switch.NumPeers()
-	util.LogError("BTFReactor starting", "outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing)
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
 	util.LogError("Local P2P", address.String())
+
+	r.PrintPeers("OnStart")
 
 	// 启动协程、初始化资源
 	return nil
@@ -58,7 +58,6 @@ func (r *BTFReactor) OnStart() error {
 func (r *BTFReactor) OnStop() {
 	util.LogError("BTFReactor stopping")
 	// 释放资源
-
 }
 
 func (dr *BTFReactor) SetSwitch(sw *p2p.Switch) {
@@ -79,12 +78,11 @@ func (*BTFReactor) GetChannels() []*conn.ChannelDescriptor {
 }
 
 func (r *BTFReactor) AddPeer(p2p.Peer) {
-	outbound, inbound, dialing := r.Switch.NumPeers()
-	util.LogError("AddPeer", "outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing)
+	r.PrintPeers("AddPeer")
 }
 
-func (*BTFReactor) RemovePeer(p2p.Peer, any) {
-	util.LogError("RemovePeer")
+func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
+	r.PrintPeers("RemovePeer")
 }
 
 func (*BTFReactor) Receive(e p2p.Envelope) {
@@ -98,4 +96,9 @@ func (*BTFReactor) Receive(e p2p.Envelope) {
 
 func (*BTFReactor) InitPeer(peer p2p.Peer) p2p.Peer {
 	return peer
+}
+
+func (r *BTFReactor) PrintPeers(event string) {
+	outbound, inbound, dialing := r.Switch.NumPeers()
+	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing)
 }

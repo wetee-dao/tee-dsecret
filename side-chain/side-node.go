@@ -35,7 +35,8 @@ func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.
 	consensusConf.CreateEmptyBlocks = false
 
 	rpcConf := cfg.DefaultRPCConfig()
-	rpcConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort+1)
+	// rpcConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort+1)
+	rpcConf.ListenAddress = ""
 
 	// init BFT node config
 	config := &cfg.Config{
@@ -46,7 +47,7 @@ func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.
 			PrivValidatorState: "data/priv_validator_state.json",
 			NodeKey:            "config/node_key.json",
 			Moniker:            "WeTEE Chain",
-			ProxyApp:           "tcp://127.0.0.1:" + fmt.Sprint(chainPort+2),
+			ProxyApp:           "tcp://127.0.0.1:" + fmt.Sprint(chainPort+1),
 			ABCI:               "socket",
 			LogLevel:           "error",
 			LogFormat:          cfg.LogFormatPlain,
@@ -122,9 +123,9 @@ func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.
 		return nil, nil, nil, errors.New("init BFT node error: " + err.Error())
 	}
 
-	util.LogWithRed("BTF P2P ListenAddress", p2pConf.ListenAddress)
-	util.LogWithRed("BTF RPC ListenAddress", rpcConf.ListenAddress)
-	util.LogWithRed("BTF Seeds", p2pConf.Seeds)
+	if p2pConf.Seeds != "" {
+		util.LogWithRed("BTF Seeds", p2pConf.Seeds)
+	}
 
 	return node, sideChain, dkgReactor, err
 }

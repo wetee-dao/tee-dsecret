@@ -21,7 +21,7 @@ const (
 func LogWithYellow(tag string, a ...any) {
 	b := make([]any, 0, len(a)+3)
 
-	b = append(b, Yellow+tag+":")
+	b = append(b, Yellow+tag)
 	b = append(b, Reset)
 	b = append(b, a...)
 
@@ -31,7 +31,7 @@ func LogWithYellow(tag string, a ...any) {
 func LogWithPurple(tag string, a ...any) {
 	b := make([]any, 0, len(a)+3)
 
-	b = append(b, Purple+tag+":")
+	b = append(b, Purple+tag)
 	b = append(b, Reset)
 	b = append(b, a...)
 
@@ -41,7 +41,7 @@ func LogWithPurple(tag string, a ...any) {
 func LogWithRed(tag string, a ...any) {
 	b := make([]any, 0, len(a)+3)
 
-	b = append(b, Red+tag+":")
+	b = append(b, Red+tag)
 	b = append(b, Reset)
 	b = append(b, a...)
 

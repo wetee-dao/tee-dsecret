@@ -2,9 +2,7 @@ package sidechain
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/cockroachdb/pebble"
 	"wetee.app/dsecret/internal/model"
@@ -24,23 +22,12 @@ func (s AppState) Hash() []byte {
 }
 
 func loadState() (AppState, error) {
-	var state AppState
-
-	stateBytes, err := model.GetKey("", stateKey)
+	state, err := model.GetJson[AppState]("", stateKey)
 	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
-		return state, nil
-	}
-	if len(stateBytes) == 0 {
-		return state, nil
-	}
-	err = json.Unmarshal(stateBytes, &state)
-	fmt.Println("ST:", state)
-
-	if err != nil {
-		return state, err
+		return AppState{}, nil
 	}
 
-	return state, nil
+	return *state, nil
 }
 
 func saveState(state *AppState) error {
