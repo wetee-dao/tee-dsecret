@@ -12,7 +12,6 @@ import (
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/peer"
 	"wetee.app/dsecret/internal/peer/local"
-	types "wetee.app/dsecret/type"
 )
 
 var peerSecret = []string{
@@ -30,16 +29,16 @@ func TestNetwork(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err := model.NewDB()
+	_, err := model.NewDB()
 	if err != nil {
 		require.NoErrorf(t, err, "failed store.InitDB")
 		os.Exit(1)
 	}
 
-	nodes := []*types.Node{}
+	nodes := []*model.Node{}
 	for _, s := range peerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
-		nodes = append(nodes, &types.Node{
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
+		nodes = append(nodes, &model.Node{
 			ID:   *nodeSecret.GetPublic(),
 			Type: 1,
 		})
@@ -47,7 +46,7 @@ func TestNetwork(t *testing.T) {
 
 	peers := make([]peer.Peer, 0, len(nodes))
 	for _, s := range peerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
 
 		// 启动 P2P 网络
 		peer, err := local.NewNetwork(ctx, nodeSecret, []string{}, nodes, uint32(0), uint32(0))
@@ -58,11 +57,11 @@ func TestNetwork(t *testing.T) {
 
 	dkgs := make([]*DKG, 0, len(nodes))
 	for i, s := range peerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
 
 		// 创建 DKG 实例
-		dkg, err := NewRabinDKG(nodeSecret, peers[i])
-		require.NoErrorf(t, err, "failed NewRabinDKG")
+		dkg, err := NewDKG(nodeSecret, peers[i])
+		require.NoErrorf(t, err, "failed NewDKG")
 		dkgs = append(dkgs, dkg)
 
 		if i == 2 {
@@ -87,8 +86,8 @@ func TestNetwork(t *testing.T) {
 	local.Commits = dkgs[0].DkgKeyShare.Commits
 
 	for _, s := range newPeerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
-		n := &types.Node{
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
+		n := &model.Node{
 			ID:   *nodeSecret.GetPublic(),
 			Type: 1,
 		}
@@ -96,7 +95,7 @@ func TestNetwork(t *testing.T) {
 	}
 
 	for _, s := range newPeerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
 
 		// 启动 P2P 网络
 		peer, err := local.NewNetwork(ctx, nodeSecret, []string{}, nodes, uint32(0), uint32(0))
@@ -106,11 +105,11 @@ func TestNetwork(t *testing.T) {
 	}
 
 	for i, s := range newPeerSecret {
-		nodeSecret, _ := types.PrivateKeyFromLibp2pHex(s)
+		nodeSecret, _ := model.PrivateKeyFromLibp2pHex(s)
 
 		// 创建 DKG 实例
-		dkg, err := NewRabinDKG(nodeSecret, peers[3+i])
-		require.NoErrorf(t, err, "failed NewRabinDKG")
+		dkg, err := NewDKG(nodeSecret, peers[3+i])
+		require.NoErrorf(t, err, "failed NewDKG")
 
 		dkgs = append(dkgs, dkg)
 	}
@@ -120,9 +119,9 @@ func TestNetwork(t *testing.T) {
 	local.GlobleNodes = nodes
 	for i, p := range peers {
 		if i == len(peers)-1 {
-			p.Start(ctx)
+			p.GoStart()
 		} else {
-			go p.Start(ctx)
+			go p.GoStart()
 		}
 	}
 

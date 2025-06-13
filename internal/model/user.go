@@ -19,6 +19,13 @@ type User struct {
 	SchemaVersion int
 }
 
+type PublicUser struct {
+	// User SS58 address
+	Address string `json:"address"`
+	// User sign time
+	Timestamp int64 `json:"timestamp"`
+}
+
 func CreateUser(user *User) error {
 	_, err := GetKey("", user.Name)
 	if err == nil {

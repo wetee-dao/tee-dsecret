@@ -10,7 +10,7 @@ import (
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/suites"
-	types "wetee.app/dsecret/type"
+	"wetee.app/dsecret/internal/model"
 )
 
 const name = "elgamal"
@@ -132,13 +132,13 @@ var (
 //	  = rsG + K - (rsG + xsG) + xsG
 //	  = K
 
-// func (e *ThesholdDealer) Init(rid types.RingID, n int32, t int32) error {
+// func (e *ThesholdDealer) Init(rid model.RingID, n int32, t int32) error {
 // 	return nil
 // }
 
-func Reencrypt(distKeyShare types.DistKeyShare, scrt *types.Secret, rdrPk types.PubKey) (ReencryptReply, error) {
+func Reencrypt(distKeyShare model.DistKeyShare, scrt *model.Secret, rdrPk model.PubKey) (ReencryptReply, error) {
 	var reply ReencryptReply
-	ste, err := types.SuiteForType(rdrPk.Type())
+	ste, err := model.SuiteForType(rdrPk.Type())
 	if err != nil {
 		return reply, fmt.Errorf("get suite for type: %w", err)
 	}
@@ -170,9 +170,9 @@ func Reencrypt(distKeyShare types.DistKeyShare, scrt *types.Secret, rdrPk types.
 }
 
 // Verify verifies an incoming re-encryption reply from another node.
-func Verify(rdrPk types.PubKey, dkgCmt *share.PubPoly, encCmt kyber.Point, r ReencryptReply) error {
+func Verify(rdrPk model.PubKey, dkgCmt *share.PubPoly, encCmt kyber.Point, r ReencryptReply) error {
 
-	ste, err := types.SuiteForType(rdrPk.Type())
+	ste, err := model.SuiteForType(rdrPk.Type())
 	if err != nil {
 		return fmt.Errorf("get suite for type: %w", err)
 	}

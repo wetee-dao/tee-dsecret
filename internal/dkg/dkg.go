@@ -14,10 +14,9 @@ import (
 	"go.dedis.ch/kyber/v4/suites"
 	"wetee.app/dsecret/internal/model"
 	p2peer "wetee.app/dsecret/internal/peer"
-	types "wetee.app/dsecret/type"
 )
 
-// DKG 代表 Rabin DKG 协议的实例
+// DKG 代表  DKG 协议的实例
 type DKG struct {
 	// 操作互斥锁
 	mu sync.RWMutex
@@ -28,11 +27,11 @@ type DKG struct {
 	// NodeSecret 是长期的私钥
 	NodeSecret kyber.Scalar
 	// Signer 是用于签名的私钥
-	Signer *types.PrivKey
+	Signer *model.PrivKey
 	// AllNodes 是所有节点的集合
-	AllNodes []*types.Node
+	AllNodes []*model.Node
 	// Peer 是 P2P 网络主机
-	DkgNodes []*types.Node
+	DkgNodes []*model.Node
 	// Threshold 是密钥重建所需的最小份额数量
 	Threshold int
 
@@ -44,7 +43,7 @@ type DKG struct {
 	// DistPubKey globle public key
 	DkgPubKey kyber.Point
 	// DistKeyShare is the node private share
-	DkgKeyShare types.DistKeyShare
+	DkgKeyShare model.DistKeyShare
 
 	// cache the deal, response, justification, result
 	deals     map[string]*pedersen.DealBundle
@@ -57,12 +56,12 @@ type DKG struct {
 	status uint8
 }
 
-// NewRabinDKG 创建一个新的 Rabin DKG 实例
-func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
-	nodes := p.Nodes()
+// NewDKG 创建一个新的  DKG 实例
+func NewDKG(NodeSecret *model.PrivKey, peer p2peer.Peer) (*DKG, error) {
+	nodes := peer.Nodes()
 
 	// 获取节点公钥列表
-	dkgNodes := make([]*types.Node, 0, len(nodes))
+	dkgNodes := make([]*model.Node, 0, len(nodes))
 	for _, n := range nodes {
 		// 过滤不是dkg节点
 		if n.Type != 1 {
@@ -81,18 +80,19 @@ func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
 		NodeSecret: NodeSecret.Scalar(),
 		Signer:     NodeSecret,
 		Threshold:  threshold,
-		Peer:       p,
+		Peer:       peer,
 		AllNodes:   nodes,
 		DkgNodes:   dkgNodes,
 		preRecerve: make(map[string]chan any),
 		deals:      make(map[string]*pedersen.DealBundle),
 		responses:  make(map[string]*pedersen.ResponseBundle),
 	}
-	dkg.Peer.AddHandler("dkg", dkg.HandleDkg)
-	dkg.Peer.AddHandler("worker", dkg.HandleWorker)
+
+	// dkg.Peer.AddHandler("worker", dkg.HandleWorker)
+	dkg.Peer.Sub("dkg", dkg.HandleDkg)
 
 	// 添加网络节点变化回调
-	p.NetResetHook(dkg.ReShare)
+	peer.NetResetHook(dkg.ReShare)
 
 	// 复原 DKG 对象
 	dkg.reStore()
@@ -100,7 +100,7 @@ func NewRabinDKG(NodeSecret *types.PrivKey, p p2peer.Peer) (*DKG, error) {
 	return dkg, nil
 }
 
-// Start 启动 Rabin DKG 协议
+// Start 启动  DKG 协议
 func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 	dkg.log = log
 
@@ -183,7 +183,7 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
 	peerNodes := dkg.Peer.Nodes()
 	// 获取节点公钥列表
-	dkgNodes := make([]*types.Node, 0, len(peerNodes))
+	dkgNodes := make([]*model.Node, 0, len(peerNodes))
 	for _, n := range peerNodes {
 		// 过滤不是dkg节点
 		if n.Type != 1 {
@@ -250,7 +250,7 @@ func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
 	dkg.deals = map[string]*pedersen.DealBundle{}
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
-	dkg.DkgKeyShare = types.DistKeyShare{}
+	dkg.DkgKeyShare = model.DistKeyShare{}
 
 	// old node issue deals
 	if priShare != nil {
@@ -298,7 +298,7 @@ func (dkg *DKG) connectLen() int {
 	return len
 }
 
-func (d *DKG) Share() types.DistKeyShare {
+func (d *DKG) Share() model.DistKeyShare {
 	return d.DkgKeyShare
 }
 
@@ -320,7 +320,7 @@ func (dkg *DKG) reStore() error {
 		return fmt.Errorf("get dkg: %w", err)
 	}
 
-	d, err := types.DistKeyShareFromProtocol(dkg.Suite, v)
+	d, err := model.DistKeyShareFromProtocol(dkg.Suite, v)
 	if err != nil {
 		return fmt.Errorf("unmarshal dkg: %w", err)
 	}
@@ -331,7 +331,7 @@ func (dkg *DKG) reStore() error {
 }
 
 func (dkg *DKG) saveStore() error {
-	payload, err := types.DistKeyShareToProtocol(&dkg.DkgKeyShare)
+	payload, err := model.DistKeyShareToProtocol(&dkg.DkgKeyShare)
 	if err != nil {
 		return fmt.Errorf("marshal dkg: %w", err)
 	}
@@ -339,7 +339,7 @@ func (dkg *DKG) saveStore() error {
 	return model.SetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58(), payload)
 }
 
-func (dkg *DKG) SendToNode(ctx context.Context, node *types.Node, pid string, message *types.Message) error {
+func (dkg *DKG) SendToNode(ctx context.Context, node *model.Node, pid string, message *model.Message) error {
 	if node == nil {
 		fmt.Println("node is nil")
 		return errors.New("node is nil")
@@ -358,10 +358,10 @@ func (dkg *DKG) SendToNode(ctx context.Context, node *types.Node, pid string, me
 			return errors.New("invalid pid")
 		}
 	}
-	return dkg.Peer.Send(ctx, node, pid, message)
+	return dkg.Peer.Send(node, pid, message)
 }
 
-func (dkg *DKG) GetNode(nodeId string) *types.Node {
+func (dkg *DKG) GetNode(nodeId string) *model.Node {
 	for _, node := range dkg.AllNodes {
 		if node.PeerID().String() == nodeId {
 			return node

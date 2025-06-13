@@ -11,16 +11,15 @@ import (
 	"github.com/go-chi/cors"
 
 	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/util"
+	"wetee.app/dsecret/internal/util"
 )
 
 var dkgIns *dkg.DKG
 
 // 启动GraphQL服务器
 // StartServer starts the GraphQL server.
-func StartServer(d *dkg.DKG) {
+func StartServer(d *dkg.DKG, port int) {
 	dkgIns = d
-	port := util.GetEnvInt("GQL_PORT", 8880)
 
 	// 创建路由
 	router := chi.NewRouter()

@@ -1,25 +1,22 @@
 package peer
 
 import (
-	"context"
-
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"go.dedis.ch/kyber/v4"
-	types "wetee.app/dsecret/type"
+	"wetee.app/dsecret/internal/model"
 )
 
 type Peer interface {
-	Send(ctx context.Context, node *types.Node, pid string, message *types.Message) error
-	AddHandler(pid string, handler func(*types.Message) error)
-	RemoveHandler(pid string)
+	Send(node *model.Node, pid string, message *model.Message) error
+	Pub(topic string, data []byte) error
+	Sub(topic string, handler func(*model.Message) error) error
+
+	GoStart()
 	Close() error
-	Start(ctx context.Context)
-	Discover(ctx context.Context) error
+
 	PeerStrID() string
-	Pub(ctx context.Context, topic string, data []byte) error
-	Sub(ctx context.Context, topic string) (*pubsub.Subscription, error)
 	NodeIds() []string
-	Nodes() []*types.Node
+	Nodes() []*model.Node
+
 	Version() uint32
 	NetResetHook(hook func([]kyber.Point) error)
 }

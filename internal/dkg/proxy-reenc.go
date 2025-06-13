@@ -13,14 +13,13 @@ import (
 
 	proxy_reenc "wetee.app/dsecret/internal/dkg/proxy-reenc"
 	"wetee.app/dsecret/internal/model"
-	types "wetee.app/dsecret/type"
 )
 
 // SendEncryptedSecretRequest 发送加密的秘密请求，并等待指定数量的节点响应
 // payload 是加密的秘密请求的负载
 // msgID 是消息的唯一标识符，用于跟踪和匹配响应
 // OrgId 是组织的标识符，用于确定秘密请求的目标组织
-func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId string) (*types.ReencryptSecret, error) {
+func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId string) (*model.ReencryptSecret, error) {
 	// 同步访问共享资源
 	d.mu.Lock()
 	// 为消息ID预分配一个通道，用于接收响应
@@ -29,7 +28,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 
 	// 向所有节点发送加密秘密请求
 	for _, n := range d.DkgNodes {
-		err := d.SendToNode(context.Background(), n, "worker", &types.Message{
+		err := d.SendToNode(context.Background(), n, "worker", &model.Message{
 			Type:    "reencrypt_secret_request",
 			Payload: payload,
 		})
@@ -63,7 +62,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 	}
 
 	// 解析原始请求以获取秘密ID
-	req := &types.ReencryptSecretRequest{}
+	req := &model.ReencryptSecretRequest{}
 	err = json.Unmarshal(payload, req)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshal ReencryptSecretRequest: %w", err)
@@ -77,7 +76,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 
 	// 准备并返回重加密响应
 	xncCmtBt, _ := xncCmt.MarshalBinary()
-	return &types.ReencryptSecret{
+	return &model.ReencryptSecret{
 		XncCmt:  xncCmtBt,
 		EncScrt: scrt.EncScrt,
 	}, nil
@@ -94,7 +93,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 // - error: 如果处理过程中发生错误，返回错误信息
 func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) error {
 	// 解析密文重新加密请求
-	req := &types.ReencryptSecretRequest{}
+	req := &model.ReencryptSecretRequest{}
 	err := json.Unmarshal(reqBt, req)
 	if err != nil {
 		return fmt.Errorf("HandleProcessReencrypt unmarshal reencrypt secret request: %w", err)
@@ -131,7 +130,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	}
 
 	// 构建重新加密的密文份额响应
-	resp := &types.ReencryptedSecretShare{
+	resp := &model.ReencryptedSecretShare{
 		SecretId: req.SecretId,
 		Index:    int32(reply.Share.I),
 		XncSki:   xncski,
@@ -147,7 +146,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	}
 
 	// 向目标节点发送重新加密的密文份额
-	err = d.SendToNode(context.Background(), n, "worker", &types.Message{
+	err = d.SendToNode(context.Background(), n, "worker", &model.Message{
 		MsgID:   msgID,
 		Type:    "reencrypted_secret_reply",
 		Payload: bt,
@@ -170,7 +169,7 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 // - error: 如果处理过程中出现任何错误
 func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) error {
 	// 解析重新加密的请求
-	var req types.ReencryptedSecretShare
+	var req model.ReencryptedSecretShare
 
 	err := json.Unmarshal(reqBt, &req)
 	if err != nil {
@@ -180,7 +179,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 
 	// 获取重新加密的公钥和对应的密码学套件
 	rdrPk := req.RdrPk
-	ste, err := types.SuiteForType(rdrPk.Type())
+	ste, err := model.SuiteForType(rdrPk.Type())
 	if err != nil {
 		return fmt.Errorf("suite for type: %s", err)
 	}
@@ -249,8 +248,8 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 
 // GetSecretData 通过给定的消息ID从存储中获取加密的密钥数据
 // 参数 storeMsgID 是用于标识存储中特定密钥的字符串
-// 返回值 *types.Secret 是解析后的密钥对象指针，error 是错误信息（如果有的话）
-func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
+// 返回值 *model.Secret 是解析后的密钥对象指针，error 是错误信息（如果有的话）
+func (r *DKG) GetSecretData(storeMsgID string) (*model.Secret, error) {
 	// 从存储中获取与密钥ID对应的加密数据
 	buf, err := model.GetKey("secret", storeMsgID)
 	if err != nil {
@@ -258,8 +257,8 @@ func (r *DKG) GetSecretData(storeMsgID string) (*types.Secret, error) {
 		return nil, fmt.Errorf("get secret: %w", err)
 	}
 
-	// 创建一个 types.Secret 类型的实例用于存储解码后的密钥数据
-	s := new(types.Secret)
+	// 创建一个 model.Secret 类型的实例用于存储解码后的密钥数据
+	s := new(model.Secret)
 	// 解析获取到的加密数据，将其转换为密钥对象
 	err = json.Unmarshal(buf, s)
 	if err != nil {

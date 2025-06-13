@@ -13,7 +13,7 @@ type BanTx struct {
 }
 
 // Message represents a message sent by a user
-type Message struct {
+type SideMessage struct {
 	Sender  string `json:"sender"`
 	Message string `json:"message"`
 }
@@ -22,7 +22,7 @@ type MsgHistory struct {
 	Msg string `json:"history"`
 }
 
-func AppendToChat(message Message) (string, error) {
+func AppendToChat(message SideMessage) (string, error) {
 	historyBytes, err := GetKey("", "history")
 	if err != nil {
 		fmt.Println("Error fetching history:", err)
@@ -47,7 +47,7 @@ func FetchHistory() (string, error) {
 	return msgHistory, err
 }
 
-func AppendToExistingMessages(message Message) (string, error) {
+func AppendToExistingMessages(message SideMessage) (string, error) {
 	existingMessages, err := GetMessagesBySender(message.Sender)
 	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 		return "", err
@@ -69,8 +69,8 @@ func GetMessagesBySender(sender string) (string, error) {
 }
 
 // ParseMessage parse messages
-func ParseMessage(tx []byte) (*Message, error) {
-	msg := &Message{}
+func ParseMessage(tx []byte) (*SideMessage, error) {
+	msg := &SideMessage{}
 
 	// Parse the message into key-value pairs
 	pairs := strings.Split(string(tx), ",")

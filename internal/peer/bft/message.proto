@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package bft;
+
+option go_package = "";
+
+
+// dkg message
+message DkgMessage {
+  string msg_id = 1;
+  bytes payload = 3;
+  string error = 4;
+}

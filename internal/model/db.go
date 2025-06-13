@@ -3,7 +3,6 @@ package model
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
@@ -25,11 +24,11 @@ func (db *DB) NewTransaction(update bool) *Txn {
 	return &Txn{in: db.DB.NewBatch()}
 }
 
-func NewDB() error {
+func NewDB() (*DB, error) {
 	// Open DB
 	db, err := pebble.Open(dbPath, &pebble.Options{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Create a new DB instance and initialize with DB
@@ -38,7 +37,7 @@ func NewDB() error {
 
 	DBINS = dbInstance
 
-	return nil
+	return DBINS, nil
 }
 
 func Set(key string, value []byte) error {
@@ -59,10 +58,7 @@ func SetKey(namespace, key string, value []byte) error {
 }
 
 func GetKey(namespace, key string) ([]byte, error) {
-	fmt.Println("xxxxxxxxxxxxxxxxxxx")
 	value, _, err := DBINS.Get([]byte(namespace + "__" + key))
-	fmt.Println("xxxxxxxxxxxxxxxxxxx2")
-	fmt.Println("xxxxxxxxxxxxxxxxxxx3")
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +94,6 @@ func GetAbciMessageList[T any](namespace, key string) (list []T, err error) {
 	if err != nil {
 		return nil, err
 	}
-
 	defer iter.Close()
 
 	for iter.First(); iter.Valid(); iter.Next() {

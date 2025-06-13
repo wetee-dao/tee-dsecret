@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
-	types "wetee.app/dsecret/type"
-	"wetee.app/dsecret/util"
+	"wetee.app/dsecret/internal/model"
+	"wetee.app/dsecret/internal/util"
 )
 
 // SendDealMessage 发送交易信息到指定节点
@@ -25,9 +25,9 @@ import (
 //
 // 返回值:
 // - error: 如果转换、序列化或发送过程中发生错误，则返回相应的错误
-func (dkg *DKG) SendDealMessage(ctx context.Context, node *types.Node, message *pedersen.DealBundle, reshare int) error {
+func (dkg *DKG) SendDealMessage(ctx context.Context, node *model.Node, message *pedersen.DealBundle, reshare int) error {
 	// 将交易信息转换为协议消息格式
-	pmessage, err := types.DealToProtocol(message)
+	pmessage, err := model.DealToProtocol(message)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (dkg *DKG) SendDealMessage(ctx context.Context, node *types.Node, message *
 	}
 
 	// 通过Peer发送序列化后的消息到目标节点
-	return dkg.SendToNode(ctx, node, "dkg", &types.Message{
+	return dkg.SendToNode(ctx, node, "dkg", &model.Message{
 		Type:    "deal",
 		Payload: bt,
 	})
@@ -54,7 +54,7 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 	defer dkg.mu.Unlock()
 
 	// 初始化交易消息结构体
-	pmessage := &types.Deal{}
+	pmessage := &model.Deal{}
 	err := json.Unmarshal(data, pmessage)
 	if err != nil {
 		fmt.Println(err)
@@ -62,7 +62,7 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 	}
 
 	// 将协议消息转换为交易对象
-	deal, err := types.ProtocolToDeal(dkg.Suite, pmessage)
+	deal, err := model.ProtocolToDeal(dkg.Suite, pmessage)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 	// 发送 deal resp 到所有参与节点
 	for _, node := range dkg.DkgNodes {
 		// 向节点发送交易响应
-		err = dkg.SendToNode(context.Background(), node, "dkg", &types.Message{
+		err = dkg.SendToNode(context.Background(), node, "dkg", &model.Message{
 			Type:    "deal_resp",
 			Payload: bt,
 		})
@@ -162,7 +162,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 
 	// 检查是否生成了密钥份额
 	if res != nil {
-		dkg.DkgKeyShare = types.DistKeyShare{
+		dkg.DkgKeyShare = model.DistKeyShare{
 			Commits:  res.Key.Commits,
 			PriShare: res.Key.Share,
 		}
@@ -178,7 +178,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 		// reshare 可能在这里获取私钥
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err == nil {
-			dkg.DkgKeyShare = types.DistKeyShare{
+			dkg.DkgKeyShare = model.DistKeyShare{
 				Commits:  res.Key.Commits,
 				PriShare: res.Key.Share,
 			}
@@ -191,7 +191,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	}
 
 	// // 将交易信息转换为协议消息格式
-	// pmessage, err := types.JustificationToProtocol(justification)
+	// pmessage, err := model.JustificationToProtocol(justification)
 	// if err != nil {
 	// 	return err
 	// }
@@ -206,7 +206,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	// // 向所有DKG节点广播秘密提交
 	// for _, node := range dkg.DkgNodes {
 	// 	// 发送秘密提交给其他节点
-	// 	err = dkg.SendToNode(context.Background(), node, "dkg", &types.Message{
+	// 	err = dkg.SendToNode(context.Background(), node, "dkg", &model.Message{
 	// 		Type:    "justification",
 	// 		Payload: bt,
 	// 	})
@@ -233,7 +233,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 // 	defer dkg.mu.Unlock()
 
 // 	// 初始化交易消息结构体
-// 	pmessage := &types.JustificationBundle{}
+// 	pmessage := &model.JustificationBundle{}
 // 	err := json.Unmarshal(data, pmessage)
 // 	if err != nil {
 // 		fmt.Println(err)
@@ -241,7 +241,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 // 	}
 
 // 	// 将协议消息转换为交易对象
-// 	message, err := types.ProtocolToJustification(dkg.Suite, pmessage)
+// 	message, err := model.ProtocolToJustification(dkg.Suite, pmessage)
 // 	if err != nil {
 // 		return err
 // 	}
@@ -266,7 +266,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 // 	}
 
 // 	dkg.results = res
-// 	dkg.DkgKeyShare = types.DistKeyShare{
+// 	dkg.DkgKeyShare = model.DistKeyShare{
 // 		Commits:  res.Key.Commits,
 // 		PriShare: res.Key.Share,
 // 	}

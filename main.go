@@ -7,76 +7,67 @@ import (
 	"os/signal"
 	"syscall"
 
-	"wetee.app/dsecret/internal/chain"
+	"github.com/cometbft/cometbft/p2p"
+	chain "wetee.app/dsecret/chains"
+	"wetee.app/dsecret/graph"
+	"wetee.app/dsecret/internal/dkg"
 	"wetee.app/dsecret/internal/model"
-	sidechain "wetee.app/dsecret/internal/side-chain"
-	types "wetee.app/dsecret/type"
-	"wetee.app/dsecret/util"
+	"wetee.app/dsecret/internal/util"
+	sidechain "wetee.app/dsecret/side-chain"
 )
 
 var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:9944"
 
 func main() {
 	// 获取环境变量
-	peerSecret := util.GetEnv("PEER_PK", "")
-	// gqlPort := util.GetEnvInt("GQL_PORT", 61000)
+	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
 	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
+	chainPort := util.GetEnvInt("CHAIN_PORT", 61001)
 	// password := util.GetEnv("PASSWORD", "")
 
-	// 初始化数据库
-	err := model.NewDB()
+	// Init app db
+	db, err := model.NewDB()
 	if err != nil {
 		fmt.Println("Init db error:", err)
 		os.Exit(1)
 	}
+	defer db.Close()
 
-	// 初始化加密套件
-	nodeSecret, err := types.PrivateKeyFromLibp2pHex(peerSecret)
+	// init sidechain node key
+	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
+	if err != nil {
+		fmt.Println("failed to load node key:", err)
+		os.Exit(1)
+	}
+
+	// Init node key for Mainchain
+	nodePriv, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
 	if err != nil {
 		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
 	}
 
-	// 链接区块链
-	err = chain.InitChain(chainAddr, nodeSecret)
+	// Link to polkadot
+	mainChain, err := chain.ConnectMainChain(chainAddr, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
 	}
 
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
+	// Get boot peers
+	boots, err := mainChain.GetBootPeers()
+	if err != nil {
+		fmt.Println("Get boot peers error:", err)
+		os.Exit(1)
+	}
 
-	// // 启动 P2P 网络
-	// peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, uint32(tcpPort), uint32(udpPort))
-	// if err != nil {
-	// 	fmt.Println("Start P2P peer error:", err)
-	// 	os.Exit(1)
-	// }
-
-	// // 创建 DKG 实例
-	// dkgIns, err := dkg.NewRabinDKG(nodeSecret, peer)
-	// if err != nil {
-	// 	fmt.Println("Create DKG error:", err)
-	// 	os.Exit(1)
-	// }
-
-	// // 启动节点
-	// go peer.Start(ctx)
-
-	// // 运行 DKG 协议
-	// if err := dkgIns.Start(ctx, nil); err != nil {
-	// 	fmt.Println("Start DKG error:", err)
-	// 	os.Exit(1)
-	// }
-
-	// init node
-	node, err := sidechain.InitNode()
+	// Init node
+	node, _, dkgReactor, err := sidechain.InitNode(chainPort, boots)
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
 	}
 
-	// start BFT node
+	// Start BFT node
 	if err := node.Start(); err != nil {
 		log.Fatalf("failed to start BFT node: %v", err)
 	}
@@ -85,10 +76,24 @@ func main() {
 		node.Wait()
 	}()
 
+	// Create DKG
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor)
+	if err != nil {
+		fmt.Println("Create DKG error:", err)
+		os.Exit(1)
+	}
+
+	// // 运行 DKG 协议
+	// if err := dkgIns.Start(ctx, nil); err != nil {
+	// 	fmt.Println("Start DKG error:", err)
+	// 	os.Exit(1)
+	// }
+
+	// 启动 graphql 服务器
+	go graph.StartServer(dkgIns, gqlPort)
+
 	// wait for stop signal
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
-
-	// graph.StartServer(dkgIns)
 }

@@ -9,16 +9,16 @@ import (
 	"encoding/json"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	types "wetee.app/dsecret/type"
+	"wetee.app/dsecret/internal/model"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, secret types.Env) (*types.SecretEnvWithHash, error) {
+func (r *mutationResolver) UploadSecret(ctx context.Context, secret model.Env) (*model.SecretEnvWithHash, error) {
 	return dkgIns.SetSecretEnv(ctx, secret)
 }
 
 // Secret is the resolver for the secret field.
-func (r *queryResolver) Secret(ctx context.Context, hash string) (*types.SecretEnvWithHash, error) {
+func (r *queryResolver) Secret(ctx context.Context, hash string) (*model.SecretEnvWithHash, error) {
 	return dkgIns.GetSecretPubEnvData(ctx, hash)
 }
 

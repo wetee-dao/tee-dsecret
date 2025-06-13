@@ -13,11 +13,11 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
 
-	types "wetee.app/dsecret/type"
-	"wetee.app/dsecret/util"
+	"wetee.app/dsecret/internal/model"
+	"wetee.app/dsecret/internal/util"
 )
 
-func IssueReport(pk *chain.Signer, data []byte) (*types.TeeParam, error) {
+func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer
@@ -36,7 +36,7 @@ func IssueReport(pk *chain.Signer, data []byte) (*types.TeeParam, error) {
 		return nil, err
 	}
 
-	return &types.TeeParam{
+	return &model.TeeParam{
 		Time:    timestamp,
 		Address: pk.SS58Address(42),
 		Report:  report,
@@ -44,10 +44,10 @@ func IssueReport(pk *chain.Signer, data []byte) (*types.TeeParam, error) {
 	}, nil
 }
 
-func VerifyReport(workerReport *types.TeeParam) (*types.TeeReport, error) {
+func VerifyReport(workerReport *model.TeeParam) (*model.TeeReport, error) {
 	// TODO SEV/TDX not support
 	if workerReport.TeeType != 0 {
-		return &types.TeeReport{
+		return &model.TeeReport{
 			CodeSignature: []byte{},
 			CodeSigner:    []byte{},
 			CodeProductID: []byte{},
@@ -91,7 +91,7 @@ func VerifyReport(workerReport *types.TeeParam) (*types.TeeReport, error) {
 	// 	return nil, errors.New("debug mode is not allowed")
 	// }
 
-	return &types.TeeReport{
+	return &model.TeeReport{
 		TeeType:       workerReport.TeeType,
 		CodeSigner:    report.SignerID,
 		CodeSignature: report.UniqueID,

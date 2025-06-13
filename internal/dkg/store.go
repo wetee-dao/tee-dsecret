@@ -1,11 +1,9 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
 
 	"wetee.app/dsecret/internal/model"
-	types "wetee.app/dsecret/type"
 )
 
 // SetData 向Peer发布密钥数据
@@ -15,18 +13,18 @@ import (
 //
 // 参数:
 //
-//	datas ([]types.Kvs): 待发布的密钥数据列表
+//	datas ([]model.Kvs): 待发布的密钥数据列表
 //
 // 返回值:
 //
 //	error: 表示发布操作中可能遇到的错误，如果发布成功则为nil
-func (r *DKG) SetData(datas []types.Kvs) error {
+func (r *DKG) SetData(datas []model.Kvs) error {
 	// 将密钥数据列表序列化为JSON格式的字节切片
 	bt, _ := json.Marshal(datas)
 
 	// 通过Peer的Pub方法，向“secret”主题发布序列化后的数据
 	// 这里使用了context.Background()来执行发布操作，意味着这是一个无截止时间的异步操作
-	return r.Peer.Pub(context.Background(), "secret", bt)
+	return r.Peer.Pub("secret", bt)
 }
 
 // GetData 通过给定的键从存储中获取数据

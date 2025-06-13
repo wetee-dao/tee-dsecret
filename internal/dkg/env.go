@@ -7,7 +7,6 @@ import (
 
 	proxy_reenc "wetee.app/dsecret/internal/dkg/proxy-reenc"
 	"wetee.app/dsecret/internal/model"
-	types "wetee.app/dsecret/type"
 )
 
 // SetSecretEnv 通过DKG流程设置秘密环境变量
@@ -19,7 +18,7 @@ import (
 // 返回值:
 //   - SecretEnvWithHash: 包含存储的秘密环境变量的哈希和环境变量本身（未加密）
 //   - error: 如果在处理请求时发生错误，则返回错误
-func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnvWithHash, error) {
+func (r *DKG) SetSecretEnv(ctx context.Context, env model.Env) (*model.SecretEnvWithHash, error) {
 	// 将环境变量序列化为JSON格式
 	scrt, err := json.Marshal(env)
 	if err != nil {
@@ -27,21 +26,21 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnv
 	}
 
 	// 创建用于显示的谜文，以显示环境变量的长度而不暴露其真实值
-	lenvs := make([]*types.LenValue, len(env.Envs))
-	lfiles := make([]*types.LenValue, len(env.Files))
+	lenvs := make([]*model.LenValue, len(env.Envs))
+	lfiles := make([]*model.LenValue, len(env.Files))
 	for i, v := range env.Envs {
-		lenvs[i] = &types.LenValue{
+		lenvs[i] = &model.LenValue{
 			K: v.K,
 			V: len(v.V),
 		}
 	}
 	for i, v := range env.Files {
-		lfiles[i] = &types.LenValue{
+		lfiles[i] = &model.LenValue{
 			K: v.K,
 			V: len(v.V),
 		}
 	}
-	lenEnv := &types.SecretEnv{
+	lenEnv := &model.SecretEnv{
 		Envs:  lenvs,
 		Files: lfiles,
 	}
@@ -70,7 +69,7 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnv
 	}
 
 	// 创建秘密对象，包含加密后的承诺和秘密
-	secret := &types.Secret{
+	secret := &model.Secret{
 		EncCmt:  rawEncCmt,
 		EncScrt: rawEncScrt,
 	}
@@ -82,20 +81,20 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnv
 	}
 
 	// 从序列化的数据生成唯一标识符（CID）
-	cid, err := types.CidFromBytes(payload)
+	cid, err := model.CidFromBytes(payload)
 	if err != nil {
 		return nil, fmt.Errorf("cid from bytes: %w", err)
 	}
 
 	// 使用CID作为标识符，异步存储加密后的环境变量和显示用的谜文
 	storeMsgID := cid.String()
-	go r.SetData([]types.Kvs{
+	go r.SetData([]model.Kvs{
 		{K: storeMsgID, V: payload},
 		{K: storeMsgID + "_pub", V: pub},
 	})
 
 	// 返回包含CID和未加密环境变量的结构体
-	return &types.SecretEnvWithHash{
+	return &model.SecretEnvWithHash{
 		Hash:   storeMsgID,
 		Secret: lenEnv,
 	}, nil
@@ -106,7 +105,7 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env types.Env) (*types.SecretEnv
 // 它接受一个上下文参数 ctx，该参数主要用于取消操作，以及一个用于标识存储消息的 ID storeMsgID
 // 返回值是 SecretEnvWithHash 类型的指针，其中包含了解密环境密钥及其对应的哈希值，
 // 以及一个错误类型，用于指示操作过程中是否发生了错误
-func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*types.SecretEnvWithHash, error) {
+func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*model.SecretEnvWithHash, error) {
 	// 从存储中获取特定标识的密钥信息
 	buf, err := model.GetKey("secret", storeMsgID+"_pub")
 	if err != nil {
@@ -115,7 +114,7 @@ func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*type
 	}
 
 	// 创建 SecretEnv 类型的实例，用于存储解析后的密钥信息
-	s := new(types.SecretEnv)
+	s := new(model.SecretEnv)
 	// 将获取到的密钥信息解析为 SecretEnv 类型
 	err = json.Unmarshal(buf, s)
 	if err != nil {
@@ -124,7 +123,7 @@ func (r *DKG) GetSecretPubEnvData(ctx context.Context, storeMsgID string) (*type
 	}
 
 	// 返回解析后的密钥信息及其对应的哈希值
-	return &types.SecretEnvWithHash{
+	return &model.SecretEnvWithHash{
 		Hash:   storeMsgID,
 		Secret: s,
 	}, nil

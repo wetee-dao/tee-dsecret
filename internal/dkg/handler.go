@@ -5,20 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-
-	"wetee.app/dsecret/internal/chain"
 	"wetee.app/dsecret/internal/model"
-	types "wetee.app/dsecret/type"
-	"wetee.app/dsecret/util"
+	"wetee.app/dsecret/internal/util"
 )
 
 // HandleDkg 处理不同的DKG消息类型
 // msg: 被处理的消息对象
 // 返回：可能的错误
-func (dkg *DKG) HandleDkg(msg *types.Message) error {
+func (dkg *DKG) HandleDkg(msg *model.Message) error {
 	// 根据消息类型执行相应的处理逻辑
 	switch msg.Type {
 	case "deal":
@@ -50,14 +45,15 @@ func (dkg *DKG) HandleDkg(msg *types.Message) error {
 
 // HandleWorker 处理来自worker的消息
 // msg: 待处理的消息
-func (dkg *DKG) HandleWorker(msg *types.Message) error {
+func (dkg *DKG) HandleWorker(msg *model.Message) error {
+	// TODO
 	// 检查链的元数据
-	err := chain.ChainIns.CheckMetadata()
-	if err != nil {
-		// 记录检查元数据时的错误
-		util.LogError("CheckMetadata", err)
-		return err
-	}
+	// err := chain.ChainIns.CheckMetadata()
+	// if err != nil {
+	// 	// 记录检查元数据时的错误
+	// 	util.LogError("CheckMetadata", err)
+	// 	return err
+	// }
 
 	// 根据消息类型处理不同的逻辑
 	switch msg.Type {
@@ -78,7 +74,7 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 				errStr = err.Error()
 			}
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &types.Message{
+			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "upload_cluster_proof_reply",
 				Payload: hash,
@@ -128,7 +124,7 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &types.Message{
+			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "reencrypt_secret_remote_reply",
 				Payload: keyBt,
@@ -178,7 +174,7 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &types.Message{
+			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "work_launch_reply",
 				Payload: keyBt,
@@ -197,32 +193,13 @@ func (dkg *DKG) HandleWorker(msg *types.Message) error {
 
 // Handle pub msg data save
 func (r *DKG) HandleSecretSave(ctx context.Context) {
-	sub, err := r.Peer.Sub(ctx, "secret")
-	if err != nil {
-		return
-	}
-
-	// 使用缓冲通道异步处理消息
-	msgCh := make(chan *pubsub.Message, 100)
-	go func() {
-		defer close(msgCh)
-		for {
-			msg, err := sub.Next(ctx)
-			if err != nil {
-				log.Printf("Error receiving message: %v", err)
-				return
-			}
-			msgCh <- msg
-		}
-	}()
-
-	for msg := range msgCh {
+	r.Peer.Sub("secret", func(msg *model.Message) error {
 		// 解析消息
-		var datas []types.Kvs
-		err = json.Unmarshal(msg.Data, &datas)
+		var datas []model.Kvs
+		err := json.Unmarshal(msg.Payload, &datas)
 		if err != nil {
 			fmt.Println("Error unmarshalling message data: ", err)
-			continue
+			return err
 		}
 
 		for _, data := range datas {
@@ -233,5 +210,7 @@ func (r *DKG) HandleSecretSave(ctx context.Context) {
 				continue
 			}
 		}
-	}
+
+		return nil
+	})
 }
