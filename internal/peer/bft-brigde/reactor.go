@@ -1,4 +1,4 @@
-package bft
+package bftbrigde
 
 import (
 	bcproto "github.com/cometbft/cometbft/api/cometbft/blocksync/v1"
@@ -8,6 +8,7 @@ import (
 	"github.com/cometbft/cometbft/types"
 	"go.dedis.ch/kyber/v4"
 
+	"wetee.app/dsecret/chains"
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/util"
 )
@@ -28,11 +29,12 @@ type BTFReactor struct {
 	service.BaseService
 	Switch *p2p.Switch
 
+	mainChain chains.MainChain
 	callbacks map[string][]func(*model.Message) error
 	netHook   func([]kyber.Point) error
 }
 
-func NewBTFReactor(name string) *BTFReactor {
+func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
 	r := &BTFReactor{
 		callbacks: map[string][]func(*model.Message) error{},
 	}
@@ -46,9 +48,9 @@ func NewBTFReactor(name string) *BTFReactor {
 func (r *BTFReactor) OnStart() error {
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
-	util.LogError("Local P2P", address.String())
+	util.LogError("Local Node", address.String())
 
-	r.PrintPeers("OnStart")
+	r.PrintPeers("BTF OnStart")
 
 	// 启动协程、初始化资源
 	return nil
@@ -56,8 +58,12 @@ func (r *BTFReactor) OnStart() error {
 
 // 实现 OnStop 生命周期钩子
 func (r *BTFReactor) OnStop() {
-	util.LogError("BTFReactor stopping")
-	// 释放资源
+	util.LogError("BTF OnStop")
+}
+
+func (r *BTFReactor) OnReset() error {
+	util.LogError("BTF OnReset")
+	return nil
 }
 
 func (dr *BTFReactor) SetSwitch(sw *p2p.Switch) {
@@ -78,11 +84,11 @@ func (*BTFReactor) GetChannels() []*conn.ChannelDescriptor {
 }
 
 func (r *BTFReactor) AddPeer(p2p.Peer) {
-	r.PrintPeers("AddPeer")
+	r.PrintPeers("BTF AddPeer")
 }
 
 func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
-	r.PrintPeers("RemovePeer")
+	r.PrintPeers("BTF RemovePeer")
 }
 
 func (*BTFReactor) Receive(e p2p.Envelope) {

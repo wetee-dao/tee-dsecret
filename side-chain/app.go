@@ -8,6 +8,7 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cryptoencoding "github.com/cometbft/cometbft/crypto/encoding"
+	"wetee.app/dsecret/internal/dkg"
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/util"
 
@@ -20,8 +21,10 @@ const CurseWordsLimitVE = 10
 type SideChain struct {
 	abci.BaseApplication
 	valAddrToPubKeyMap map[string]crypto.PublicKey
-	state              AppState
-	onGoingBlock       *model.Txn
+
+	dkg          *dkg.DKG
+	state        AppState
+	onGoingBlock *model.Txn
 }
 
 func NewSideChain() (*SideChain, error) {
@@ -112,7 +115,7 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 // PrepareProposal is used to prepare a proposal for the next block in the blockchain. The application can re-order, remove
 // or add transactions
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
-	util.LogWithPurple("SideChain", "prepare proposal")
+	util.LogWithPurple("SideChain", "PrepareProposal")
 
 	// ProcessProposal should verify this
 	proposedTxs := make([][]byte, 0)
@@ -131,7 +134,7 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 
 // ProcessProposal validates the proposed block and the transactions and return a status if it was accepted or rejected
 func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessProposalRequest) (*abci.ProcessProposalResponse, error) {
-	util.LogWithPurple("SideChain", "process proposal")
+	util.LogWithPurple("SideChain", "ProcessProposal")
 
 	// for i, tx := range req.Txs {
 
@@ -142,7 +145,7 @@ func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessPropos
 
 // FinalizeBlock Deliver the decided block to the Application
 func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRequest) (*abci.FinalizeBlockResponse, error) {
-	util.LogWithPurple("SideChain", "Executing FinalizeBlock")
+	util.LogWithPurple("SideChain", "FinalizeBlock")
 
 	// Iterate over Tx in current block
 	app.onGoingBlock = model.DBINS.NewTransaction(true)

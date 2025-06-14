@@ -1,4 +1,4 @@
-package bft
+package bftbrigde
 
 import (
 	"errors"
@@ -58,6 +58,7 @@ func (p *BTFReactor) Sub(topic string, handler func(*model.Message) error) error
 	if calls == nil {
 		calls = []func(*model.Message) error{}
 	}
+
 	p.callbacks[topic] = append(calls, handler)
 	return nil
 }

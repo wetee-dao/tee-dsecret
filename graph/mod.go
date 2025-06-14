@@ -47,10 +47,10 @@ func StartServer(d *dkg.DKG, port int) {
 	router.Handle("/gql", srv)
 
 	if util.IsFileExists("./chain_data/ssl/ser.pem") && util.IsFileExists("./chain_data/ssl/ser.key") {
-		util.LogWithRed("GraphQL playground", "https://0.0.0.0:"+fmt.Sprint(port))
+		util.LogWithRed("GraphQL", "https://0.0.0.0:"+fmt.Sprint(port))
 		http.ListenAndServeTLS(":"+fmt.Sprint(port), "./chain_data/ssl/ser.pem", "./chain_data/ssl/ser.key", router)
 	} else {
-		util.LogWithRed("GraphQL playground", "http://0.0.0.0:"+fmt.Sprint(port))
+		util.LogWithRed("GraphQL", "http://0.0.0.0:"+fmt.Sprint(port))
 		http.ListenAndServe(":"+fmt.Sprint(port), router)
 	}
 }

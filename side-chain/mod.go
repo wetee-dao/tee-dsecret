@@ -15,12 +15,19 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/version"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/peer/bft"
+	"wetee.app/dsecret/chains"
+	"wetee.app/dsecret/internal/dkg"
+	bftbrigde "wetee.app/dsecret/internal/peer/bft-brigde"
 	"wetee.app/dsecret/internal/util"
 )
 
-func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.BTFReactor, error) {
+func Init(chainPort int, mainChain chains.MainChain, callback func()) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
+	// Get boot peers
+	boots, err := mainChain.GetBootPeers()
+	if err != nil {
+		return nil, nil, nil, errors.New("NewSideChain error: " + err.Error())
+	}
+
 	// 创建侧链实例
 	sideChain, err := NewSideChain()
 	if err != nil {
@@ -101,7 +108,7 @@ func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.
 	}
 
 	// add DKG to chain node
-	dkgReactor := bft.NewBTFReactor("DKG")
+	dkgReactor := bftbrigde.NewBTFReactor("DKG", mainChain)
 
 	// init BFT node
 	node, err := nm.NewNode(
@@ -118,14 +125,18 @@ func InitNode(chainPort int, boots []model.P2PAddr) (*nm.Node, *SideChain, *bft.
 			"DKG": dkgReactor,
 		}),
 	)
-
 	if err != nil {
 		return nil, nil, nil, errors.New("init BFT node error: " + err.Error())
 	}
 
+	callback()
 	if p2pConf.Seeds != "" {
-		util.LogWithRed("BTF Seeds", p2pConf.Seeds)
+		util.LogWithRed("Boot nodes", p2pConf.Seeds)
 	}
 
 	return node, sideChain, dkgReactor, err
+}
+
+func (s *SideChain) SetDKG(dkg *dkg.DKG) {
+	s.dkg = dkg
 }

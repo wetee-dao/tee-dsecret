@@ -12,7 +12,6 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/gogoproto v1.7.0
 	github.com/decred/base58 v1.0.4
-	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/edgelesssys/ego v1.7.0
 	github.com/fatih/color v1.18.0
 	github.com/go-chi/chi/v5 v5.2.1
@@ -33,6 +32,7 @@ require (
 
 require (
 	github.com/cometbft/cometbft-db v1.0.1 // indirect
+	github.com/dgraph-io/badger/v4 v4.5.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/multiformats/go-multiaddr v0.16.0 // indirect
 	github.com/onsi/gomega v1.36.2 // indirect

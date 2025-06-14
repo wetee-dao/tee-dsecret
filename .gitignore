@@ -21,6 +21,7 @@ Dockerfile.cross
 
 !vendor/**/zz_generated.*
 
+
 # editor and IDE paraphernalia
 .idea
 .vscode
@@ -28,6 +29,7 @@ Dockerfile.cross
 *.swo
 *~
 
+**/chain_data
 **/db/
 **/dsecret
 **/nohup.out

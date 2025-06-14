@@ -131,7 +131,7 @@ func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
 		Auth:      signer,
 		FastSync:  true,
 		Longterm:  dkg.NodeSecret,
-		Nonce:     Version2Nonce(dkg.Peer.Version()),
+		Nonce:     VersionToNonce(dkg.Peer.Version()),
 		Log:       log,
 	}
 
@@ -219,7 +219,7 @@ func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
 		OldThreshold: dkg.Threshold,
 		Threshold:    threshold, // 新的节点列表
 		NewNodes:     nodes,
-		Nonce:        Version2Nonce(dkg.Peer.Version()),
+		Nonce:        VersionToNonce(dkg.Peer.Version()),
 		Suite:        dkg.Suite, // 不变的参数
 		Auth:         schnorr.NewScheme(dkg.Suite),
 		FastSync:     true,
@@ -371,7 +371,7 @@ func (dkg *DKG) GetNode(nodeId string) *model.Node {
 	return nil
 }
 
-func Version2Nonce(v uint32) []byte {
+func VersionToNonce(v uint32) []byte {
 	var nonce [pedersen.NonceLength]byte
 	var version = fmt.Append(nil, v)
 

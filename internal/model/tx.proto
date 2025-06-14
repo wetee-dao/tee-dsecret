@@ -1,13 +1,12 @@
 syntax = "proto3";
 
-package bft;
+package model;
 
 option go_package = "";
 
 
-// dkg message
-message DkgMessage {
+// Call from TEE to mainchain
+message BridgeMessage {
   string msg_id = 1;
   bytes payload = 3;
-  string error = 4;
 }

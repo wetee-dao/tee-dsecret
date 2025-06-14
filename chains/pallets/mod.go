@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	chain "github.com/wetee-dao/ink.go"
-	"wetee.app/dsecret/internal/util"
 
 	"wetee.app/dsecret/chains/pallets/generated/app"
 	"wetee.app/dsecret/chains/pallets/generated/dsecret"
@@ -32,7 +31,6 @@ func InitChain(url string, pk *model.PrivKey) (*Chain, error) {
 	if err != nil {
 		return nil, err
 	}
-	util.LogWithYellow("Node chain pubkey", p.Address)
 
 	return &Chain{
 		ChainClient: client,

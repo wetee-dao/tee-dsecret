@@ -54,19 +54,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get boot peers
-	boots, err := mainChain.GetBootPeers()
-	if err != nil {
-		fmt.Println("Get boot peers error:", err)
-		os.Exit(1)
-	}
-
 	// Init node
-	node, _, dkgReactor, err := sidechain.InitNode(chainPort, boots)
+	node, sideChain, dkgReactor, err := sidechain.Init(chainPort, mainChain, func() {
+		util.LogWithYellow("\nMain chain", nodePriv.GetPublic().SS58())
+	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
 	}
-
 	// Start BFT node
 	if err := node.Start(); err != nil {
 		log.Fatalf("failed to start BFT node: %v", err)
@@ -82,6 +76,8 @@ func main() {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
+
+	sideChain.SetDKG(dkgIns)
 
 	// // 运行 DKG 协议
 	// if err := dkgIns.Start(ctx, nil); err != nil {
