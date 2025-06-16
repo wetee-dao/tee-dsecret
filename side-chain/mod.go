@@ -21,7 +21,11 @@ import (
 	"wetee.app/dsecret/internal/util"
 )
 
-func Init(chainPort int, mainChain chains.MainChain, callback func()) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
+func Init(
+	chainPort int,
+	mainChain chains.MainChain,
+	callback func(),
+) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
 	// Get boot peers
 	boots, err := mainChain.GetBootPeers()
 	if err != nil {
@@ -36,6 +40,7 @@ func Init(chainPort int, mainChain chains.MainChain, callback func()) (*nm.Node,
 
 	p2pConf := cfg.DefaultP2PConfig()
 	p2pConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort)
+	p2pConf.AllowDuplicateIP = true
 	p2pConf.Seeds = ""
 
 	consensusConf := cfg.DefaultConsensusConfig()
@@ -131,7 +136,7 @@ func Init(chainPort int, mainChain chains.MainChain, callback func()) (*nm.Node,
 
 	callback()
 	if p2pConf.Seeds != "" {
-		util.LogWithRed("Boot nodes", p2pConf.Seeds)
+		util.LogWithRed("Boot Nodes", p2pConf.Seeds)
 	}
 
 	return node, sideChain, dkgReactor, err

@@ -10,4 +10,5 @@ message DkgMessage {
   string msg_id = 1;
   bytes payload = 3;
   string error = 4;
+  string type = 5;
 }

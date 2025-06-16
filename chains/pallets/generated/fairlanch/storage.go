@@ -8,7 +8,7 @@ import (
 	types1 "wetee.app/dsecret/chains/pallets/generated/types"
 )
 
-// Make a storage key for BlockReward id={{false [341]}}
+// Make a storage key for BlockReward id={{false [342]}}
 //
 //	当前周期的区块奖励
 //	current block reward
@@ -18,7 +18,7 @@ func MakeBlockRewardStorageKey() (types.StorageKey, error) {
 
 var BlockRewardResultDefaultBytes, _ = hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 
-func GetBlockReward(state state.State, bhash types.Hash) (ret types1.Tuple341, err error) {
+func GetBlockReward(state state.State, bhash types.Hash) (ret types1.Tuple342, err error) {
 	key, err := MakeBlockRewardStorageKey()
 	if err != nil {
 		return
@@ -36,7 +36,7 @@ func GetBlockReward(state state.State, bhash types.Hash) (ret types1.Tuple341, e
 	}
 	return
 }
-func GetBlockRewardLatest(state state.State) (ret types1.Tuple341, err error) {
+func GetBlockRewardLatest(state state.State) (ret types1.Tuple342, err error) {
 	key, err := MakeBlockRewardStorageKey()
 	if err != nil {
 		return

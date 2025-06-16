@@ -2,6 +2,3 @@
 	path = ext/cometbft
 	url = https://github.com/cometbft/cometbft
 	tag = v1.0.1
-[submodule "ext/kyber"]
-	path = ext/kyber
-	url = https://github.com/wetee-dao/kyber

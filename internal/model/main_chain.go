@@ -69,3 +69,10 @@ type K8sCluster struct {
 	Port          uint32
 	Status        byte
 }
+
+type Validator struct {
+	// account32
+	ValidatorId PubKey
+	// account32
+	P2pId PubKey
+}

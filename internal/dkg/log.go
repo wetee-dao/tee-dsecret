@@ -1,18 +1,22 @@
 package dkg
 
-import "fmt"
+import (
+	"fmt"
+
+	"wetee.app/dsecret/internal/util"
+)
 
 type Logger struct {
 	NodeIndex int
 }
 
 func (l Logger) Info(keyvals ...any) {
-	logs := []any{"NODE ==========", l.NodeIndex, " Info  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"}
+	logs := []any{"|| "}
 	logs = append(logs, keyvals...)
-	fmt.Println(logs...)
+	util.LogWithGray("NODE "+fmt.Sprint(l.NodeIndex), logs...)
 }
 func (l Logger) Error(keyvals ...any) {
-	logs := []any{"NODE ==========", l.NodeIndex, " Error  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"}
+	logs := []any{"|| "}
 	logs = append(logs, keyvals...)
-	fmt.Println(logs...)
+	util.LogWithRed("NODE "+fmt.Sprint(l.NodeIndex), logs...)
 }

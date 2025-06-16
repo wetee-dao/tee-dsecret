@@ -1,19 +1,17 @@
 package dkg
 
 import (
-	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"sync"
-	"time"
 
+	inkUtil "github.com/wetee-dao/ink.go/util"
 	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
-	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"go.dedis.ch/kyber/v4/suites"
 	"wetee.app/dsecret/internal/model"
 	p2peer "wetee.app/dsecret/internal/peer"
+	"wetee.app/dsecret/internal/util"
 )
 
 // DKG 代表  DKG 协议的实例
@@ -24,273 +22,111 @@ type DKG struct {
 	Peer p2peer.Peer
 	// Suite 是加密套件
 	Suite suites.Suite
-	// NodeSecret 是长期的私钥
-	NodeSecret kyber.Scalar
 	// Signer 是用于签名的私钥
 	Signer *model.PrivKey
-	// AllNodes 是所有节点的集合
-	AllNodes []*model.Node
+	// DistKeyGenerator
+	DistKeyGenerator *pedersen.DistKeyGenerator
 	// Peer 是 P2P 网络主机
-	DkgNodes []*model.Node
+	DkgNodes []*model.Validator
+	NewNodes []*model.Validator
 	// Threshold 是密钥重建所需的最小份额数量
 	Threshold int
 
 	// dkg loger
 	log pedersen.Logger
 
-	// DistKeyGenerator
-	DistKeyGenerator *pedersen.DistKeyGenerator
 	// DistPubKey globle public key
 	DkgPubKey kyber.Point
+	// Pre DistKeyShare version
+	PreDkgKeyShare model.DistKeyShare
 	// DistKeyShare is the node private share
 	DkgKeyShare model.DistKeyShare
 
 	// cache the deal, response, justification, result
-	deals     map[string]*pedersen.DealBundle
+	deals     map[string]*model.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
 
+	// DKG epoch
+	Epoch   uint32
+	NewEoch uint32
+
+	mainChan chan *model.Message
 	// preRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan any
+
 	// 未初始化状态 => 0 | 初始化成功 => 1
-	status uint8
+	status      uint8
+	inConsensus bool
 }
 
 // NewDKG 创建一个新的  DKG 实例
-func NewDKG(NodeSecret *model.PrivKey, peer p2peer.Peer) (*DKG, error) {
-	nodes := peer.Nodes()
-
-	// 获取节点公钥列表
-	dkgNodes := make([]*model.Node, 0, len(nodes))
-	for _, n := range nodes {
-		// 过滤不是dkg节点
-		if n.Type != 1 {
-			continue
-		}
-
-		dkgNodes = append(dkgNodes, n)
+func NewDKG(
+	NodeSecret *model.PrivKey,
+	peer p2peer.Peer,
+	validatorsWrap inkUtil.Option[[]*model.Validator],
+	log pedersen.Logger,
+) (*DKG, error) {
+	validators := []*model.Validator{}
+	threshold := 0
+	if !validatorsWrap.IsNone {
+		validators = validatorsWrap.V
+		threshold = len(validators) * 2 / 3
 	}
-
-	// 获取密钥重建所需的最小份额数量
-	threshold := len(dkgNodes) * 2 / 3
 
 	// 创建 DKG 对象
 	dkg := &DKG{
 		Suite:      suites.MustFind("Ed25519"),
-		NodeSecret: NodeSecret.Scalar(),
 		Signer:     NodeSecret,
 		Threshold:  threshold,
 		Peer:       peer,
-		AllNodes:   nodes,
-		DkgNodes:   dkgNodes,
+		DkgNodes:   validators,
+		NewNodes:   validators,
+		log:        log,
 		preRecerve: make(map[string]chan any),
-		deals:      make(map[string]*pedersen.DealBundle),
+		deals:      make(map[string]*model.DealBundle),
 		responses:  make(map[string]*pedersen.ResponseBundle),
 	}
 
 	// dkg.Peer.AddHandler("worker", dkg.HandleWorker)
-	dkg.Peer.Sub("dkg", dkg.HandleDkg)
+	dkg.Peer.Sub("dkg", dkg.MessageHandler)
 
 	// 添加网络节点变化回调
-	peer.NetResetHook(dkg.ReShare)
+	// peer.SetNetworkChangeBack(dkg.CallFromPeer)
 
 	// 复原 DKG 对象
 	dkg.reStore()
 
+	dkg.mainChan = make(chan *model.Message, 500)
 	return dkg, nil
 }
 
-// Start 启动  DKG 协议
-func (dkg *DKG) Start(ctx context.Context, log pedersen.Logger) error {
-	dkg.log = log
-
-	if flag.Lookup("test.v") == nil {
-		go dkg.HandleSecretSave(ctx)
-	}
-
-	// 如果已经初始化，则直接返回
-	if dkg.status == 1 {
-		return nil
-	}
-
-	// dkg 节点列表
-	nodes := make([]pedersen.Node, 0, len(dkg.DkgNodes))
-	for i, p := range dkg.DkgNodes {
-		nodes = append(nodes, pedersen.Node{
-			Index:  uint32(i),
-			Public: p.ID.Point(),
-		})
-	}
-
-	signer := schnorr.NewScheme(dkg.Suite)
-	// 初始化协议配置
-	conf := pedersen.Config{
-		Suite:     dkg.Suite,
-		NewNodes:  nodes,
-		Threshold: dkg.Threshold,
-		Auth:      signer,
-		FastSync:  true,
-		Longterm:  dkg.NodeSecret,
-		Nonce:     VersionToNonce(dkg.Peer.Version()),
-		Log:       log,
-	}
-
-	// initialize dealer
-	var err error
-	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
-	if err != nil {
-		return fmt.Errorf("failed to initialize DKG protocol: %w", err)
-	}
-
-	// 等待节点连接
+// Start DKG service
+func (dkg *DKG) Start() error {
 	for {
-		if dkg.connectLen()+1 < len(dkg.DkgNodes) {
-			time.Sleep(time.Second * 10)
-			fmt.Println("Number of nodes:", dkg.connectLen(), " len(dkg.DkgNodes) ", len(dkg.DkgNodes))
-			fmt.Println("The number of nodes is insufficient, please wait for more nodes to join")
-		} else {
-			break
-		}
-	}
-
-	// 获取当前节点的协议
-	deal, err := dkg.DistKeyGenerator.Deals()
-	if err != nil {
-		return fmt.Errorf("failed to generate key shares: %w", err)
-	}
-
-	// 开启节点共识
-	for _, node := range dkg.DkgNodes {
-		err = dkg.SendDealMessage(ctx, node, deal, 0)
-		if err != nil {
-			fmt.Println("Send error:", err)
-		}
-	}
-
-	// // 等待节点完成重组
-	// for {
-	// 	if dkg.DkgKeyShare.PriShare != nil {
-	// 		break
-	// 	}
-	// 	fmt.Println("Wait for the DKG network to complete reorganization")
-	// 	time.Sleep(time.Second * 5)
-	// }
-	// fmt.Println("The DKG protocol has been successfully initiated")
-
-	return nil
-}
-
-func (dkg *DKG) ReShare(coeffs []kyber.Point) error {
-	peerNodes := dkg.Peer.Nodes()
-	// 获取节点公钥列表
-	dkgNodes := make([]*model.Node, 0, len(peerNodes))
-	for _, n := range peerNodes {
-		// 过滤不是dkg节点
-		if n.Type != 1 {
-			continue
-		}
-
-		dkgNodes = append(dkgNodes, n)
-	}
-
-	// dkg 节点列表
-	nodes := make([]pedersen.Node, 0, len(dkgNodes))
-	for i, p := range dkgNodes {
-		nodes = append(nodes, pedersen.Node{
-			Index:  uint32(i),
-			Public: p.ID.Point(),
-		})
-	}
-
-	// 获取旧节点列表
-	oldNodes := make([]pedersen.Node, 0, len(dkgNodes))
-	for i, p := range dkg.DkgNodes {
-		oldNodes = append(oldNodes, pedersen.Node{
-			Index:  uint32(i),
-			Public: p.ID.Point(),
-		})
-	}
-
-	threshold := len(dkgNodes) * 2 / 3
-
-	// 初始化协议配置
-	conf := pedersen.Config{
-		OldNodes:     oldNodes, // 获取当前节点列表
-		OldThreshold: dkg.Threshold,
-		Threshold:    threshold, // 新的节点列表
-		NewNodes:     nodes,
-		Nonce:        VersionToNonce(dkg.Peer.Version()),
-		Suite:        dkg.Suite, // 不变的参数
-		Auth:         schnorr.NewScheme(dkg.Suite),
-		FastSync:     true,
-		Longterm:     dkg.NodeSecret,
-		Log:          dkg.log,
-	}
-
-	if dkg.DkgKeyShare.PriShare != nil {
-		conf.Share = &pedersen.DistKeyShare{
-			Commits: dkg.DkgKeyShare.Commits,
-			Share:   dkg.DkgKeyShare.PriShare,
-		}
-	} else {
-		conf.PublicCoeffs = coeffs
-	}
-
-	var err error
-	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
-	if err != nil {
-		return err
-	}
-
-	priShare := dkg.DkgKeyShare.PriShare
-
-	// 重置 DKG 对象
-	dkg.AllNodes = peerNodes
-	dkg.DkgNodes = dkgNodes
-	dkg.deals = map[string]*pedersen.DealBundle{}
-	dkg.responses = map[string]*pedersen.ResponseBundle{}
-	dkg.justifs = []*pedersen.JustificationBundle{}
-	dkg.DkgKeyShare = model.DistKeyShare{}
-
-	// old node issue deals
-	if priShare != nil {
-		// 获取当前节点的协议
-		deal, err := dkg.DistKeyGenerator.Deals()
-		if err != nil {
-			return fmt.Errorf("failed to generate key shares: %w", err)
-		}
-
-		ctx := context.Background()
-
-		fmt.Println("ReShare DkgNodes ---------------------------------------------------------------------", len(dkg.DkgNodes))
-		// 开启节点共识
-		for _, node := range dkg.DkgNodes {
-			err = dkg.SendDealMessage(ctx, node, deal, len(oldNodes))
-			if err != nil {
-				fmt.Println("Send error:", err)
+		select {
+		case data, ok := <-dkg.mainChan:
+			if !ok {
+				util.LogOk("DKG", "stop")
+				return nil
 			}
+			dkg.handleDkg(data)
 		}
 	}
-
-	// 等待节点完成重组s
-	for {
-		if dkg.DkgKeyShare.PriShare != nil {
-			break
-		}
-		time.Sleep(time.Second * 5)
-	}
-	fmt.Println("The DKG protocol has been successfully reshare <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-
-	dkg.Threshold = threshold
-	return nil
 }
 
+// Stop DKG
+func (dkg *DKG) Stop(msg *model.Message) {
+	close(dkg.mainChan)
+}
+
+// Get conected node number
 func (dkg *DKG) connectLen() int {
 	var len int
-	peers := dkg.Peer.NodeIds()
+	peers := dkg.Peer.Nodes()
 	for _, p := range peers {
 		for _, node := range dkg.DkgNodes {
-			if p == node.PeerID().String() {
+			if p.String() == node.P2pId.String() {
 				len = len + 1
 			}
 		}
@@ -302,18 +138,42 @@ func (d *DKG) Share() model.DistKeyShare {
 	return d.DkgKeyShare
 }
 
-func (dkg *DKG) ID() int {
-	pub := dkg.Suite.Point().Mul(dkg.NodeSecret, nil)
-	var index int = -1
-	for i, p := range dkg.DkgNodes {
-		if p.ID.Point().String() == pub.String() {
-			index = i
-			break
+// Get validator id
+func (dkg *DKG) validatorID() *model.PubKey {
+	pub := dkg.Signer.GetPublic()
+	for _, p := range dkg.DkgNodes {
+		if p.ValidatorId.String() == pub.String() {
+			return &p.ValidatorId
 		}
 	}
-	return index
+	for _, p := range dkg.NewNodes {
+		if p.ValidatorId.String() == pub.String() {
+			return &p.ValidatorId
+		}
+	}
+
+	return nil
 }
 
+// Get p2p id of self node
+func (dkg *DKG) p2pId() *model.PubKey {
+	pub := dkg.Signer.GetPublic()
+	for _, p := range dkg.DkgNodes {
+		if p.ValidatorId.String() == pub.String() {
+			return &p.P2pId
+		}
+	}
+	for _, p := range dkg.NewNodes {
+		if p.ValidatorId.String() == pub.String() {
+			return &p.P2pId
+		}
+	}
+
+	util.LogError("P2P 404 ", dkg.Signer.GetPublic().SS58())
+	return nil
+}
+
+// Restore dkg state
 func (dkg *DKG) reStore() error {
 	v, err := model.GetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58())
 	if err != nil {
@@ -339,31 +199,33 @@ func (dkg *DKG) saveStore() error {
 	return model.SetKey("G", "dkg-"+dkg.Signer.GetPublic().SS58(), payload)
 }
 
-func (dkg *DKG) SendToNode(ctx context.Context, node *model.Node, pid string, message *model.Message) error {
+// Send message to node
+func (dkg *DKG) sendToNode(node *model.PubKey, pid string, message *model.Message) error {
 	if node == nil {
-		fmt.Println("node is nil")
-		return errors.New("node is nil")
+		fmt.Println("sendToNode node is nil")
+		return errors.New("Node is nil")
 	}
 
-	message.OrgId = dkg.Peer.PeerStrID()
-	if dkg.Peer.PeerStrID() == node.PeerID().String() {
-		switch pid {
-		case "dkg":
-			go dkg.HandleDkg(message)
-			return nil
-		case "worker":
-			go dkg.HandleWorker(message)
-			return nil
-		default:
-			return errors.New("invalid pid")
-		}
+	p2pId := dkg.p2pId()
+	if p2pId == nil {
+		fmt.Println("sendToNode P2PID is nil")
+		return errors.New("P2PID is nil")
 	}
-	return dkg.Peer.Send(node, pid, message)
+
+	message.OrgId = p2pId.String()
+	if message.OrgId == node.String() {
+		dkg.mainChan <- message
+		return nil
+	}
+
+	return dkg.Peer.Send(*node, pid, message)
 }
 
-func (dkg *DKG) GetNode(nodeId string) *model.Node {
-	for _, node := range dkg.AllNodes {
-		if node.PeerID().String() == nodeId {
+// Get node by string id
+func (dkg *DKG) getNode(nodeId string) *model.PubKey {
+	nodes := dkg.Peer.Nodes()
+	for _, node := range nodes {
+		if node.String() == nodeId {
 			return node
 		}
 	}
@@ -371,11 +233,11 @@ func (dkg *DKG) GetNode(nodeId string) *model.Node {
 	return nil
 }
 
-func VersionToNonce(v uint32) []byte {
+func epochToNonce(v uint32) []byte {
 	var nonce [pedersen.NonceLength]byte
-	var version = fmt.Append(nil, v)
+	var epoch = fmt.Append(nil, v)
 
-	copy(nonce[:], version)
+	copy(nonce[:], epoch)
 
 	return nonce[:]
 }

@@ -1,12 +1,13 @@
 package bftbrigde
 
 import (
+	"errors"
+
 	bcproto "github.com/cometbft/cometbft/api/cometbft/blocksync/v1"
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/p2p/conn"
 	"github.com/cometbft/cometbft/types"
-	"go.dedis.ch/kyber/v4"
 
 	"wetee.app/dsecret/chains"
 	"wetee.app/dsecret/internal/model"
@@ -29,19 +30,18 @@ type BTFReactor struct {
 	service.BaseService
 	Switch *p2p.Switch
 
-	mainChain chains.MainChain
-	callbacks map[string][]func(*model.Message) error
-	netHook   func([]kyber.Point) error
+	nodekeys        []*model.PubKey
+	messageHandlers map[string]func(*model.Message) error
+	callDkg         func(string) error
 }
 
 func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
 	r := &BTFReactor{
-		callbacks: map[string][]func(*model.Message) error{},
+		messageHandlers: map[string]func(*model.Message) error{},
 	}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
 	return r
-
 }
 
 // 实现 Service 接口的 OnStart 生命周期钩子
@@ -91,12 +91,27 @@ func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
 	r.PrintPeers("BTF RemovePeer")
 }
 
-func (*BTFReactor) Receive(e p2p.Envelope) {
+func (r *BTFReactor) Receive(e p2p.Envelope) {
 	switch msg := e.Message.(type) {
 	case *DkgMessage:
-		util.LogError("Receive tee msg", "e.Src.ID()", msg)
+		handler, ok := r.messageHandlers["dkg"]
+		if !ok {
+			util.LogError("BTF", "handler not found for pid: dkg")
+		}
+
+		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
+		if err == nil {
+			go handler(&model.Message{
+				MsgID:   msg.MsgId,
+				Payload: msg.Payload,
+				Type:    msg.Type,
+				OrgId:   pub.String(),
+			})
+		} else {
+			util.LogError("BTF", "Receive unknown node", e.Src.ID())
+		}
 	default:
-		util.LogError("Receive error", "msg", msg)
+		util.LogError("BTF", "Receive error", "msg", msg)
 	}
 }
 
@@ -104,7 +119,24 @@ func (*BTFReactor) InitPeer(peer p2p.Peer) p2p.Peer {
 	return peer
 }
 
+func (r *BTFReactor) GetPubkeyFromPeerID(peer p2p.ID) (*model.PubKey, error) {
+	for _, node := range r.nodekeys {
+		if node.SideChainNodeID() == peer {
+			return node, nil
+		}
+	}
+
+	return nil, errors.New("not found")
+}
+
 func (r *BTFReactor) PrintPeers(event string) {
+	if chains.ChainIns == nil {
+		return
+	}
+	_, pubkeys, err := chains.ChainIns.GetNodes()
+	if err == nil {
+		r.nodekeys = pubkeys
+	}
 	outbound, inbound, dialing := r.Switch.NumPeers()
 	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing)
 }

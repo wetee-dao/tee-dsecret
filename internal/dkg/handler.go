@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,12 +9,27 @@ import (
 	"wetee.app/dsecret/internal/util"
 )
 
+// Handler 处理DKG消息
+func (dkg *DKG) MessageHandler(data *model.Message) error {
+	dkg.mainChan <- data
+	return nil
+}
+
 // HandleDkg 处理不同的DKG消息类型
 // msg: 被处理的消息对象
 // 返回：可能的错误
-func (dkg *DKG) HandleDkg(msg *model.Message) error {
+func (dkg *DKG) handleDkg(msg *model.Message) error {
 	// 根据消息类型执行相应的处理逻辑
 	switch msg.Type {
+	case "consensus":
+		consensusMsg := model.ConsensusMsg{}
+		json.Unmarshal(msg.Payload, &consensusMsg)
+		// 开始共识
+		err := dkg.startConsensus(consensusMsg)
+		if err != nil {
+			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
+		}
+		return err
 	case "deal":
 		// 处理交易消息
 		err := dkg.HandleDeal(msg.OrgId, msg.Payload)
@@ -45,7 +59,7 @@ func (dkg *DKG) HandleDkg(msg *model.Message) error {
 
 // HandleWorker 处理来自worker的消息
 // msg: 待处理的消息
-func (dkg *DKG) HandleWorker(msg *model.Message) error {
+func (dkg *DKG) handleWorker(msg *model.Message) error {
 	// TODO
 	// 检查链的元数据
 	// err := chain.ChainIns.CheckMetadata()
@@ -63,7 +77,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 		hash, err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
 		if msg.OrgId != "" && msg.MsgID != "" {
 			// 获取发送方节点
-			n := dkg.GetNode(msg.OrgId)
+			n := dkg.getNode(msg.OrgId)
 			if n == nil {
 				// 如果节点不存在，返回错误
 				return fmt.Errorf("node not found: %s", msg.OrgId)
@@ -74,7 +88,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 				errStr = err.Error()
 			}
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
+			if err := dkg.sendToNode(n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "upload_cluster_proof_reply",
 				Payload: hash,
@@ -107,7 +121,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 		key, err := dkg.SendEncryptedSecretRequest(msg.Payload, msg.MsgID, msg.OrgId)
 		if msg.OrgId != "" && msg.MsgID != "" {
 			// 获取发送方节点
-			n := dkg.GetNode(msg.OrgId)
+			n := dkg.getNode(msg.OrgId)
 			if n == nil {
 				// 如果节点不存在，返回错误
 				return fmt.Errorf("node not found: %s", msg.OrgId)
@@ -124,7 +138,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
+			if err := dkg.sendToNode(n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "reencrypt_secret_remote_reply",
 				Payload: keyBt,
@@ -157,7 +171,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 		key, err := dkg.HandleWorkLaunchRequest(msg.Payload, msg.MsgID, msg.OrgId)
 		if msg.OrgId != "" && msg.MsgID != "" {
 			// 获取发送方节点
-			n := dkg.GetNode(msg.OrgId)
+			n := dkg.getNode(msg.OrgId)
 			if n == nil {
 				// 如果节点不存在，返回错误
 				return fmt.Errorf("node not found: %s", msg.OrgId)
@@ -174,7 +188,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
+			if err := dkg.sendToNode(n, "worker", &model.Message{
 				MsgID:   msg.MsgID,
 				Type:    "work_launch_reply",
 				Payload: keyBt,
@@ -192,7 +206,7 @@ func (dkg *DKG) HandleWorker(msg *model.Message) error {
 }
 
 // Handle pub msg data save
-func (r *DKG) HandleSecretSave(ctx context.Context) {
+func (r *DKG) handleSecretSave() {
 	r.Peer.Sub("secret", func(msg *model.Message) error {
 		// 解析消息
 		var datas []model.Kvs

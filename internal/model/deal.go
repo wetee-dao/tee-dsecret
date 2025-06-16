@@ -1,27 +1,33 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/suites"
 )
 
-type Deal struct {
-	DealerIndex uint32
-	Deals       []pedersen.Deal
-	// Public coefficients of the public polynomial used to create the shares
-	Public [][]byte
-	// SessionID of the current run
-	SessionID []byte
-	// Signature over the hash of the whole bundle
-	Signature []byte
-	Reshare   int
+type Test struct {
+	V uint64
 }
 
-func DealToProtocol(deal *pedersen.DealBundle) (*Deal, error) {
-	public := deal.Public
+type ConsensusMsg struct {
+	DealBundle       *DealBundle
+	Epoch            uint32
+	ShareCommits     KyberPoint
+	Validators       []*Validator
+	ConsensusNodeNum int
+}
+
+type DealBundle struct {
+	*pedersen.DealBundle
+}
+
+func (d DealBundle) MarshalJSON() ([]byte, error) {
+	public := d.Public
 	points := make([][]byte, len(public))
 	for i, p := range public {
 		b, err := p.MarshalBinary()
@@ -31,35 +37,102 @@ func DealToProtocol(deal *pedersen.DealBundle) (*Deal, error) {
 		points[i] = b
 	}
 
-	return &Deal{
-		DealerIndex: deal.DealerIndex,
-		Deals:       deal.Deals,
+	return json.Marshal(struct {
+		DealerIndex uint32
+		Deals       []pedersen.Deal
+		// Public coefficients of the public polynomial used to create the shares
+		Public [][]byte
+		// SessionID of the current run
+		SessionID []byte
+		// Signature over the hash of the whole bundle
+		Signature []byte
+	}{
+		DealerIndex: d.DealerIndex,
+		Deals:       d.Deals,
 		Public:      points,
-		SessionID:   deal.SessionID,
-		Signature:   deal.Signature,
-	}, nil
+		SessionID:   d.SessionID,
+		Signature:   d.Signature,
+	})
 }
 
-func ProtocolToDeal(suite suites.Suite, deal *Deal) (*pedersen.DealBundle, error) {
+func (d *DealBundle) UnmarshalJSON(bt []byte) error {
+	deal := struct {
+		DealerIndex uint32
+		Deals       []pedersen.Deal
+		Public      [][]byte
+		SessionID   []byte
+		Signature   []byte
+	}{}
+	err := json.Unmarshal(bt, &deal)
+	if err != nil {
+		return errors.Wrap(err, "Deal UnmarshalJSON")
+	}
+
 	public := deal.Public
 	points := make([]kyber.Point, len(public))
+	suite := suites.MustFind("Ed25519")
 	for i, p := range public {
 		point := suite.Point()
 		err := point.UnmarshalBinary(p)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal commitment: %w", err)
+			return errors.Wrap(err, "Deal UnmarshalJSON")
 		}
 
 		points[i] = point
 	}
 
-	return &pedersen.DealBundle{
+	d.DealBundle = &pedersen.DealBundle{
 		DealerIndex: deal.DealerIndex,
 		Deals:       deal.Deals,
 		Public:      points,
 		SessionID:   deal.SessionID,
 		Signature:   deal.Signature,
-	}, nil
+	}
+
+	return nil
+
+}
+
+type KyberPoint struct {
+	Public []kyber.Point
+}
+
+func (d KyberPoint) MarshalJSON() ([]byte, error) {
+	public := d.Public
+	points := make([][]byte, len(public))
+	for i, p := range public {
+		b, err := p.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("MarshalBinary public error: %w", err)
+		}
+		points[i] = b
+	}
+
+	return json.Marshal(points)
+}
+
+func (d *KyberPoint) UnmarshalJSON(bt []byte) error {
+	public := [][]byte{}
+	err := json.Unmarshal(bt, &public)
+	if err != nil {
+		return errors.Wrap(err, "Deal UnmarshalJSON")
+	}
+
+	points := make([]kyber.Point, len(public))
+	suite := suites.MustFind("Ed25519")
+	for i, p := range public {
+		point := suite.Point()
+		err := point.UnmarshalBinary(p)
+		if err != nil {
+			return errors.Wrap(err, "Deal UnmarshalJSON")
+		}
+
+		points[i] = point
+	}
+
+	d.Public = points
+	return nil
+
 }
 
 type JustificationBundle struct {

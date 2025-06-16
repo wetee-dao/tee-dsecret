@@ -8,8 +8,12 @@ import (
 var ChainIns MainChain
 
 type MainChain interface {
+	// nodes
 	GetBootPeers() ([]model.P2PAddr, error)
-	GetNodes() ([][32]byte, []*model.Node, error)
+	GetNodes() ([]*model.Validator, []*model.PubKey, error)
+	GetValidatorList() ([]*model.Validator, error)
+	// epoch
+	GetEpoch() (uint32, uint32, uint32, error)
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (MainChain, error) {

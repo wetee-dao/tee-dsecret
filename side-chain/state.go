@@ -24,7 +24,11 @@ func (s AppState) Hash() []byte {
 func loadState() (AppState, error) {
 	state, err := model.GetJson[AppState]("", stateKey)
 	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
-		return AppState{}, nil
+		return AppState{}, err
+	}
+
+	if state == nil {
+		state = &AppState{}
 	}
 
 	return *state, nil

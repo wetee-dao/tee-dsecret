@@ -1,4 +1,4 @@
-package tee
+package util
 
 import (
 	"bytes"
@@ -14,14 +14,13 @@ import (
 	chain "github.com/wetee-dao/ink.go"
 
 	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
 )
 
 func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer
-	buf.Write(util.Int64ToBytes(timestamp))
+	buf.Write(Int64ToBytes(timestamp))
 	buf.Write(pk.PublicKey)
 	if len(data) > 0 {
 		buf.Write(data)
@@ -75,7 +74,7 @@ func VerifyReport(workerReport *model.TeeParam) (*model.TeeReport, error) {
 	}
 
 	var buf bytes.Buffer
-	buf.Write(util.Int64ToBytes(timestamp))
+	buf.Write(Int64ToBytes(timestamp))
 	buf.Write(signer)
 	if len(msgBytes) > 0 {
 		buf.Write(msgBytes)

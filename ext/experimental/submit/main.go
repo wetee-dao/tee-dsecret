@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	client, err := chain.ClientInit("ws://192.168.111.105:30002", true)
+	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +26,8 @@ func main() {
 	fmt.Println(b)
 
 	// 初始化加密套件
-	nodeSecret, err := model.PrivateKeyFromLibp2pHex("080112406bce93c01f4b51287b01e55565cf7933cb624b25d478e003ca23446bc3ef83b9d0380163fd5c55a0474b95709da5b31d386da0313bb69bd635618f5cb80f1dde")
+	var testSecretSeed = "0x7512939e37970b04c2b9a6060b16654473cf0721b71f8e56126ee314cbd0a7e9fe9125a81688d932ea792e9722c777f7696117363f86a107ab9d3681a8c922c8"
+	nodeSecret, err := model.PrivateKeyFromHex(testSecretSeed)
 	if err != nil {
 		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)

@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -41,7 +40,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	errNum := 0
 	for _, node := range dkg.DkgNodes {
 		// 向节点发送消息
-		err := dkg.SendToNode(context.Background(), node, "worker", &model.Message{
+		err := dkg.sendToNode(&node.P2pId, "worker", &model.Message{
 			MsgID:   msgID,
 			Type:    "sign_cluster_proof",
 			Payload: data,
@@ -162,13 +161,13 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 		return errors.New("sign: " + err.Error())
 	}
 
-	n := dkg.GetNode(OrgId)
+	n := dkg.getNode(OrgId)
 	if n == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
 
 	// 回传到事务结点
-	if err := dkg.SendToNode(context.Background(), n, "worker", &model.Message{
+	if err := dkg.sendToNode(n, "worker", &model.Message{
 		MsgID:   msgID,
 		Type:    "sign_cluster_proof_reply",
 		Payload: sig,
@@ -180,19 +179,13 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 }
 
 func (dkg *DKG) HandleSignClusterProofReply(data []byte, msgID string, OrgId string) error {
-	account := dkg.GetNode(OrgId)
+	account := dkg.getNode(OrgId)
 	if account == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
 
-	// 还原公钥
-	pub := account.ID
-
 	// 计算 account32
-	bt, err := pub.Raw()
-	if err != nil {
-		return errors.New("public key raw: " + err.Error())
-	}
+	bt := account.PublicKey
 	var account32 [32]byte
 	copy(account32[:], bt)
 

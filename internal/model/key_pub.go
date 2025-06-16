@@ -4,56 +4,46 @@ import (
 	gocrypto "crypto"
 	"crypto/ed25519"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
-	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
-	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
-	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/cometbft/cometbft/crypto"
+	"github.com/cometbft/cometbft/p2p"
 	"go.dedis.ch/kyber/v4"
-	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/suites"
 )
 
 type PubKey struct {
-	libp2pCrypto.PubKey
+	ed25519.PublicKey
 	suite suites.Suite
 }
 
+func (p *PubKey) Suite() suites.Suite {
+	return p.suite
+}
+
 func (p *PubKey) Point() kyber.Point {
-	buf, _ := p.PubKey.Raw()
+	buf := p.PublicKey
 	point := p.suite.Point()
 	point.UnmarshalBinary(buf)
 	return point
 }
 
 func (p *PubKey) Std() (gocrypto.PublicKey, error) {
-	return libp2pCrypto.PubKeyToStdKey(p.PubKey)
+	return p.PublicKey, nil
 }
 
 func (p *PubKey) String() string {
-	bt, err := libp2pCrypto.MarshalPublicKey(p.PubKey)
-	if err != nil {
-		return ""
-	}
-	return hex.EncodeToString(bt)
+	return hex.EncodeToString(p.PublicKey)
+}
+
+func (p *PubKey) SideChainNodeID() p2p.ID {
+	return p2p.ID(hex.EncodeToString(crypto.AddressHash(p.PublicKey)))
 }
 
 func (p *PubKey) Byte() ([]byte, error) {
-	bt, err := libp2pCrypto.MarshalPublicKey(p.PubKey)
-	if err != nil {
-		return nil, err
-	}
-	return bt, nil
-}
-
-func (p *PubKey) PeerID() peer.ID {
-	peerID, err := peer.IDFromPublicKey(p)
-	if err != nil {
-		fmt.Println("Node peer.IDFromPublicKey error:", err)
-		return peer.ID("")
-	}
-	return peerID
+	return p.PublicKey, nil
 }
 
 func (p *PubKey) SS58() string {
@@ -65,85 +55,52 @@ func (p *PubKey) SS58() string {
 	return SS58Encode(k.(ed25519.PublicKey), 42)
 }
 
-func PublicKeyFromLibp2pHex(hexStr string) (*PubKey, error) {
-	buf, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return nil, fmt.Errorf("decode hex: %w", err)
-	}
-
-	return PublicKeyFromLibp2pBytes(buf)
+func (p PubKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.PublicKey)
 }
 
-func PublicKeyFromHex(hexStr string) (*PubKey, error) {
-	return PublicKeyFromLibp2pHex("08011220" + hexStr)
-}
-
-func PublicKeyFromLibp2pBytes(buf []byte) (*PubKey, error) {
-	pk, err := libp2pCrypto.UnmarshalPublicKey(buf)
+func (p *PubKey) UnmarshalJSON(bt []byte) error {
+	var key ed25519.PublicKey = []byte{}
+	err := json.Unmarshal(bt, &key)
 	if err != nil {
-		return nil, fmt.Errorf("public key from bytes: %w", err)
+		return err
 	}
 
-	return PubKeyFromLibP2P(pk)
+	p.PublicKey = key
+	p.suite = suites.MustFind("Ed25519")
+	return nil
 }
 
-func PubKeyFromLibP2P(pubkey libp2pCrypto.PubKey) (*PubKey, error) {
-	suite, err := SuiteForType(pubkey.Type())
-	if err != nil {
-		return nil, err
-	}
-
+func PubKeyFromStdPubKey(pubkey ed25519.PublicKey) (*PubKey, error) {
 	return &PubKey{
-		PubKey: pubkey,
-		suite:  suite,
+		PublicKey: pubkey,
+		suite:     suites.MustFind("Ed25519"),
 	}, nil
 }
 
-func PubKeyFromStdPubKey(pubkey gocrypto.PublicKey) (*PubKey, error) {
-	var libpk libp2pCrypto.PubKey
-	var err error
-	switch gopk := pubkey.(type) {
-	case ed25519.PublicKey:
-		libpk, err = libp2pCrypto.UnmarshalEd25519PublicKey(gopk)
-	default:
-		return nil, fmt.Errorf("unknown key type")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return PubKeyFromLibP2P(libpk)
-}
-
 func PubKeyFromPoint(suite suites.Suite, point kyber.Point) (*PubKey, error) {
-
 	buf, err := point.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("marshal point: %w", err)
 	}
 
-	var pk libp2pCrypto.PubKey
+	var pk ed25519.PublicKey
 
 	switch strings.ToLower(suite.String()) {
 	case "ed25519":
-		pk, err = libp2pCrypto.UnmarshalEd25519PublicKey(buf)
+		pk = buf
 	default:
 		return nil, fmt.Errorf("unknown suite: %v", suite)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("unmarshal public key: %w", err)
-	}
-
-	return PubKeyFromLibP2P(pk)
+	return &PubKey{
+		PublicKey: pk,
+	}, nil
 }
 
-func SuiteForType(kt libp2pCryptoPb.KeyType) (suites.Suite, error) {
-	switch kt {
-	case libp2pCryptoPb.KeyType_Ed25519:
-		return edwards25519.NewBlakeSHA256Ed25519(), nil
-	default:
-		return nil, fmt.Errorf("unsupported key type: %v", kt)
+func PubKeyFromByte(pubkey []byte) *PubKey {
+	return &PubKey{
+		PublicKey: ed25519.PublicKey(pubkey),
+		suite:     suites.MustFind("Ed25519"),
 	}
 }

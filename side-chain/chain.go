@@ -73,7 +73,6 @@ func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abc
 	// Retrieve all message sent by the sender
 	messages := map[string]string{}
 
-	// Convert the messages to JSON and return as query result
 	resultBytes, err := json.Marshal(messages)
 	if err != nil {
 		return nil, err
@@ -117,15 +116,8 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	util.LogWithPurple("SideChain", "PrepareProposal")
 
-	// ProcessProposal should verify this
-	proposedTxs := make([][]byte, 0)
 	finalProposal := make([][]byte, 0)
-
 	for _, tx := range req.Txs {
-		proposedTxs = append(proposedTxs, tx)
-	}
-
-	for _, tx := range proposedTxs {
 		finalProposal = append(finalProposal, tx)
 	}
 
@@ -137,7 +129,6 @@ func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessPropos
 	util.LogWithPurple("SideChain", "ProcessProposal")
 
 	// for i, tx := range req.Txs {
-
 	// }
 
 	return &abci.ProcessProposalResponse{Status: abci.PROCESS_PROPOSAL_STATUS_ACCEPT}, nil
@@ -158,9 +149,9 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 
 	app.state.Height = req.Height
 	response := &abci.FinalizeBlockResponse{
-		TxResults:        respTxs,
-		AppHash:          app.state.Hash(),
-		ValidatorUpdates: []abci.ValidatorUpdate{},
+		TxResults: respTxs,
+		AppHash:   app.state.Hash(),
+		// ValidatorUpdates: []abci.ValidatorUpdate{},
 	}
 
 	return response, nil
@@ -178,6 +169,7 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 	if err != nil {
 		return nil, err
 	}
+
 	return &abci.CommitResponse{}, nil
 }
 

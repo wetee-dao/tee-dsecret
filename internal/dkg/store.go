@@ -39,6 +39,6 @@ func (r *DKG) SetData(datas []model.Kvs) error {
 //	error  - 如果在存储操作中发生错误，返回该错误；否则返回nil
 //
 // 该函数通过调用store的getKey方法，使用"k"作为前缀和给定的键(k)来组合查询存储中的"secret"数据
-func (r *DKG) GetData(k string) ([]byte, error) {
-	return model.GetKey("secret", k)
-}
+// func (r *DKG) GetData(k string) ([]byte, error) {
+// 	return model.GetKey("secret", k)
+// }

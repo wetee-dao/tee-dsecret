@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/cometbft/cometbft/p2p"
+	"github.com/cometbft/cometbft/privval"
+	inkUtil "github.com/wetee-dao/ink.go/util"
 	chain "wetee.app/dsecret/chains"
 	"wetee.app/dsecret/graph"
 	"wetee.app/dsecret/internal/dkg"
@@ -39,9 +41,21 @@ func main() {
 		fmt.Println("failed to load node key:", err)
 		os.Exit(1)
 	}
+	p2pKey, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
+	if err != nil {
+		fmt.Println("Marshal PKG_PK error:", err)
+		os.Exit(1)
+	}
+
+	// Init key for DKG
+	validatorKey := privval.LoadFilePV(
+		"./chain_data/config/priv_validator_key.json",
+		"./chain_data/data/priv_validator_state.json",
+	)
+	dkgKey := validatorKey.Key.PrivKey
 
 	// Init node key for Mainchain
-	nodePriv, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
+	nodePriv, err := model.PrivateKeyFromOed25519(dkgKey.Bytes())
 	if err != nil {
 		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
@@ -56,11 +70,15 @@ func main() {
 
 	// Init node
 	node, sideChain, dkgReactor, err := sidechain.Init(chainPort, mainChain, func() {
-		util.LogWithYellow("\nMain chain", nodePriv.GetPublic().SS58())
+		fmt.Println()
+		util.LogWithYellow("Main Chain", chainAddr)
+		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
+		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58(), " ", p2pKey.GetPublic().SideChainNodeID())
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
 	}
+
 	// Start BFT node
 	if err := node.Start(); err != nil {
 		log.Fatalf("failed to start BFT node: %v", err)
@@ -71,19 +89,13 @@ func main() {
 	}()
 
 	// Create DKG
-	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor)
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, inkUtil.NewNone[[]*model.Validator](), nil)
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
 
 	sideChain.SetDKG(dkgIns)
-
-	// // 运行 DKG 协议
-	// if err := dkgIns.Start(ctx, nil); err != nil {
-	// 	fmt.Println("Start DKG error:", err)
-	// 	os.Exit(1)
-	// }
 
 	// 启动 graphql 服务器
 	go graph.StartServer(dkgIns, gqlPort)

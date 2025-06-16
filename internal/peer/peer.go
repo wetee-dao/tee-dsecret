@@ -1,22 +1,21 @@
 package peer
 
 import (
-	"go.dedis.ch/kyber/v4"
 	"wetee.app/dsecret/internal/model"
 )
 
 type Peer interface {
-	Send(node *model.Node, pid string, message *model.Message) error
+	Send(node_id model.PubKey, pid string, message *model.Message) error
 	Pub(topic string, data []byte) error
 	Sub(topic string, handler func(*model.Message) error) error
 
-	GoStart()
-	Close() error
+	LinkToNetwork()
 
-	PeerStrID() string
-	NodeIds() []string
-	Nodes() []*model.Node
+	// Stop() error
+	// PeerID() string
 
-	Version() uint32
-	NetResetHook(hook func([]kyber.Point) error)
+	Nodes() []*model.PubKey
+
+	// Epoch() uint32
+	SetNetworkChangeBack(hook func(back_type string) error)
 }

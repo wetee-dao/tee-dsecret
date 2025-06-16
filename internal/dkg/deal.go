@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -25,22 +24,15 @@ import (
 //
 // 返回值:
 // - error: 如果转换、序列化或发送过程中发生错误，则返回相应的错误
-func (dkg *DKG) SendDealMessage(ctx context.Context, node *model.Node, message *pedersen.DealBundle, reshare int) error {
-	// 将交易信息转换为协议消息格式
-	pmessage, err := model.DealToProtocol(message)
-	if err != nil {
-		return err
-	}
-	pmessage.Reshare = reshare
-
+func (dkg *DKG) sendDealMessage(node *model.PubKey, message *model.ConsensusMsg) error {
 	// 将协议消息序列化为JSON字节切片
-	bt, err := json.Marshal(pmessage)
+	bt, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
 
 	// 通过Peer发送序列化后的消息到目标节点
-	return dkg.SendToNode(ctx, node, "dkg", &model.Message{
+	return dkg.sendToNode(node, "dkg", &model.Message{
 		Type:    "deal",
 		Payload: bt,
 	})
@@ -49,70 +41,71 @@ func (dkg *DKG) SendDealMessage(ctx context.Context, node *model.Node, message *
 // HandleDeal 处理分发密钥生成协议中的交易消息
 // data 是接收到的交易数据
 func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
-	// 加锁以确保线程安全
-	dkg.mu.Lock()
-	defer dkg.mu.Unlock()
-
 	// 初始化交易消息结构体
-	pmessage := &model.Deal{}
+	pmessage := &model.ConsensusMsg{}
 	err := json.Unmarshal(data, pmessage)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
-	// 将协议消息转换为交易对象
-	deal, err := model.ProtocolToDeal(dkg.Suite, pmessage)
-	if err != nil {
-		return err
-	}
+	newMsg := util.DeepCopy[model.ConsensusMsg](*pmessage)
+	dkg.startConsensus(*newMsg)
 
-	dkg.deals[OrgId] = deal
-	num := len(dkg.DkgNodes)
-	if pmessage.Reshare > 0 {
-		num = pmessage.Reshare
+	// 存储deal
+	dkg.deals[OrgId] = pmessage.DealBundle
+
+	mustDeals := len(dkg.DkgNodes)
+	if pmessage.Epoch > 0 {
+		mustDeals = pmessage.ConsensusNodeNum
 	}
-	if len(dkg.deals) < num {
-		// 如果交易数量小于阈值，则返回错误
+	if len(dkg.deals) < mustDeals {
+		// dkg.log.Error("HandleDeal len(dkg.deals)", len(dkg.deals), "=========== mustDeals", mustDeals)
 		return nil
 	}
 
 	deals := make([]*pedersen.DealBundle, 0, len(dkg.deals))
 	for _, d := range dkg.deals {
-		deals = append(deals, d)
+		new := util.DeepCopy[model.DealBundle](*d)
+		deals = append(deals, new.DealBundle)
 	}
 
 	// 处理密钥份额
 	resp, err := dkg.DistKeyGenerator.ProcessDeals(deals)
 	if err != nil || resp == nil {
+		dkg.stopConsensus(false)
 		return fmt.Errorf("ProcessDeals error: %w", err)
 	}
 
 	// 如果交易未被批准，则返回错误
 	// all nodes in the new group should have reported an error
 	errNum := 0
-	var errorLog []any = []any{"ProcessDeals ===> "}
+	var logs = []any{"ProcessDeals ===> "}
 	for _, r := range resp.Responses {
-		errorLog = append(errorLog, fmt.Sprint(r.DealerIndex)+"="+fmt.Sprint(r.Status))
+		logs = append(logs, fmt.Sprint(r.DealerIndex)+"="+fmt.Sprint(r.Status))
 		if r.Status != pedersen.Success {
 			errNum++
 		}
 	}
-	fmt.Println(errorLog...)
+	if dkg.log != nil {
+		dkg.log.Info(logs...)
+	}
+
 	if errNum > 1 {
-		return fmt.Errorf("ProcessDeals error: %w", err)
+		dkg.stopConsensus(false)
+		return fmt.Errorf("ProcessDeals error: errNum >1")
 	}
 
 	// 将响应对象序列化为字节切片
 	bt, err := json.Marshal(resp)
 	if err != nil {
+		dkg.stopConsensus(false)
 		return err
 	}
 
 	// 发送 deal resp 到所有参与节点
-	for _, node := range dkg.DkgNodes {
+	for _, node := range dkg.NewNodes {
 		// 向节点发送交易响应
-		err = dkg.SendToNode(context.Background(), node, "dkg", &model.Message{
+		err = dkg.sendToNode(&node.P2pId, "dkg", &model.Message{
 			Type:    "deal_resp",
 			Payload: bt,
 		})
@@ -128,10 +121,6 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 // 该函数接收一个字节切片作为参数，预期其内容为JSON格式的交易响应
 // 它解析此响应，处理密钥份额，并相应地更新本地状态或与其他节点通信
 func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
-	// 使用互斥锁保证并发安全
-	dkg.mu.Lock()
-	defer dkg.mu.Unlock()
-
 	// 初始化一个交易响应对象，用于解析接收到的数据
 	message := &pedersen.ResponseBundle{}
 	// 解析数据到交易响应对象
@@ -143,8 +132,8 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	}
 
 	dkg.responses[OrgId] = message
-	if len(dkg.responses) < len(dkg.DkgNodes) {
-		// 如果交易数量小于阈值，则返回错误
+	if len(dkg.responses) < len(dkg.NewNodes) {
+		// dkg.log.Error("||||||||||||||||  HandleDealResp len(dkg.responses)", len(dkg.responses), "=========== mustDeals", len(dkg.NewNodes))
 		return nil
 	}
 
@@ -156,6 +145,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	// 处理密钥份额
 	res, justification, err := dkg.DistKeyGenerator.ProcessResponses(responses)
 	if err != nil {
+		dkg.stopConsensus(false)
 		// 如果处理过程中出现错误，返回错误
 		return fmt.Errorf("ProcessResponse: %w", err)
 	}
@@ -170,6 +160,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 
 		// 保存密钥份额
 		dkg.saveStore()
+		dkg.stopConsensus(true)
 		return nil
 	}
 
@@ -186,10 +177,12 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 
 			// 保存密钥份额
 			dkg.saveStore()
+			dkg.stopConsensus(true)
 			return nil
 		}
 	}
 
+	// fmt.Println("ProcessJustifications justification:", justification)
 	// // 将交易信息转换为协议消息格式
 	// pmessage, err := model.JustificationToProtocol(justification)
 	// if err != nil {
@@ -204,9 +197,9 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	// }
 
 	// // 向所有DKG节点广播秘密提交
-	// for _, node := range dkg.DkgNodes {
+	// for _, node := range dkg.NewNodes {
 	// 	// 发送秘密提交给其他节点
-	// 	err = dkg.SendToNode(context.Background(), node, "dkg", &model.Message{
+	// 	err = dkg.sendToNode(&node.P2pId, "dkg", &model.Message{
 	// 		Type:    "justification",
 	// 		Payload: bt,
 	// 	})
@@ -216,6 +209,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	// 	}
 	// }
 
+	dkg.stopConsensus(false)
 	return fmt.Errorf("HandleDealResp not implemented")
 }
 

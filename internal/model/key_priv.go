@@ -1,16 +1,14 @@
 package model
 
 import (
-	gocrypto "crypto"
 	"crypto/ed25519"
 	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 
-	libp2pCrypto "github.com/libp2p/go-libp2p/core/crypto"
-	libp2pCryptoPb "github.com/libp2p/go-libp2p/core/crypto/pb"
 	oed25519 "github.com/oasisprotocol/curve25519-voi/primitives/ed25519"
 	chain "github.com/wetee-dao/ink.go"
 	"go.dedis.ch/kyber/v4"
@@ -18,41 +16,16 @@ import (
 )
 
 type PrivKey struct {
-	libp2pCrypto.PrivKey
+	ed25519.PrivateKey
 	suite suites.Suite
 }
 
 func (p *PrivKey) Scalar() kyber.Scalar {
-	switch p.Type() {
-	case libp2pCryptoPb.KeyType_Ed25519:
-		return p.ed25519Scalar()
-	default:
-		panic("only ed25519 and secp256k1 private key scalar conversion supported")
-	}
+	return p.ed25519Scalar()
 }
 
 func (p *PrivKey) ed25519Scalar() kyber.Scalar {
-	// There is a discrepency between LibP2P private keys
-	// and "raw" EC scalars. LibP2P private keys is an
-	// (x, y) pair, where x is the given "seed" and y is
-	// the cooresponding publickey. Where y is computed as
-	//
-	// h := sha512.Hash(x)
-	// s := scalar().SetWithClamp(h)
-	// y := point().ScalarBaseMul(x)
-	//
-	// So to make sure future conversions of this scalar
-	// to a public key, like in the DKG setup, we need to
-	// convert this key to a scalar using the Hash and Clamp
-	// method.
-	//
-	// To understand clamping, see here:
-	// https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/
-
-	buf, err := p.PrivKey.Raw()
-	if err != nil {
-		panic(err)
-	}
+	buf := p.PrivateKey
 
 	// hash seed and clamp bytes
 	digest := sha512.Sum512(buf[:32])
@@ -63,25 +36,19 @@ func (p *PrivKey) ed25519Scalar() kyber.Scalar {
 }
 
 func (p *PrivKey) String() string {
-	bt, err := libp2pCrypto.MarshalPrivateKey(p.PrivKey)
-	if err != nil {
-		return ""
-	}
+	bt := p.PrivateKey
 	return hex.EncodeToString(bt)
 }
 
 func (p *PrivKey) GetPublic() *PubKey {
 	return &PubKey{
-		PubKey: p.PrivKey.GetPublic(),
-		suite:  p.suite,
+		PublicKey: p.Public().(ed25519.PublicKey),
+		suite:     p.suite,
 	}
 }
 
 func (p *PrivKey) ToSigner() (*chain.Signer, error) {
-	bt, err := p.Raw()
-	if err != nil {
-		return nil, err
-	}
+	bt := p.PrivateKey
 
 	var ed25519Key ed25519.PrivateKey = bt
 	s, err := chain.Ed25519PairFromPk(ed25519Key, 42)
@@ -91,75 +58,58 @@ func (p *PrivKey) ToSigner() (*chain.Signer, error) {
 	return &s, nil
 }
 
-func GenerateKeyPair(ste suites.Suite, src io.Reader) (*PrivKey, *PubKey, error) {
-	keyType, err := KeyTypeFromString(ste.String())
+func (p PrivKey) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.PrivateKey)
+}
+
+func (p *PrivKey) UnmarshalJSON(bt []byte) error {
+	var privateKey ed25519.PrivateKey = []byte{}
+	err := json.Unmarshal(bt, &privateKey)
 	if err != nil {
-		return nil, nil, err
-	}
-	sk, pk, err := libp2pCrypto.GenerateKeyPairWithReader(keyType, 0, src)
-	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
+	p.PrivateKey = privateKey
+	p.suite = suites.MustFind("Ed25519")
+	return nil
+}
+
+func GenerateEd25519KeyPair(src io.Reader) (*PrivKey, *PubKey, error) {
+	pk, sk, err := ed25519.GenerateKey(src)
+	if err != nil {
+		return nil, nil, err
+	}
+	suite := suites.MustFind("Ed25519")
+
 	return &PrivKey{
-			PrivKey: sk,
-			suite:   ste,
+			PrivateKey: sk,
+			suite:      suite,
 		}, &PubKey{
-			PubKey: pk,
-			suite:  ste,
+			PublicKey: pk,
+			suite:     suite,
 		}, nil
 }
 
-// PrivateKeyFromLibp2pHex
-func PrivateKeyFromLibp2pHex(key string) (*PrivKey, error) {
-	buf, err := hex.DecodeString(key)
-	if err != nil {
-		return nil, fmt.Errorf("private key from hex: %w", err)
+func PrivateKeyFromStd(privkey ed25519.PrivateKey) (*PrivKey, error) {
+	return &PrivKey{
+		PrivateKey: privkey,
+		suite:      suites.MustFind("Ed25519"),
+	}, nil
+}
+
+func PrivateKeyFromHex(s string) (*PrivKey, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
 	}
-
-	return PrivateKeyFromLibp2pBytes(buf)
-}
-
-func PrivateKeyFromHex(key string) (*PrivKey, error) {
-	return PrivateKeyFromLibp2pHex("08011240" + key)
-}
-
-func PrivateKeyFromLibp2pBytes(buf []byte) (*PrivKey, error) {
-	pk, err := libp2pCrypto.UnmarshalPrivateKey(buf)
-	if err != nil {
-		return nil, fmt.Errorf("public key from bytes: %w", err)
-	}
-
-	return PrivateKeyFromLibP2P(pk)
-}
-
-func PrivateKeyFromLibP2P(privkey libp2pCrypto.PrivKey) (*PrivKey, error) {
-	suite, err := SuiteForType(privkey.Type())
+	bt, err := hex.DecodeString(s)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PrivKey{
-		PrivKey: privkey,
-		suite:   suite,
+		PrivateKey: bt,
+		suite:      suites.MustFind("Ed25519"),
 	}, nil
-}
-
-func PrivateKeyFromStd(privkey gocrypto.PrivateKey) (*PrivKey, error) {
-	var libpk libp2pCrypto.PrivKey
-	var err error
-	switch gopk := privkey.(type) {
-	case ed25519.PrivateKey:
-		libpk, err = libp2pCrypto.UnmarshalEd25519PrivateKey(gopk)
-	default:
-		return nil, fmt.Errorf("unknown key type")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return PrivateKeyFromLibP2P(libpk)
 }
 
 func PrivateKeyFromOed25519(privkey oed25519.PrivateKey) (*PrivKey, error) {
@@ -168,15 +118,6 @@ func PrivateKeyFromOed25519(privkey oed25519.PrivateKey) (*PrivKey, error) {
 		return nil, err
 	}
 	return PrivateKeyFromStd(k)
-}
-
-func KeyTypeFromString(keyType string) (int, error) {
-	switch strings.ToLower(keyType) {
-	case "ed25519":
-		return libp2pCrypto.Ed25519, nil
-	default:
-		return 0, fmt.Errorf("unknown key type: %s", keyType)
-	}
 }
 
 func StdToOed25519(privKey ed25519.PrivateKey) (oed25519.PrivateKey, error) {

@@ -4,7 +4,6 @@
 package dkg
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -28,7 +27,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 
 	// 向所有节点发送加密秘密请求
 	for _, n := range d.DkgNodes {
-		err := d.SendToNode(context.Background(), n, "worker", &model.Message{
+		err := d.sendToNode(&n.P2pId, "worker", &model.Message{
 			Type:    "reencrypt_secret_request",
 			Payload: payload,
 		})
@@ -140,17 +139,18 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	bt, _ := json.Marshal(resp)
 
 	// 获取目标组织的节点信息
-	n := d.GetNode(OrgId)
+	n := d.getNode(OrgId)
 	if n == nil {
 		return fmt.Errorf("node not found: %s", OrgId)
 	}
 
 	// 向目标节点发送重新加密的密文份额
-	err = d.SendToNode(context.Background(), n, "worker", &model.Message{
+	err = d.sendToNode(n, "worker", &model.Message{
 		MsgID:   msgID,
 		Type:    "reencrypted_secret_reply",
 		Payload: bt,
 	})
+
 	if err != nil {
 		fmt.Println("send reencrypted secretshare: ", err)
 	}
@@ -179,10 +179,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 
 	// 获取重新加密的公钥和对应的密码学套件
 	rdrPk := req.RdrPk
-	ste, err := model.SuiteForType(rdrPk.Type())
-	if err != nil {
-		return fmt.Errorf("suite for type: %s", err)
-	}
+	ste := rdrPk.Suite()
 
 	// 初始化重新加密回复
 	reply := proxy_reenc.ReencryptReply{

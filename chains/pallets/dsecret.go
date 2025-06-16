@@ -7,6 +7,7 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	chain "github.com/wetee-dao/ink.go"
 	"wetee.app/dsecret/chains/pallets/generated/dsecret"
+	"wetee.app/dsecret/chains/pallets/generated/types"
 	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/util"
@@ -14,11 +15,14 @@ import (
 
 // RegisterNode register node
 // 注册节点
-func (c *Chain) RegisterNode(signer *chain.Signer, pubkey []byte) error {
+func (c *Chain) RegisterNode(signer *chain.Signer, vid []byte, pid []byte) error {
 	var bt [32]byte
-	copy(bt[:], pubkey)
+	copy(bt[:], vid)
 
-	runtimeCall := dsecret.MakeRegisterNodeCall(bt)
+	var pidBt [32]byte
+	copy(pidBt[:], pid)
+
+	runtimeCall := dsecret.MakeRegisterNodeCall(bt, pidBt)
 
 	call, err := (runtimeCall).AsCall()
 	if err != nil {
@@ -29,9 +33,9 @@ func (c *Chain) RegisterNode(signer *chain.Signer, pubkey []byte) error {
 }
 
 // GetNodes 函数用于获取节点列表，包括 Secret 节点和 Worker 节点，以及转换为自定义的 Node 类型
-func (c *Chain) GetNodes() ([][32]byte, []*model.Node, error) {
+func (c *Chain) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
 	// 获取节点列表
-	secretNodes, err := c.GetNodeList()
+	secretNodes, err := c.GetValidatorList()
 	if err != nil {
 		return nil, nil, errors.New("Get node list error:" + err.Error())
 	}
@@ -40,21 +44,15 @@ func (c *Chain) GetNodes() ([][32]byte, []*model.Node, error) {
 		return nil, nil, errors.New("Get worker list error:" + err.Error())
 	}
 
-	nodes := []*model.Node{}
+	nodes := []*model.PubKey{}
 	for _, n := range secretNodes {
-		var gopub ed25519.PublicKey = n[:]
-		pub, _ := model.PubKeyFromStdPubKey(gopub)
-		nodes = append(nodes, &model.Node{
-			ID:   *pub,
-			Type: 1,
-		})
+		nodes = append(nodes, &n.P2pId)
 	}
+
 	for _, w := range workerNodes {
 		var gopub ed25519.PublicKey = w.Account[:]
 		pub, _ := model.PubKeyFromStdPubKey(gopub)
-		nodes = append(nodes, &model.Node{
-			ID: *pub,
-		})
+		nodes = append(nodes, pub)
 	}
 
 	return secretNodes, nodes, nil
@@ -62,16 +60,16 @@ func (c *Chain) GetNodes() ([][32]byte, []*model.Node, error) {
 
 // GetNodeList get node list
 // 获取节点列表
-func (c *Chain) GetNodeList() ([][32]byte, error) {
-	ret, err := c.QueryMapAll("DSecret", "Nodes")
+func (c *Chain) GetValidatorList() ([]*model.Validator, error) {
+	ret, err := c.QueryMapAll("DSecret", "Validators")
 	if err != nil {
 		return nil, err
 	}
 
-	nodes := make([][32]byte, 0)
+	nodes := make([]types.Validator, 0)
 	for _, elem := range ret {
 		for _, change := range elem.Changes {
-			n := [32]byte{}
+			n := types.Validator{}
 			if err := codec.Decode(change.StorageData, &n); err != nil {
 				util.LogError("codec.Decode", err)
 				continue
@@ -80,7 +78,15 @@ func (c *Chain) GetNodeList() ([][32]byte, error) {
 		}
 	}
 
-	return nodes, nil
+	validators := make([]*model.Validator, 0, len(nodes))
+	for _, n := range nodes {
+		validators = append(validators, &model.Validator{
+			ValidatorId: *model.PubKeyFromByte(n.ValidatorId[:]),
+			P2pId:       *model.PubKeyFromByte(n.P2pId[:]),
+		})
+	}
+
+	return validators, nil
 }
 
 // GetWorkerList get worker list
@@ -129,4 +135,23 @@ func (c *Chain) GetBootPeers() ([]model.P2PAddr, error) {
 	}
 
 	return peers, nil
+}
+
+func (c *Chain) GetEpoch() (uint32, uint32, uint32, error) {
+	epoch, err := dsecret.GetEpochLatest(c.Api.RPC.State)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	lastEpochBlock, err := dsecret.GetLastEpochBlockLatest(c.Api.RPC.State)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	now, err := c.GetBlockNumber()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return epoch, lastEpochBlock, uint32(now), nil
 }

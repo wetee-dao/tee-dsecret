@@ -138,16 +138,13 @@ var (
 
 func Reencrypt(distKeyShare model.DistKeyShare, scrt *model.Secret, rdrPk model.PubKey) (ReencryptReply, error) {
 	var reply ReencryptReply
-	ste, err := model.SuiteForType(rdrPk.Type())
-	if err != nil {
-		return reply, fmt.Errorf("get suite for type: %w", err)
-	}
+	ste := rdrPk.Suite()
 
 	idx := distKeyShare.PriShare.I
 	ski := distKeyShare.PriShare.V
 
 	encCmt := ste.Point()
-	err = encCmt.UnmarshalBinary(scrt.EncCmt)
+	err := encCmt.UnmarshalBinary(scrt.EncCmt)
 	if err != nil {
 		return reply, fmt.Errorf("unmarshal encCmt: %w", err)
 	}
@@ -171,15 +168,11 @@ func Reencrypt(distKeyShare model.DistKeyShare, scrt *model.Secret, rdrPk model.
 
 // Verify verifies an incoming re-encryption reply from another node.
 func Verify(rdrPk model.PubKey, dkgCmt *share.PubPoly, encCmt kyber.Point, r ReencryptReply) error {
-
-	ste, err := model.SuiteForType(rdrPk.Type())
-	if err != nil {
-		return fmt.Errorf("get suite for type: %w", err)
-	}
+	ste := rdrPk.Suite()
 
 	xncSki := r.Share.V
 	idx := r.Share.I
-	err = verify(ste,
+	err := verify(ste,
 		rdrPk.Point(),
 		encCmt,
 		xncSki,
