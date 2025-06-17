@@ -41,7 +41,7 @@ func NewSideChain() (*SideChain, error) {
 // Info return application information
 func (app *SideChain) Info(_ context.Context, info *abci.InfoRequest) (*abci.InfoResponse, error) {
 	if len(app.valAddrToPubKeyMap) == 0 && app.state.Height > 0 {
-		validators, err := app.getValidators()
+		validators, err := app.GetValidators()
 		if err != nil {
 			return nil, err
 		}
@@ -116,6 +116,8 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	util.LogWithPurple("SideChain", "PrepareProposal")
 
+	app.CheckEpoch()
+
 	finalProposal := make([][]byte, 0)
 	for _, tx := range req.Txs {
 		finalProposal = append(finalProposal, tx)
@@ -159,16 +161,17 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 
 // Commit the application state
 func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.CommitResponse, error) {
-	util.LogWithPurple("SideChain", "Commit")
-	fmt.Println("")
-
 	if err := app.onGoingBlock.Commit(); err != nil {
 		return nil, err
 	}
+
 	err := saveState(&app.state)
 	if err != nil {
 		return nil, err
 	}
+
+	util.LogWithPurple("SideChain", "Commit")
+	util.LogWithGreen("---------------------------------------------------------------")
 
 	return &abci.CommitResponse{}, nil
 }

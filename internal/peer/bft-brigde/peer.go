@@ -5,6 +5,7 @@ import (
 
 	"github.com/cometbft/cometbft/p2p"
 	"wetee.app/dsecret/internal/model"
+	"wetee.app/dsecret/internal/util"
 )
 
 func (p *BTFReactor) Send(node model.PubKey, topic string, message *model.Message) error {
@@ -16,6 +17,7 @@ func (p *BTFReactor) Send(node model.PubKey, topic string, message *model.Messag
 	peers := p.Switch.Peers()
 	peers.ForEach(func(p p2p.Peer) {
 		if node.SideChainNodeID() == p.ID() {
+			util.LogError("P2P Send To", node.SS58(), topic+"."+message.Type)
 			p.Send(p2p.Envelope{
 				ChannelID: channel.ID,
 				Message: &DkgMessage{
@@ -44,7 +46,12 @@ func (p *BTFReactor) Pub(topic string, data []byte) error {
 }
 
 func (p *BTFReactor) Sub(topic string, handler func(*model.Message) error) error {
-	p.messageHandlers[topic] = handler
+	switch topic {
+	case "dkg":
+		p.dkgHandler = handler
+	default:
+		return errors.New("topic not found")
+	}
 	return nil
 }
 

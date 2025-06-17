@@ -10,6 +10,7 @@ import (
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
 	inkUtil "github.com/wetee-dao/ink.go/util"
+	"wetee.app/dsecret/chains"
 	chain "wetee.app/dsecret/chains"
 	"wetee.app/dsecret/graph"
 	"wetee.app/dsecret/internal/dkg"
@@ -24,7 +25,7 @@ func main() {
 	// 获取环境变量
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
 	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
-	chainPort := util.GetEnvInt("CHAIN_PORT", 61001)
+	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
 	// password := util.GetEnv("PASSWORD", "")
 
 	// Init app db
@@ -88,17 +89,27 @@ func main() {
 		node.Wait()
 	}()
 
+	// Get validator list
+	validators, err := chains.ChainIns.GetValidatorList()
+	if err != nil {
+		log.Fatalf("failed to get ValidatorList: %v", err)
+	}
+
 	// Create DKG
-	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, inkUtil.NewNone[[]*model.Validator](), nil)
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, inkUtil.NewSome(validators), nil)
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
 
+	go dkgIns.Start()
+	defer dkgIns.Stop()
+
+	// Set DKG to sideChain
 	sideChain.SetDKG(dkgIns)
 
 	// 启动 graphql 服务器
-	go graph.StartServer(dkgIns, gqlPort)
+	go graph.StartServer(dkgIns, node, sideChain, gqlPort)
 
 	// wait for stop signal
 	sigCh := make(chan os.Signal, 1)

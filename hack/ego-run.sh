@@ -11,7 +11,7 @@ cd $DIR/../
 export CHAIN_URI=wss://xiaobai.asyou.me:30001
 ego-go build -o ./bin/dsecret ./main.go
 
-export CHAIN_PORT=31000
+export SIDE_CHAIN_PORT=31000
 export GQL_PORT=31005
 export PASSWORD=123456
 export CHAIN_ADDR=ws://127.0.0.1:9944

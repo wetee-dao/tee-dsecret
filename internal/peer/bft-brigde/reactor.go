@@ -2,8 +2,8 @@ package bftbrigde
 
 import (
 	"errors"
+	fmt "fmt"
 
-	bcproto "github.com/cometbft/cometbft/api/cometbft/blocksync/v1"
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/p2p/conn"
@@ -18,7 +18,7 @@ var MaxMsgSize = types.MaxBlockSizeBytes
 var topics = map[string]p2p.ChannelDescriptor{
 	"dkg": p2p.ChannelDescriptor{
 		ID:                  byte(0xFF),
-		Priority:            5,
+		Priority:            10000,
 		SendQueueCapacity:   1000,
 		RecvBufferCapacity:  50 * 4096,
 		RecvMessageCapacity: MaxMsgSize,
@@ -30,14 +30,14 @@ type BTFReactor struct {
 	service.BaseService
 	Switch *p2p.Switch
 
-	nodekeys        []*model.PubKey
-	messageHandlers map[string]func(*model.Message) error
-	callDkg         func(string) error
+	nodekeys   []*model.PubKey
+	dkgHandler func(*model.Message) error
+	callDkg    func(string) error
 }
 
 func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
 	r := &BTFReactor{
-		messageHandlers: map[string]func(*model.Message) error{},
+		// messageHandlers: map[string]func(*model.Message) error{},
 	}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
@@ -48,7 +48,7 @@ func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
 func (r *BTFReactor) OnStart() error {
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
-	util.LogError("Local Node", address.String())
+	util.LogError("Local Node ", address.String())
 
 	r.PrintPeers("BTF OnStart")
 
@@ -71,47 +71,38 @@ func (dr *BTFReactor) SetSwitch(sw *p2p.Switch) {
 }
 
 func (*BTFReactor) GetChannels() []*conn.ChannelDescriptor {
-	return []*p2p.ChannelDescriptor{
-		{
-			ID:                  byte(0xFF),
-			Priority:            5,
-			SendQueueCapacity:   1000,
-			RecvBufferCapacity:  50 * 4096,
-			RecvMessageCapacity: MaxMsgSize,
-			MessageType:         &bcproto.Message{},
-		},
+	channels := make([]*conn.ChannelDescriptor, 0, len(topics))
+	for _, c := range topics {
+		channels = append(channels, &c)
 	}
+	return channels
 }
 
 func (r *BTFReactor) AddPeer(p2p.Peer) {
-	r.PrintPeers("BTF AddPeer")
+	r.PrintPeers("P2P AddPeer")
 }
 
 func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
-	r.PrintPeers("BTF RemovePeer")
+	r.PrintPeers("P2P DelPeer")
 }
 
 func (r *BTFReactor) Receive(e p2p.Envelope) {
 	switch msg := e.Message.(type) {
 	case *DkgMessage:
-		handler, ok := r.messageHandlers["dkg"]
-		if !ok {
-			util.LogError("BTF", "handler not found for pid: dkg")
-		}
-
 		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
 		if err == nil {
-			go handler(&model.Message{
+			util.LogWithCyan("P2P Receive From", pub.SS58(), "dkg."+msg.Type)
+			r.dkgHandler(&model.Message{
 				MsgID:   msg.MsgId,
 				Payload: msg.Payload,
 				Type:    msg.Type,
 				OrgId:   pub.String(),
 			})
 		} else {
-			util.LogError("BTF", "Receive unknown node", e.Src.ID())
+			util.LogError("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
 		}
 	default:
-		util.LogError("BTF", "Receive error", "msg", msg)
+		util.LogError("P2P Receive", "Receive error", "msg", msg)
 	}
 }
 
@@ -137,6 +128,10 @@ func (r *BTFReactor) PrintPeers(event string) {
 	if err == nil {
 		r.nodekeys = pubkeys
 	}
+
 	outbound, inbound, dialing := r.Switch.NumPeers()
-	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing)
+	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, "nodekeys=>", len(r.nodekeys))
+	r.Switch.Peers().ForEach(func(peer p2p.Peer) {
+		fmt.Println("             ", peer.ID())
+	})
 }

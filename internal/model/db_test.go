@@ -6,13 +6,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
+	"github.com/pkg/errors"
 )
 
 func TestSetGet(t *testing.T) {
 	os.RemoveAll(dbPath)
 	NewDB()
 	defer DBINS.Close()
+
+	_, err := Get("test")
+	if !errors.Is(err, pebble.ErrNotFound) {
+		t.Error("except ErrNotFound")
+	}
 
 	Set("test", []byte("test"))
 	v, err := Get("test")
@@ -22,8 +29,27 @@ func TestSetGet(t *testing.T) {
 	if string(v) != "test" {
 		t.Error("value not equal")
 	}
+}
 
-	// defer os.RemoveAll(dbPath)
+func TestSetGetKey(t *testing.T) {
+	os.RemoveAll(dbPath)
+	NewDB()
+	defer DBINS.Close()
+
+	_, err := GetKey("GG", "test")
+	if !errors.Is(err, pebble.ErrNotFound) {
+		t.Error("except ErrNotFound")
+	}
+
+	SetKey("GG", "test", []byte("test"))
+	v, err := GetKey("GG", "test")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(v) != "test" {
+		t.Error("value not equal")
+	}
 }
 
 func TestGetAbciMessage(t *testing.T) {

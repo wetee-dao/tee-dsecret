@@ -38,8 +38,9 @@ func Init(
 		return nil, nil, nil, errors.New("NewSideChain error: " + err.Error())
 	}
 
+	addr := util.GetEnv("SIDE_CHAIN_ADDR", "0.0.0.0")
 	p2pConf := cfg.DefaultP2PConfig()
-	p2pConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort)
+	p2pConf.ListenAddress = "tcp://" + addr + ":" + fmt.Sprint(chainPort)
 	p2pConf.AllowDuplicateIP = true
 	p2pConf.Seeds = ""
 
@@ -87,17 +88,15 @@ func Init(
 	}
 
 	// add boot nodes
-	isInBoot := false
+
 	seeds := []string{}
 	for _, boot := range boots {
-		seeds = append(seeds, boot.SideChainUrl())
 		if util.ToSideChainNodeID(boot.Id[:]) == nodeKey.ID() {
-			isInBoot = true
+			continue
 		}
+		seeds = append(seeds, boot.SideChainUrl())
 	}
-	if !isInBoot {
-		config.P2P.Seeds = strings.Join(seeds, ",")
-	}
+	config.P2P.Seeds = strings.Join(seeds, ",")
 
 	// load validator key
 	pv := privval.LoadFilePV(
@@ -136,7 +135,7 @@ func Init(
 
 	callback()
 	if p2pConf.Seeds != "" {
-		util.LogWithRed("Boot Nodes", p2pConf.Seeds)
+		util.LogWithRed("Boot Nodes ", p2pConf.Seeds)
 	}
 
 	return node, sideChain, dkgReactor, err

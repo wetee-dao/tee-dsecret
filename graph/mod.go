@@ -9,16 +9,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
+	nm "github.com/cometbft/cometbft/node"
 	"wetee.app/dsecret/internal/dkg"
 	"wetee.app/dsecret/internal/util"
+	sidechain "wetee.app/dsecret/side-chain"
 )
 
 var dkgIns *dkg.DKG
+var sideChainNode *nm.Node
+var sideChain *sidechain.SideChain
 
 // 启动GraphQL服务器
 // StartServer starts the GraphQL server.
-func StartServer(d *dkg.DKG, port int) {
+func StartServer(d *dkg.DKG, node *nm.Node, sideChain *sidechain.SideChain, port int) {
 	dkgIns = d
+	sideChainNode = node
 
 	// 创建路由
 	router := chi.NewRouter()

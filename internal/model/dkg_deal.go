@@ -17,7 +17,7 @@ type Test struct {
 type ConsensusMsg struct {
 	DealBundle       *DealBundle
 	Epoch            uint32
-	ShareCommits     KyberPoint
+	ShareCommits     KyberPoints
 	Validators       []*Validator
 	ConsensusNodeNum int
 }
@@ -40,12 +40,9 @@ func (d DealBundle) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		DealerIndex uint32
 		Deals       []pedersen.Deal
-		// Public coefficients of the public polynomial used to create the shares
-		Public [][]byte
-		// SessionID of the current run
-		SessionID []byte
-		// Signature over the hash of the whole bundle
-		Signature []byte
+		Public      [][]byte
+		SessionID   []byte
+		Signature   []byte
 	}{
 		DealerIndex: d.DealerIndex,
 		Deals:       d.Deals,
@@ -93,11 +90,11 @@ func (d *DealBundle) UnmarshalJSON(bt []byte) error {
 
 }
 
-type KyberPoint struct {
+type KyberPoints struct {
 	Public []kyber.Point
 }
 
-func (d KyberPoint) MarshalJSON() ([]byte, error) {
+func (d KyberPoints) MarshalJSON() ([]byte, error) {
 	public := d.Public
 	points := make([][]byte, len(public))
 	for i, p := range public {
@@ -111,7 +108,7 @@ func (d KyberPoint) MarshalJSON() ([]byte, error) {
 	return json.Marshal(points)
 }
 
-func (d *KyberPoint) UnmarshalJSON(bt []byte) error {
+func (d *KyberPoints) UnmarshalJSON(bt []byte) error {
 	public := [][]byte{}
 	err := json.Unmarshal(bt, &public)
 	if err != nil {

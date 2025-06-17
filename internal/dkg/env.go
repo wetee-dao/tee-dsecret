@@ -51,7 +51,7 @@ func (r *DKG) SetSecretEnv(ctx context.Context, env model.Env) (*model.SecretEnv
 	dkgPub := r.DkgPubKey
 
 	// 加密秘密环境变量
-	encCmt, encScrt := proxy_reenc.EncryptSecret(r.Suite, dkgPub, scrt)
+	encCmt, encScrt := proxy_reenc.EncryptSecret(r.Suite, dkgPub.Point(), scrt)
 	// 将加密的承诺（encCmt）转换为字节切片格式
 	rawEncCmt, err := encCmt.MarshalBinary()
 	if err != nil {

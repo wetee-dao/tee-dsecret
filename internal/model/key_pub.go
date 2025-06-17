@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/p2p"
@@ -78,23 +77,18 @@ func PubKeyFromStdPubKey(pubkey ed25519.PublicKey) (*PubKey, error) {
 	}, nil
 }
 
-func PubKeyFromPoint(suite suites.Suite, point kyber.Point) (*PubKey, error) {
+func PubKeyFromPoint(point kyber.Point) (*PubKey, error) {
 	buf, err := point.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("marshal point: %w", err)
 	}
 
 	var pk ed25519.PublicKey
-
-	switch strings.ToLower(suite.String()) {
-	case "ed25519":
-		pk = buf
-	default:
-		return nil, fmt.Errorf("unknown suite: %v", suite)
-	}
+	pk = buf
 
 	return &PubKey{
 		PublicKey: pk,
+		suite:     suites.MustFind("Ed25519"),
 	}, nil
 }
 

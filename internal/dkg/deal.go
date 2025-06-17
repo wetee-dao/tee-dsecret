@@ -40,7 +40,7 @@ func (dkg *DKG) sendDealMessage(node *model.PubKey, message *model.ConsensusMsg)
 
 // HandleDeal 处理分发密钥生成协议中的交易消息
 // data 是接收到的交易数据
-func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
+func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	// 初始化交易消息结构体
 	pmessage := &model.ConsensusMsg{}
 	err := json.Unmarshal(data, pmessage)
@@ -86,9 +86,7 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 			errNum++
 		}
 	}
-	if dkg.log != nil {
-		dkg.log.Info(logs...)
-	}
+	dkg.log.Info(logs...)
 
 	if errNum > 1 {
 		dkg.stopConsensus(false)
@@ -120,7 +118,7 @@ func (dkg *DKG) HandleDeal(OrgId string, data []byte) error {
 // HandleDealResp 处理交易响应消息
 // 该函数接收一个字节切片作为参数，预期其内容为JSON格式的交易响应
 // 它解析此响应，处理密钥份额，并相应地更新本地状态或与其他节点通信
-func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
+func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 	// 初始化一个交易响应对象，用于解析接收到的数据
 	message := &pedersen.ResponseBundle{}
 	// 解析数据到交易响应对象
@@ -152,11 +150,11 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 
 	// 检查是否生成了密钥份额
 	if res != nil {
-		dkg.DkgKeyShare = model.DistKeyShare{
-			Commits:  res.Key.Commits,
-			PriShare: res.Key.Share,
+		dkg.DkgKeyShare = &model.DistKeyShare{
+			Commits:  model.KyberPoints{Public: res.Key.Commits},
+			PriShare: model.PriShare{PriShare: res.Key.Share},
 		}
-		dkg.DkgPubKey = res.Key.Public()
+		dkg.DkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 		// 保存密钥份额
 		dkg.saveStore()
@@ -169,11 +167,11 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 		// reshare 可能在这里获取私钥
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err == nil {
-			dkg.DkgKeyShare = model.DistKeyShare{
-				Commits:  res.Key.Commits,
-				PriShare: res.Key.Share,
+			dkg.DkgKeyShare = &model.DistKeyShare{
+				Commits:  model.KyberPoints{Public: res.Key.Commits},
+				PriShare: model.PriShare{PriShare: res.Key.Share},
 			}
-			dkg.DkgPubKey = res.Key.Public()
+			dkg.DkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 			// 保存密钥份额
 			dkg.saveStore()
@@ -213,7 +211,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 	return fmt.Errorf("HandleDealResp not implemented")
 }
 
-// HandleJustification 处理合理性证明消息
+// handleJustification 处理合理性证明消息
 // 该函数接收一个字节切片数据作为输入，尝试解析并处理合理性证明
 // 如果消息与当前节点相关，则更新内部状态
 // 参数:
@@ -221,7 +219,7 @@ func (dkg *DKG) HandleDealResp(OrgId string, data []byte) error {
 //
 // 返回值:
 //   - error: 如果解析或处理消息过程中发生错误，则返回该错误
-// func (dkg *DKG) HandleJustification(OrgId string, data []byte) error {
+// func (dkg *DKG) handleJustification(OrgId string, data []byte) error {
 // 	// 加锁以确保线程安全
 // 	dkg.mu.Lock()
 // 	defer dkg.mu.Unlock()

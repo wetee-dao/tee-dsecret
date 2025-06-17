@@ -28,11 +28,12 @@ var newPeerSecret = []string{
 func TestNetwork(t *testing.T) {
 	os.RemoveAll("./chain_data")
 
-	_, err := model.NewDB()
+	db, err := model.NewDB()
 	if err != nil {
 		require.NoErrorf(t, err, "failed store.InitDB")
 		os.Exit(1)
 	}
+	defer db.Close()
 
 	nodes := []*model.PubKey{}
 	validators := []*model.Validator{}
@@ -60,7 +61,7 @@ func TestNetwork(t *testing.T) {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
 
 		dkg, err := NewDKG(nodeSecret, peers[i], inkUtil.NewSome(validators), Logger{
-			NodeIndex: i,
+			NodeTag: "NODE " + fmt.Sprint(i),
 		})
 		require.NoErrorf(t, err, "failed NewDKG")
 		go dkg.Start()
@@ -69,7 +70,8 @@ func TestNetwork(t *testing.T) {
 	}
 
 	dkgs[0].TryConsensus(model.ConsensusMsg{
-		Epoch: 1,
+		Validators: validators,
+		Epoch:      1,
 	})
 	time.Sleep(time.Second * 1)
 
@@ -77,9 +79,7 @@ func TestNetwork(t *testing.T) {
 		util.LogWithYellow("V0 |||", d.DkgKeyShare.PriShare.String())
 	}
 
-	fmt.Println("")
-	util.LogWithGreen("///////////////////////////////////////////////////////////////////////////")
-	fmt.Println("")
+	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
 	for _, s := range newPeerSecret {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
@@ -112,7 +112,7 @@ func TestNetwork(t *testing.T) {
 
 		// 创建 DKG 实例
 		dkg, err := NewDKG(nodeSecret, peers[3+i], inkUtil.NewSome(validators), Logger{
-			NodeIndex: 3 + i,
+			NodeTag: "NODE " + fmt.Sprint(i),
 		})
 		require.NoErrorf(t, err, "failed NewDKG")
 		go dkg.Start()
@@ -120,39 +120,62 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	preCommits := dkgs[0].DkgKeyShare.Commits
-	fmt.Println("start consensus len(validators)", len(validators))
 	dkgs[0].TryConsensus(model.ConsensusMsg{
-		Validators:       validators,
-		ShareCommits:     model.KyberPoint{Public: preCommits},
-		Epoch:            2,
-		ConsensusNodeNum: 3,
+		Validators: validators,
+		Epoch:      2,
 	})
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare.PriShare != nil {
+		if d.DkgKeyShare != nil {
 			util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare.String())
 		}
 	}
 
-	fmt.Println("")
-	util.LogWithGreen("///////////////////////////////////////////////////////////////////////////")
-	fmt.Println("")
+	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
-	preCommits = dkgs[0].DkgKeyShare.Commits
-	fmt.Println("start consensus len(validators)", len(validators))
 	dkgs[0].TryConsensus(model.ConsensusMsg{
-		Validators:       validators,
-		ShareCommits:     model.KyberPoint{Public: preCommits},
-		Epoch:            3,
-		ConsensusNodeNum: 5,
+		Validators: validators,
+		Epoch:      3,
 	})
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare.PriShare != nil {
-			util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare.String())
+		if d.DkgKeyShare.PriShare.PriShare != nil {
+			util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare.String())
 		}
 	}
 }
+
+// func TestSave(t *testing.T) {
+// 	os.RemoveAll("./chain_data")
+
+// 	db, err := model.NewDB()
+// 	if err != nil {
+// 		require.NoErrorf(t, err, "failed store.InitDB")
+// 		os.Exit(1)
+// 	}
+
+// 	defer db.Close()
+
+// 	nodeSecret, _ := model.PrivateKeyFromHex(peerSecret[0])
+// 	peer, err := local.NewNetwork(nodeSecret, []string{}, []*model.PubKey{}, uint32(0), uint32(0))
+// 	require.NoErrorf(t, err, "failed peer.NewNetwork")
+// 	dkg, err := NewDKG(nodeSecret, peer, inkUtil.NewNone[[]*model.Validator](), Logger{
+// 		NodeIndex: 0,
+// 	})
+
+// 	dkg.Epoch = 100
+// 	go dkg.saveStore()
+
+// 	time.Sleep(time.Second)
+
+// 	dkg.Epoch = 1
+
+// 	err = dkg.reStore()
+// 	require.NoErrorf(t, err, "failed reStore")
+
+// 	if dkg.Epoch != 100 {
+// 		t.Errorf("dkg.Epoch != 100")
+// 	}
+// }

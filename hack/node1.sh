@@ -9,7 +9,8 @@ DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
 cd $DIR/node1
 
-export CHAIN_PORT=41000
+export SIDE_CHAIN_PORT=41000
+export SIDE_CHAIN_ADDR=192.168.111.105
 export GQL_PORT=41005
 export PASSWORD=123456
 export CHAIN_ADDR=ws://127.0.0.1:9944

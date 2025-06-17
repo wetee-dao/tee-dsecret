@@ -6,15 +6,32 @@ import (
 	"fmt"
 	"time"
 
+	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
 	"wetee.app/dsecret/internal/model"
+	"wetee.app/dsecret/internal/util"
 )
 
 func (dkg *DKG) TryConsensus(msg model.ConsensusMsg) {
 	if !dkg.inConsensus {
+		if dkg.DkgKeyShare == nil && msg.Epoch > 1 {
+			util.LogError("DKG Consensus", "Node is not old validator, cannot start consensus")
+			return
+		}
+
+		if msg.Epoch > 1 {
+			msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.Commits)
+			msg.ConsensusNodeNum = len(dkg.DkgNodes)
+		} else {
+			msg.Epoch = 1
+			msg.ShareCommits = model.KyberPoints{Public: []kyber.Point{}}
+			msg.ConsensusNodeNum = 0
+		}
+
 		bt, _ := json.Marshal(msg)
-		dkg.MessageHandler(&model.Message{
+
+		dkg.TryRun(&model.Message{
 			Type:    "consensus",
 			Payload: bt,
 		})
@@ -29,6 +46,8 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 
 	dkg.inConsensus = true
 	if msg.Epoch <= 1 {
+		dkg.addConsensusTimeout()
+		dkg.log.Error("StartConsensus", "epoch", msg.Epoch)
 		return dkg.initConsensus()
 	}
 
@@ -37,8 +56,18 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 		return errors.New("DKG Epoch is not need to update")
 	}
 
-	// dkg.log.Info("DKG Consensus ReShare >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	dkg.addConsensusTimeout()
+	dkg.log.Error("ReConsensus", "epoch", msg.Epoch)
 	return dkg.reConsensus(msg)
+}
+
+func (dkg *DKG) addConsensusTimeout() {
+	if dkg.failConsensusTimer != nil {
+		dkg.failConsensusTimer.Stop()
+	}
+	dkg.failConsensusTimer = time.AfterFunc(time.Second*30, func() {
+		dkg.stopConsensus(false)
+	})
 }
 
 // Init Consensus
@@ -102,7 +131,7 @@ func (dkg *DKG) initConsensus() error {
 	for _, node := range dkg.DkgNodes {
 		err = dkg.sendDealMessage(&node.P2pId, &model.ConsensusMsg{
 			DealBundle:   &model.DealBundle{DealBundle: deal},
-			ShareCommits: model.KyberPoint{},
+			ShareCommits: model.KyberPoints{},
 			Validators:   dkg.DkgNodes,
 			Epoch:        0,
 		})
@@ -169,11 +198,11 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 		Log:          dkg.log,
 	}
 
-	if dkg.DkgKeyShare.PriShare != nil {
+	if dkg.DkgKeyShare != nil {
 		priv := dkg.DkgKeyShare
 		conf.Share = &pedersen.DistKeyShare{
-			Commits: priv.Commits,
-			Share:   priv.PriShare,
+			Commits: priv.Commits.Public,
+			Share:   priv.PriShare.PriShare,
 		}
 	} else {
 		conf.PublicCoeffs = msg.ShareCommits.Public
@@ -185,7 +214,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 		return err
 	}
 
-	priShare := dkg.DkgKeyShare.PriShare
+	priShare := dkg.DkgKeyShare
 
 	// 重置 DKG Key
 	dkg.deals = map[string]*model.DealBundle{}
@@ -193,7 +222,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	dkg.justifs = []*pedersen.JustificationBundle{}
 
 	// TODO
-	dkg.DkgKeyShare = model.DistKeyShare{}
+	dkg.DkgKeyShare = nil
 	dkg.NewEoch = msg.Epoch
 
 	// old node issue deals
@@ -234,6 +263,9 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 }
 
 func (dkg *DKG) stopConsensus(isok bool) {
+	if dkg.failConsensusTimer != nil {
+		dkg.failConsensusTimer.Stop()
+	}
 	dkg.deals = map[string]*model.DealBundle{}
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
@@ -242,9 +274,11 @@ func (dkg *DKG) stopConsensus(isok bool) {
 		dkg.Epoch = dkg.NewEoch
 		dkg.Threshold = len(dkg.NewNodes) * 2 / 3
 		dkg.NewNodes = []*model.Validator{}
-		dkg.log.Info("DKG consensus successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", dkg.Epoch)
+		util.LogWithGreen("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", dkg.Epoch)
 	} else {
-		dkg.log.Info("DKG consensus failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+		util.LogWithRed("DKG consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 	}
+
+	dkg.saveStore()
 	dkg.inConsensus = false
 }

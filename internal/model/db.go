@@ -3,6 +3,7 @@ package model
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
@@ -54,11 +55,11 @@ func SetKey(namespace, key string, value []byte) error {
 		return err
 	}
 
-	return DBINS.Set([]byte(namespace+"__"+key), val, pebble.NoSync)
+	return DBINS.Set([]byte(namespace+"_"+key), val, pebble.Sync)
 }
 
 func GetKey(namespace, key string) ([]byte, error) {
-	value, _, err := DBINS.Get([]byte(namespace + "__" + key))
+	value, _, err := DBINS.Get([]byte(namespace + "_" + key))
 	if err != nil {
 		return nil, err
 	}
@@ -69,11 +70,14 @@ func GetKey(namespace, key string) ([]byte, error) {
 func GetJson[T any](namespace, key string) (*T, error) {
 	v, err := GetKey(namespace, key)
 	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	if len(v) == 0 {
-		return nil, nil
+		return new(T), nil
 	}
 
 	val := new(T)
@@ -87,10 +91,12 @@ func SetJson[T any](namespace, key string, val *T) error {
 	if err != nil {
 		return err
 	}
+
+	// fmt.Println("set", key, string(bt))
 	return SetKey(namespace, key, bt)
 }
 
-func GetAbciMessageList[T any](namespace, key string) (list []T, err error) {
+func GetAbciMessageList[T any](namespace, key string) (list []*T, err error) {
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: []byte(namespace + "__" + key),
 		// UpperBound: []byte("prefix_upper_bound"),
@@ -110,7 +116,7 @@ func GetAbciMessageList[T any](namespace, key string) (list []T, err error) {
 		val := new(T)
 		err = protoio.ReadMessage(bytes.NewBuffer(value), val)
 		if err == nil {
-			list = append(list, *val)
+			list = append(list, val)
 		}
 	}
 

@@ -9,7 +9,7 @@ import (
 	"wetee.app/dsecret/internal/model"
 )
 
-func (app *SideChain) getValidators() ([]types.ValidatorUpdate, error) {
+func (app *SideChain) GetValidators() ([]types.ValidatorUpdate, error) {
 	var err error
 	validators, err := model.GetValidators()
 	if err != nil {

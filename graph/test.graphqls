@@ -1,0 +1,9 @@
+extend type Mutation {
+  add_tx(
+    text: String!
+  ): Boolean!
+}
+
+extend type Query {
+  validators: [String!]!
+}

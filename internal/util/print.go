@@ -18,12 +18,12 @@ import (
 const (
 	Reset  = "\033[0m"
 	Red    = "\033[1;30;41m"
-	Green  = "\033[1;37;42m"
-	Yellow = "\033[1;33;40m"
-	Blue   = "\033[1;34;40m"
-	Purple = "\033[1;35;40m"
-	Cyan   = "\033[1;36;40m"
-	Gray   = "\033[1;37;47m"
+	Green  = "\033[1;30;42m"
+	Yellow = "\033[1;30;43m"
+	Blue   = "\033[1;30;44m"
+	Purple = "\033[1;30;45m"
+	Cyan   = "\033[1;30;46m"
+	Gray   = "\033[1;30;47m"
 )
 
 func LogWithYellow(tag string, a ...any) {

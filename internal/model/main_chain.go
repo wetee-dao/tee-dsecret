@@ -17,7 +17,7 @@ type P2PAddr struct {
 	Id   [32]byte
 }
 
-// get side chain node id
+// Get side chain node id
 func (p *P2PAddr) SideChainUrl() string {
 	return hex.EncodeToString(crypto.AddressHash(p.Id[:])) + "@" + p.Ip.ToString() + ":" + fmt.Sprint(p.Port)
 }

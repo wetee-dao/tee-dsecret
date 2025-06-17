@@ -10,7 +10,7 @@ import (
 )
 
 // Handler 处理DKG消息
-func (dkg *DKG) MessageHandler(data *model.Message) error {
+func (dkg *DKG) TryRun(data *model.Message) error {
 	dkg.mainChan <- data
 	return nil
 }
@@ -32,14 +32,14 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 		return err
 	case "deal":
 		// 处理交易消息
-		err := dkg.HandleDeal(msg.OrgId, msg.Payload)
+		err := dkg.handleDeal(msg.OrgId, msg.Payload)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
 		}
 		return err
 	case "deal_resp":
 		// 处理交易响应消息
-		err := dkg.HandleDealResp(msg.OrgId, msg.Payload)
+		err := dkg.handleDealResp(msg.OrgId, msg.Payload)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<<<<<<<<<< ERROR", "HandleDealResp:", err)
 		}
