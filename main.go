@@ -9,8 +9,6 @@ import (
 
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
-	inkUtil "github.com/wetee-dao/ink.go/util"
-	"wetee.app/dsecret/chains"
 	chain "wetee.app/dsecret/chains"
 	"wetee.app/dsecret/graph"
 	"wetee.app/dsecret/internal/dkg"
@@ -89,19 +87,12 @@ func main() {
 		node.Wait()
 	}()
 
-	// Get validator list
-	validators, err := chains.ChainIns.GetValidatorList()
-	if err != nil {
-		log.Fatalf("failed to get ValidatorList: %v", err)
-	}
-
 	// Create DKG
-	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, inkUtil.NewSome(validators), nil)
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, nil)
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
-
 	go dkgIns.Start()
 	defer dkgIns.Stop()
 

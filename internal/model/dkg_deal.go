@@ -10,14 +10,11 @@ import (
 	"go.dedis.ch/kyber/v4/suites"
 )
 
-type Test struct {
-	V uint64
-}
-
 type ConsensusMsg struct {
 	DealBundle       *DealBundle
 	Epoch            uint32
 	ShareCommits     KyberPoints
+	OldValidators    []*Validator
 	Validators       []*Validator
 	ConsensusNodeNum int
 }

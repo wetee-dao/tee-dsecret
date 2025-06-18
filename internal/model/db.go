@@ -21,8 +21,8 @@ type DB struct {
 	*pebble.DB
 }
 
-func (db *DB) NewTransaction(update bool) *Txn {
-	return &Txn{in: db.DB.NewBatch()}
+func (db *DB) NewTransaction() *Txn {
+	return &Txn{in: db.DB.NewIndexedBatch()}
 }
 
 func NewDB() (*DB, error) {
@@ -96,10 +96,23 @@ func SetJson[T any](namespace, key string, val *T) error {
 	return SetKey(namespace, key, bt)
 }
 
-func GetAbciMessageList[T any](namespace, key string) (list []*T, err error) {
+func keyUpperBound(b []byte) []byte {
+	end := make([]byte, len(b))
+	copy(end, b)
+	for i := len(end) - 1; i >= 0; i-- {
+		end[i] = end[i] + 1
+		if end[i] != 0 {
+			return end[:i+1]
+		}
+	}
+	return nil
+}
+
+func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
+	rkey := []byte(namespace + "_" + key)
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
-		LowerBound: []byte(namespace + "__" + key),
-		// UpperBound: []byte("prefix_upper_bound"),
+		LowerBound: rkey,
+		UpperBound: keyUpperBound(rkey),
 	})
 	if err != nil {
 		return nil, err
@@ -123,7 +136,7 @@ func GetAbciMessageList[T any](namespace, key string) (list []*T, err error) {
 	return
 }
 
-func GetAbciMessage[T any](namespace, key string) (*T, error) {
+func GetProtoMessage[T any](namespace, key string) (*T, error) {
 	v, err := GetKey(namespace, key)
 	if err != nil {
 		return nil, err
@@ -143,11 +156,34 @@ func GetAbciMessage[T any](namespace, key string) (*T, error) {
 	return val, err
 }
 
-func SetAbciMessage[T proto.Message](namespace, key string, value T) error {
+func SetProtoMessage[T proto.Message](namespace, key string, value T) error {
 	buf := new(bytes.Buffer)
 	err := types.WriteMessage(value, buf)
 	if err != nil {
 		return err
 	}
 	return SetKey(namespace, key, buf.Bytes())
+}
+
+func DeleteKey(namespace, key string) error {
+	return DBINS.Delete([]byte(namespace+"_"+key), pebble.Sync)
+}
+
+func DeletekeysByPrefix(namespace, key string) error {
+	rkey := []byte(namespace + "_" + key)
+	iter, err := DBINS.NewIter(&pebble.IterOptions{
+		LowerBound: rkey,
+		UpperBound: keyUpperBound(rkey),
+	})
+	if err != nil {
+		return err
+	}
+	defer iter.Close()
+
+	txn := DBINS.DB.NewBatch()
+	for iter.First(); iter.Valid(); iter.Next() {
+		txn.Delete(iter.Key(), pebble.Sync)
+	}
+
+	return txn.Commit(pebble.Sync)
 }

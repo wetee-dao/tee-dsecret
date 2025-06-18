@@ -9,8 +9,8 @@ import (
 )
 
 type AppState struct {
-	Size   int64 `json:"size"`
-	Height int64 `json:"height"`
+	Size   int64
+	Height int64
 }
 
 var stateKey = "appstate"
@@ -21,7 +21,7 @@ func (s AppState) Hash() []byte {
 	return appHash
 }
 
-func loadState() (AppState, error) {
+func loadAppState() (AppState, error) {
 	state, err := model.GetJson[AppState]("", stateKey)
 	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 		return AppState{}, err
@@ -34,6 +34,6 @@ func loadState() (AppState, error) {
 	return *state, nil
 }
 
-func saveState(state *AppState) error {
+func saveAppState(state *AppState) error {
 	return model.SetJson("", stateKey, state)
 }

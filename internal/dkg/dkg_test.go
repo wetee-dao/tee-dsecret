@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	inkUtil "github.com/wetee-dao/ink.go/util"
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/peer/local"
 	"wetee.app/dsecret/internal/util"
@@ -60,7 +59,7 @@ func TestNetwork(t *testing.T) {
 	for i, s := range peerSecret {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
 
-		dkg, err := NewDKG(nodeSecret, peers[i], inkUtil.NewSome(validators), Logger{
+		dkg, err := NewDKG(nodeSecret, peers[i], Logger{
 			NodeTag: "NODE " + fmt.Sprint(i),
 		})
 		require.NoErrorf(t, err, "failed NewDKG")
@@ -111,8 +110,8 @@ func TestNetwork(t *testing.T) {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
 
 		// 创建 DKG 实例
-		dkg, err := NewDKG(nodeSecret, peers[3+i], inkUtil.NewSome(validators), Logger{
-			NodeTag: "NODE " + fmt.Sprint(i),
+		dkg, err := NewDKG(nodeSecret, peers[3+i], Logger{
+			NodeTag: "NODE " + fmt.Sprint(3+i),
 		})
 		require.NoErrorf(t, err, "failed NewDKG")
 		go dkg.Start()

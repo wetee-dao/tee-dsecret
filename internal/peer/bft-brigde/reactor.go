@@ -2,7 +2,6 @@ package bftbrigde
 
 import (
 	"errors"
-	fmt "fmt"
 
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
@@ -36,9 +35,7 @@ type BTFReactor struct {
 }
 
 func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
-	r := &BTFReactor{
-		// messageHandlers: map[string]func(*model.Message) error{},
-	}
+	r := &BTFReactor{}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
 	return r
@@ -91,7 +88,7 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 	case *DkgMessage:
 		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
 		if err == nil {
-			util.LogWithCyan("P2P Receive From", pub.SS58(), "dkg."+msg.Type)
+			// util.LogWithCyan("P2P Receive From", pub.SS58(), "dkg."+msg.Type)
 			r.dkgHandler(&model.Message{
 				MsgID:   msg.MsgId,
 				Payload: msg.Payload,
@@ -131,7 +128,7 @@ func (r *BTFReactor) PrintPeers(event string) {
 
 	outbound, inbound, dialing := r.Switch.NumPeers()
 	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, "nodekeys=>", len(r.nodekeys))
-	r.Switch.Peers().ForEach(func(peer p2p.Peer) {
-		fmt.Println("             ", peer.ID())
-	})
+	// r.Switch.Peers().ForEach(func(peer p2p.Peer) {
+	// 	fmt.Println("             ", peer.ID())
+	// })
 }

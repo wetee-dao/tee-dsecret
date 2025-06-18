@@ -52,7 +52,7 @@ func TestSetGetKey(t *testing.T) {
 	}
 }
 
-func TestGetAbciMessage(t *testing.T) {
+func TestGetProtoMessage(t *testing.T) {
 	os.RemoveAll(dbPath)
 	NewDB()
 	defer DBINS.Close()
@@ -60,12 +60,17 @@ func TestGetAbciMessage(t *testing.T) {
 	initv := types.ValidatorUpdate{Power: 10000}
 
 	key := "validator" + fmt.Sprint(time.Now().Unix())
-	err := SetAbciMessage("", key, &initv)
+	err := SetProtoMessage("", key, &initv)
 	if err != nil {
 		t.Error(err)
 	}
 
-	returnValue, err := GetAbciMessage[types.ValidatorUpdate]("", key)
+	err = SetProtoMessage("", "val", &initv)
+	if err != nil {
+		t.Error(err)
+	}
+
+	returnValue, err := GetProtoMessage[types.ValidatorUpdate]("", key)
 	if err != nil {
 		t.Error(err)
 	}
@@ -74,10 +79,13 @@ func TestGetAbciMessage(t *testing.T) {
 		t.Error("value not equal")
 	}
 
-	list, err := GetAbciMessageList[types.ValidatorUpdate]("", "validator")
+	list, err := GetProtoMessageList[types.ValidatorUpdate]("", "validator")
 	if err != nil {
 		t.Error(err)
 	}
 
 	fmt.Println(list)
+}
+
+func Test(t *testing.T) {
 }

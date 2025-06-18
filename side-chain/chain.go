@@ -2,12 +2,8 @@ package sidechain
 
 import (
 	"context"
-	"crypto"
-	"encoding/json"
-	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
-	cryptoencoding "github.com/cometbft/cometbft/crypto/encoding"
 	"wetee.app/dsecret/internal/dkg"
 	"wetee.app/dsecret/internal/model"
 	"wetee.app/dsecret/internal/util"
@@ -20,66 +16,38 @@ const CurseWordsLimitVE = 10
 
 type SideChain struct {
 	abci.BaseApplication
-	valAddrToPubKeyMap map[string]crypto.PublicKey
 
-	dkg          *dkg.DKG
-	state        AppState
-	onGoingBlock *model.Txn
+	dkg               *dkg.DKG
+	State             AppState
+	onGoingBlock      *model.Txn
+	onGoingValidators []abci.ValidatorUpdate
 }
 
 func NewSideChain() (*SideChain, error) {
-	state, err := loadState()
+	state, err := loadAppState()
 	if err != nil {
 		return nil, err
 	}
+
 	return &SideChain{
-		state:              state,
-		valAddrToPubKeyMap: make(map[string]crypto.PublicKey),
+		State: state,
 	}, nil
 }
 
 // Info return application information
 func (app *SideChain) Info(_ context.Context, info *abci.InfoRequest) (*abci.InfoResponse, error) {
-	if len(app.valAddrToPubKeyMap) == 0 && app.state.Height > 0 {
-		validators, err := app.GetValidators()
-		if err != nil {
-			return nil, err
-		}
-		for _, v := range validators {
-			pubKey, err := cryptoencoding.PubKeyFromTypeAndBytes(v.PubKeyType, v.PubKeyBytes)
-			if err != nil {
-				return nil, fmt.Errorf("can't decode public key: %w", err)
-			}
-
-			app.valAddrToPubKeyMap[string(pubKey.Address())] = pubKey
-		}
-	}
-
 	return &abci.InfoResponse{
-		Version:         version.ABCIVersion,
-		AppVersion:      ApplicationVersion,
-		LastBlockHeight: app.state.Height,
-
-		LastBlockAppHash: app.state.Hash(),
+		Version:          version.ABCIVersion,
+		AppVersion:       ApplicationVersion,
+		LastBlockHeight:  app.State.Height,
+		LastBlockAppHash: app.State.Hash(),
 	}, nil
 }
 
 // Query the application state for specific information
 func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abci.QueryResponse, error) {
 	util.LogWithPurple("SideChain Query")
-
 	resp := abci.QueryResponse{Key: query.Data}
-
-	// Retrieve all message sent by the sender
-	messages := map[string]string{}
-
-	resultBytes, err := json.Marshal(messages)
-	if err != nil {
-		return nil, err
-	}
-
-	resp.Log = string(resultBytes)
-	resp.Value = resultBytes
 
 	return &resp, nil
 }
@@ -98,13 +66,8 @@ func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abc
 // InitChain initializes the blockchain with information sent from CometBFT such as validators or consensus parameters
 func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (*abci.InitChainResponse, error) {
 	util.LogWithPurple("SideChain", "InitChain")
-	for _, v := range req.Validators {
-		err := app.updateValidator(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-	appHash := app.state.Hash()
+	app.saveValidators(req.Validators)
+	appHash := app.State.Hash()
 
 	// This parameter can also be set in the genesis file
 	req.ConsensusParams.Feature.VoteExtensionsEnableHeight.Value = 1
@@ -130,10 +93,9 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessProposalRequest) (*abci.ProcessProposalResponse, error) {
 	util.LogWithPurple("SideChain", "ProcessProposal")
 
-	// for i, tx := range req.Txs {
-	// }
+	status := app.ProcessTx(req.Txs, app.onGoingBlock)
 
-	return &abci.ProcessProposalResponse{Status: abci.PROCESS_PROPOSAL_STATUS_ACCEPT}, nil
+	return &abci.ProcessProposalResponse{Status: status}, nil
 }
 
 // FinalizeBlock Deliver the decided block to the Application
@@ -141,19 +103,23 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 	util.LogWithPurple("SideChain", "FinalizeBlock")
 
 	// Iterate over Tx in current block
-	app.onGoingBlock = model.DBINS.NewTransaction(true)
-
-	respTxs := make([]*abci.ExecTxResult, len(req.Txs))
-
-	for i, _ := range req.Txs {
-		respTxs[i] = &abci.ExecTxResult{Code: abci.CodeTypeOK}
+	app.onGoingBlock = model.DBINS.NewTransaction()
+	respTxs, err := app.FinalizeTx(req.Txs, app.onGoingBlock)
+	if err != nil {
+		return nil, err
 	}
 
-	app.state.Height = req.Height
+	// Sync validator updates to consensus
+	var validatorUpdates []abci.ValidatorUpdate
+	if app.onGoingValidators != nil {
+		validatorUpdates = app.onGoingValidators
+	}
+
+	app.State.Height = req.Height
 	response := &abci.FinalizeBlockResponse{
-		TxResults: respTxs,
-		AppHash:   app.state.Hash(),
-		// ValidatorUpdates: []abci.ValidatorUpdate{},
+		TxResults:        respTxs,
+		AppHash:          app.State.Hash(),
+		ValidatorUpdates: validatorUpdates,
 	}
 
 	return response, nil
@@ -165,7 +131,8 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 		return nil, err
 	}
 
-	err := saveState(&app.state)
+	app.onGoingValidators = nil
+	err := saveAppState(&app.State)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 
 	"github.com/cometbft/cometbft/p2p"
 	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
 )
 
 func (p *BTFReactor) Send(node model.PubKey, topic string, message *model.Message) error {
@@ -17,7 +16,7 @@ func (p *BTFReactor) Send(node model.PubKey, topic string, message *model.Messag
 	peers := p.Switch.Peers()
 	peers.ForEach(func(p p2p.Peer) {
 		if node.SideChainNodeID() == p.ID() {
-			util.LogError("P2P Send To", node.SS58(), topic+"."+message.Type)
+			// util.LogError("P2P Send To", node.SS58(), topic+"."+message.Type)
 			p.Send(p2p.Envelope{
 				ChannelID: channel.ID,
 				Message: &DkgMessage{
@@ -64,7 +63,17 @@ func (p *BTFReactor) SetNetworkChangeBack(hook func(string) error) {
 }
 
 func (p *BTFReactor) Nodes() []*model.PubKey {
-	return p.nodekeys
+	peers := p.Switch.Peers()
+	nodes := make([]*model.PubKey, 0, peers.Size())
+	for _, n := range p.nodekeys {
+		peers.ForEach(func(peer p2p.Peer) {
+			if peer.ID() == n.SideChainNodeID() {
+				nodes = append(nodes, n)
+			}
+		})
+	}
+
+	return nodes
 }
 
 func (p *BTFReactor) LinkToNetwork() {

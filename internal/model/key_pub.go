@@ -41,8 +41,8 @@ func (p *PubKey) SideChainNodeID() p2p.ID {
 	return p2p.ID(hex.EncodeToString(crypto.AddressHash(p.PublicKey)))
 }
 
-func (p *PubKey) Byte() ([]byte, error) {
-	return p.PublicKey, nil
+func (p *PubKey) Byte() []byte {
+	return p.PublicKey
 }
 
 func (p *PubKey) SS58() string {
@@ -97,4 +97,13 @@ func PubKeyFromByte(pubkey []byte) *PubKey {
 		PublicKey: ed25519.PublicKey(pubkey),
 		suite:     suites.MustFind("Ed25519"),
 	}
+}
+
+func PubKeyFromSS58(ss58 string) (*PubKey, error) {
+	_, pubkey, err := SS58Decode(ss58)
+	if err != nil {
+		return nil, fmt.Errorf("decode ss58: %w", err)
+	}
+
+	return PubKeyFromByte(pubkey), nil
 }

@@ -6,41 +6,33 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
-	cryptoencoding "github.com/cometbft/cometbft/crypto/encoding"
-	"github.com/cometbft/cometbft/types"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"wetee.app/dsecret/internal/model"
+	sidechain "wetee.app/dsecret/side-chain"
 )
 
 // AddTx is the resolver for the add_tx field.
 func (r *mutationResolver) AddTx(ctx context.Context, text string) (bool, error) {
-	tx := types.Tx([]byte(text))
-	pool := sideChainNode.Mempool()
-	_, err := pool.CheckTx(tx, sideChainNode.NodeInfo().ID())
-	if err != nil {
-		return false, gqlerror.Errorf("Marshal:" + err.Error())
-	}
+	sidechain.SubmitTx(&model.Tx{
+		Payload: &model.Tx_Test{
+			Test: text,
+		},
+	})
 
 	return true, nil
 }
 
 // Validators is the resolver for the validators field.
 func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
-	validators, err := sideChain.GetValidators()
+	validators, _, err := sideChain.GetValidators()
 	if err != nil {
 		return nil, gqlerror.Errorf("GetValidators:" + err.Error())
 	}
 
 	list := make([]string, 0, len(validators))
 	for _, v := range validators {
-		pubKey, err := cryptoencoding.PubKeyFromTypeAndBytes(v.PubKeyType, v.PubKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("can't decode public key: %w", err)
-		}
-
-		pub := model.PubKeyFromByte(pubKey.Bytes())
+		pub := model.PubKeyFromByte(v.Pubkey)
 		list = append(list, pub.SS58())
 	}
 	return list, nil

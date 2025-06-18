@@ -4,9 +4,29 @@ package model;
 
 option go_package = "";
 
+// Transaction
+message Tx {
+  oneof payload {
+    string test = 3;
+    Epoch epoch = 1;
+    Bridge bridge = 2;
+  }
+}
+
+// SideValidator
+message SideValidator {
+  bytes pubkey = 1;
+  int64 power = 2;
+}
 
 // Call from TEE to mainchain
-message BridgeMessage {
+message Epoch {
+  uint32 epoch = 1;
+  repeated SideValidator validators = 2;
+}
+
+// Call from TEE to mainchain
+message Bridge {
   string msg_id = 1;
-  bytes payload = 3;
+  bytes payload = 2;
 }

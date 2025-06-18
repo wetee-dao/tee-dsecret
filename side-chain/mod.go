@@ -21,6 +21,8 @@ import (
 	"wetee.app/dsecret/internal/util"
 )
 
+var SideChainNode *nm.Node
+
 func Init(
 	chainPort int,
 	mainChain chains.MainChain,
@@ -115,7 +117,7 @@ func Init(
 	dkgReactor := bftbrigde.NewBTFReactor("DKG", mainChain)
 
 	// init BFT node
-	node, err := nm.NewNode(
+	SideChainNode, err = nm.NewNode(
 		context.Background(),
 		config,
 		pv,
@@ -138,7 +140,7 @@ func Init(
 		util.LogWithRed("Boot Nodes ", p2pConf.Seeds)
 	}
 
-	return node, sideChain, dkgReactor, err
+	return SideChainNode, sideChain, dkgReactor, err
 }
 
 func (s *SideChain) SetDKG(dkg *dkg.DKG) {

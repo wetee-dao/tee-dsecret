@@ -23,6 +23,7 @@ func (dkg *DKG) TryConsensus(msg model.ConsensusMsg) {
 		if msg.Epoch > 1 {
 			msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.Commits)
 			msg.ConsensusNodeNum = len(dkg.DkgNodes)
+			msg.OldValidators = *util.DeepCopy(dkg.DkgNodes)
 		} else {
 			msg.Epoch = 1
 			msg.ShareCommits = model.KyberPoints{Public: []kyber.Point{}}
@@ -48,7 +49,7 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	if msg.Epoch <= 1 {
 		dkg.addConsensusTimeout()
 		dkg.log.Error("StartConsensus", "epoch", msg.Epoch)
-		return dkg.initConsensus()
+		return dkg.initConsensus(msg)
 	}
 
 	if dkg.Epoch >= msg.Epoch {
@@ -71,10 +72,13 @@ func (dkg *DKG) addConsensusTimeout() {
 }
 
 // Init Consensus
-func (dkg *DKG) initConsensus() error {
+func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 	// if flag.Lookup("test.v") == nil {
 	// 	go dkg.HandleSecretSave()
 	// }
+	dkg.DkgNodes = msg.Validators
+	dkg.NewNodes = msg.Validators
+	dkg.Threshold = len(msg.Validators) * 2 / 3
 
 	// 如果已经初始化，则直接返回
 	if dkg.status == 1 {
@@ -162,6 +166,8 @@ func (dkg *DKG) initConsensus() error {
 
 // Re-consensus DKG
 func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
+	dkg.DkgNodes = msg.OldValidators
+	dkg.Threshold = len(msg.OldValidators) * 2 / 3
 	dkg.NewNodes = msg.Validators
 
 	// new DKG 节点列表
@@ -211,6 +217,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	var err error
 	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
 	if err != nil {
+		fmt.Println("unable to create DistKeyGenerator", err.Error())
 		return err
 	}
 

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	inkUtil "github.com/wetee-dao/ink.go/util"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/suites"
 	"wetee.app/dsecret/internal/model"
@@ -66,16 +65,8 @@ type DKG struct {
 func NewDKG(
 	NodeSecret *model.PrivKey,
 	peer p2peer.Peer,
-	validatorsWrap inkUtil.Option[[]*model.Validator],
 	log pedersen.Logger,
 ) (*DKG, error) {
-	validators := []*model.Validator{}
-	threshold := 0
-	if !validatorsWrap.IsNone {
-		validators = validatorsWrap.V
-		threshold = len(validators) * 2 / 3
-	}
-
 	if log == nil {
 		log = NoLogger{}
 	}
@@ -84,10 +75,7 @@ func NewDKG(
 	dkg := &DKG{
 		Suite:      suites.MustFind("Ed25519"),
 		Signer:     NodeSecret,
-		Threshold:  threshold,
 		Peer:       peer,
-		DkgNodes:   validators,
-		NewNodes:   validators,
 		log:        log,
 		preRecerve: make(map[string]chan any),
 		deals:      make(map[string]*model.DealBundle),
@@ -106,7 +94,7 @@ func NewDKG(
 		return nil, fmt.Errorf("restore dkg: %w", err)
 	}
 
-	dkg.mainChan = make(chan *model.Message, 500)
+	dkg.mainChan = make(chan *model.Message, 800)
 	return dkg, nil
 }
 
