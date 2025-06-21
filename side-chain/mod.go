@@ -25,13 +25,13 @@ var SideChainNode *nm.Node
 
 func Init(
 	chainPort int,
-	mainChain chains.MainChain,
+	mainChain chains.Chain,
 	callback func(),
 ) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
 	// Get boot peers
 	boots, err := mainChain.GetBootPeers()
 	if err != nil {
-		return nil, nil, nil, errors.New("NewSideChain error: " + err.Error())
+		return nil, nil, nil, errors.New("GetBootPeers error: " + err.Error())
 	}
 
 	// 创建侧链实例
@@ -136,9 +136,9 @@ func Init(
 	}
 
 	callback()
-	if p2pConf.Seeds != "" {
-		util.LogWithRed("Boot Nodes ", p2pConf.Seeds)
-	}
+	// if p2pConf.Seeds != "" {
+	// 	util.LogWithRed("Boot Nodes ", p2pConf.Seeds)
+	// }
 
 	return SideChainNode, sideChain, dkgReactor, err
 }

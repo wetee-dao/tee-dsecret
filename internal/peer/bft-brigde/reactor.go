@@ -34,7 +34,7 @@ type BTFReactor struct {
 	callDkg    func(string) error
 }
 
-func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
+func NewBTFReactor(name string, main chains.Chain) *BTFReactor {
 	r := &BTFReactor{}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
@@ -45,7 +45,7 @@ func NewBTFReactor(name string, main chains.MainChain) *BTFReactor {
 func (r *BTFReactor) OnStart() error {
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
-	util.LogError("Local Node ", address.String())
+	util.LogError("Local Address ", address.String())
 
 	r.PrintPeers("BTF OnStart")
 
@@ -118,16 +118,16 @@ func (r *BTFReactor) GetPubkeyFromPeerID(peer p2p.ID) (*model.PubKey, error) {
 }
 
 func (r *BTFReactor) PrintPeers(event string) {
-	if chains.ChainIns == nil {
+	if chains.MainChain == nil {
 		return
 	}
-	_, pubkeys, err := chains.ChainIns.GetNodes()
+	_, pubkeys, err := chains.MainChain.GetNodes()
 	if err == nil {
 		r.nodekeys = pubkeys
 	}
 
 	outbound, inbound, dialing := r.Switch.NumPeers()
-	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, "nodekeys=>", len(r.nodekeys))
+	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, " || nodekeys=>", len(r.nodekeys))
 	// r.Switch.Peers().ForEach(func(peer p2p.Peer) {
 	// 	fmt.Println("             ", peer.ID())
 	// })

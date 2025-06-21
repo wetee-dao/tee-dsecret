@@ -72,7 +72,7 @@ func main() {
 		fmt.Println()
 		util.LogWithYellow("Main Chain", chainAddr)
 		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
-		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58(), " ", p2pKey.GetPublic().SideChainNodeID())
+		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)

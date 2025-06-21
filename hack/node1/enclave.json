@@ -8,33 +8,23 @@
     "securityVersion": 1,
     "mounts": [
         {
-            "source": "/home/wetee/work/wetee/tee-dsecret/hack/node1/db/",
-            "target": "/db",
-            "type": "hostfs",
-            "readOnly": false
-        },
-        {
-            "source": "/home/wetee/work/wetee/tee-dsecret/hack/node1/ssl/",
-            "target": "/ssl",
+            "source": "/home/wetee/work/wetee/tee-dsecret/hack/node1/chain_data/",
+            "target": "/chain_data",
             "type": "hostfs",
             "readOnly": false
         }
     ],
     "env": [
         {
-            "name": "PEER_PK",
+            "name": "SIDE_CHAIN_PORT",
             "fromHost": true
         },
         {
-            "name": "TCP_PORT",
+            "name": "SIDE_CHAIN_ADDR",
             "fromHost": true
         },
         {
-            "name": "UDP_PORT",
-            "fromHost": true
-        },
-        {
-            "name": "PASSWORD",
+            "name": "GQL_PORT",
             "fromHost": true
         },
         {
@@ -42,7 +32,7 @@
             "fromHost": true
         },
         {
-            "name": "GQL_PORT",
+            "name": "PASSWORD",
             "fromHost": true
         }
     ]

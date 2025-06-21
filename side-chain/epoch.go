@@ -12,19 +12,19 @@ import (
 )
 
 func (app *SideChain) CheckEpoch() {
-	if chains.ChainIns == nil {
-		fmt.Println("SideChain CheckEpoch error", "chains.ChainIns is nil")
+	if chains.MainChain == nil {
+		fmt.Println("SideChain CheckEpoch error", "chains.MainChain is nil")
 		return
 	}
 
-	epoch, lastEpochBlock, now, err := chains.ChainIns.GetEpoch()
+	epoch, lastEpochBlock, now, err := chains.MainChain.GetEpoch()
 	if err != nil {
 		return
 	}
 
 	// util.LogWithGreen("SideChain CheckEpoch", "epoch:", epoch, "lastEpochBlock:", lastEpochBlock, "now:", now)
 	if epoch > app.dkg.Epoch || now-lastEpochBlock >= 72000 || epoch <= 1 {
-		validators, err := chains.ChainIns.GetValidatorList()
+		validators, err := chains.MainChain.GetValidatorList()
 		if err != nil {
 			return
 		}

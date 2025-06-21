@@ -38,6 +38,10 @@ func InitChain(url string, pk *model.PrivKey) (*Chain, error) {
 	}, nil
 }
 
+func (c *Chain) GetSignerAddress() string {
+	return c.signer.SS58Address(42)
+}
+
 func (c *Chain) GetAccount(workID gtypes.WorkId) ([]byte, error) {
 	if workID.Wtype.IsAPP {
 		return c.GetAppAccount(workID.Id)

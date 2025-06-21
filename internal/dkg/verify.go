@@ -23,7 +23,7 @@ func (d *DKG) VerifyWorker(reportData *model.TeeParam) ([]byte, error) {
 	// }
 
 	// // 校验 worker 代码版本
-	// codeHash, codeSigner, err := chain.GetWorkerCode(chain.ChainIns.ChainClient)
+	// codeHash, codeSigner, err := chain.GetWorkerCode(chain.MainChain.ChainClient)
 	// if err != nil {
 	// 	return nil, errors.New("GetWorkerCode error:" + err.Error())
 	// }
@@ -55,7 +55,7 @@ func (d *DKG) VerifyDsecret(reportData *model.TeeParam) ([]byte, error) {
 	// }
 
 	// // 校验 worker 代码版本
-	// codeHash, codeSigner, err := chain.GetDsecretCode(chain.ChainIns.ChainClient)
+	// codeHash, codeSigner, err := chain.GetDsecretCode(chain.MainChain.ChainClient)
 	// if err != nil {
 	// 	return nil, errors.New("GetWorkerCode error:" + err.Error())
 	// }
@@ -87,7 +87,7 @@ func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *model.TeeParam) ([]
 	// }
 
 	// 校验 worker 代码版本
-	// codeHash, codeSigner, err := chain.GetWorkCode(chain.ChainIns.ChainClient, wid)
+	// codeHash, codeSigner, err := chain.GetWorkCode(chain.MainChain.ChainClient, wid)
 	// if err != nil {
 	// 	return nil, errors.New("GetWorkerCode error:" + err.Error())
 	// }

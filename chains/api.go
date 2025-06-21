@@ -5,9 +5,10 @@ import (
 	"wetee.app/dsecret/internal/model"
 )
 
-var ChainIns MainChain
+var MainChain Chain
 
-type MainChain interface {
+type Chain interface {
+	GetSignerAddress() string
 	// nodes
 	GetBootPeers() ([]model.P2PAddr, error)
 	GetNodes() ([]*model.Validator, []*model.PubKey, error)
@@ -16,9 +17,9 @@ type MainChain interface {
 	GetEpoch() (uint32, uint32, uint32, error)
 }
 
-func ConnectMainChain(url string, pk *model.PrivKey) (MainChain, error) {
+func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
 	var err error
-	ChainIns, err = pallets.InitChain(url, pk)
+	MainChain, err = pallets.InitChain(url, pk)
 
-	return ChainIns, err
+	return MainChain, err
 }

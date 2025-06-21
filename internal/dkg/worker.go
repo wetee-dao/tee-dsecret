@@ -88,8 +88,8 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	// 	return nil, errors.New("signer to signer: " + err.Error())
 	// }
 
-	// // 获取 ChainIns 结构体，检查元数据
-	// ins := chain.ChainIns
+	// // 获取 MainChain 结构体，检查元数据
+	// ins := chain.MainChain
 
 	// // 从报告中提取 CID
 	// cid, err := types.CidFromBytes(workerReport.Report)
@@ -101,7 +101,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	// _, account, _ := subkey.SS58Decode(workerReport.Address)
 	// var account32 [32]byte
 	// copy(account32[:], account)
-	// clusterId, ok, err := worker.GetK8sClusterAccountsLatest(chain.ChainIns.Api.RPC.State, account32)
+	// clusterId, ok, err := worker.GetK8sClusterAccountsLatest(chain.MainChain.Api.RPC.State, account32)
 	// if err != nil || !ok {
 	// 	return nil, errors.New("get k8s cluster error")
 	// }
@@ -237,7 +237,7 @@ func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string
 
 	// TODO
 	// // 获取 secret
-	// id, isSome, err := chain.GetSecretEnv(chain.ChainIns.ChainClient, wid)
+	// id, isSome, err := chain.GetSecretEnv(chain.MainChain.ChainClient, wid)
 	// if err != nil {
 	// 	return nil, errors.New("get secret env: " + err.Error())
 	// }
@@ -301,7 +301,7 @@ func (d *DKG) SubmitLaunchWork(deployer []byte, req *model.LaunchRequest) error 
 
 	fmt.Println(signer, call)
 	// TODO
-	// return chain.ChainIns.SignAndSubmit(signer, call, false)
+	// return chain.MainChain.SignAndSubmit(signer, call, false)
 	return nil
 }
 

@@ -22,7 +22,7 @@ package sidechain
 // 	}
 
 // 	var err error
-// 	validators, _, err = chains.ChainIns.GetNodes()
+// 	validators, _, err = chains.MainChain.GetNodes()
 // 	if err != nil {
 // 		return
 // 	}

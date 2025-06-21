@@ -62,7 +62,7 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 func (dkg *DKG) handleWorker(msg *model.Message) error {
 	// TODO
 	// 检查链的元数据
-	// err := chain.ChainIns.CheckMetadata()
+	// err := chain.MainChain.CheckMetadata()
 	// if err != nil {
 	// 	// 记录检查元数据时的错误
 	// 	util.LogError("CheckMetadata", err)
