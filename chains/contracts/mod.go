@@ -3,30 +3,14 @@ package contracts
 //go:generate go-ink-gen -json subnet.json
 
 import (
-	"math/big"
-
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
 	"wetee.app/dsecret/chains/contracts/subnet"
+	"wetee.app/dsecret/chains/pallets/generated/revive"
 
 	"wetee.app/dsecret/internal/model"
 )
-
-var defaultPrams = chain.DryRunCallParams{
-	Amount:              types.NewU128(*big.NewInt(0)),
-	GasLimit:            util.NewNone[types.Weight](),
-	StorageDepositLimit: util.NewNone[types.U128](),
-}
-
-func queryPramsWithOragin(origin types.AccountID) chain.DryRunCallParams {
-	return chain.DryRunCallParams{
-		Origin:              origin,
-		Amount:              types.NewU128(*big.NewInt(0)),
-		GasLimit:            util.NewNone[types.Weight](),
-		StorageDepositLimit: util.NewNone[types.U128](),
-	}
-}
 
 // Contract
 type Contract struct {
@@ -35,17 +19,48 @@ type Contract struct {
 	subnet subnet.Subnet
 }
 
-func NewContract(client *chain.ChainClient, signer *chain.Signer, subNetAddress types.H160) *Contract {
+func NewContract(url string, pk *model.PrivKey, subNetAddress types.H160) (*Contract, error) {
+	client, err := chain.ClientInit(url, false)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := pk.ToSigner()
+	if err != nil {
+		return nil, err
+	}
+
+	util.LogWithYellow("Mainchain Key", pk.GetPublic().SS58())
+	h160 := pk.GetPublic().H160()
+
 	subnet := subnet.Subnet{
 		ChainClient: client,
 		Address:     subNetAddress,
 	}
 
+	// check account is mapaccount in revive
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	if err != nil {
+		return nil, err
+	}
+	if !isSome {
+		runtimeCall := revive.MakeMapAccountCall()
+		call, err := (runtimeCall).AsCall()
+		if err != nil {
+			return nil, err
+		}
+
+		err = client.SignAndSubmit(p, call, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Contract{
 		ChainClient: client,
-		signer:      signer,
+		signer:      p,
 		subnet:      subnet,
-	}
+	}, nil
 }
 
 func (c *Contract) GetSignerAddress() string {
@@ -54,7 +69,7 @@ func (c *Contract) GetSignerAddress() string {
 
 // nodes
 func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
-	result, err := c.subnet.QueryBootNodes(queryPramsWithOragin(types.AccountID(c.signer.AccountID())))
+	result, _, err := c.subnet.QueryBootNodes(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +92,11 @@ func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
 }
 
 func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
-	workers, err := c.subnet.QueryWorkers(queryPramsWithOragin(types.AccountID(c.signer.AccountID())))
+	workers, _, err := c.subnet.QueryWorkers(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}
-	dsecrets, err := c.subnet.QuerySecrets(queryPramsWithOragin(types.AccountID(c.signer.AccountID())))
+	dsecrets, _, err := c.subnet.QuerySecrets(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -104,7 +119,7 @@ func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
 }
 
 func (c *Contract) GetValidatorList() ([]*model.Validator, error) {
-	dsecrets, err := c.subnet.QuerySecrets(queryPramsWithOragin(types.AccountID(c.signer.AccountID())))
+	dsecrets, _, err := c.subnet.QuerySecrets(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +137,7 @@ func (c *Contract) GetValidatorList() ([]*model.Validator, error) {
 
 // epoch
 func (c *Contract) GetEpoch() (uint32, uint32, uint32, error) {
-	d, err := c.subnet.QueryEpoch(queryPramsWithOragin(types.AccountID(c.signer.AccountID())))
+	d, _, err := c.subnet.QueryEpoch(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return 0, 0, 0, err
 	}

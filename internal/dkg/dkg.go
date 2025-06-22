@@ -100,16 +100,12 @@ func NewDKG(
 
 // Start DKG service
 func (dkg *DKG) Start() error {
-	for {
-		select {
-		case data, ok := <-dkg.mainChan:
-			if !ok {
-				util.LogOk("DKG", "stop")
-				return nil
-			}
-			dkg.handleDkg(data)
-		}
+	for data := range dkg.mainChan {
+		dkg.handleDkg(data)
 	}
+
+	util.LogOk("DKG", "stop")
+	return nil
 }
 
 // Stop DKG
@@ -204,8 +200,10 @@ func (dkg *DKG) reStore() error {
 	dkg.DkgNodes = d.DkgNodes
 	dkg.Threshold = d.Threshold
 	dkg.Epoch = d.Epoch
+
 	dkg.DkgPubKey = d.DkgPubKey
 	dkg.DkgKeyShare = d.DkgKeyShare
+
 	dkg.NewNodes = d.NewNodes
 	dkg.NewEoch = d.NewEoch
 	dkg.status = d.status

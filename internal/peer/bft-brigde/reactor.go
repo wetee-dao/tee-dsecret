@@ -124,6 +124,8 @@ func (r *BTFReactor) PrintPeers(event string) {
 	_, pubkeys, err := chains.MainChain.GetNodes()
 	if err == nil {
 		r.nodekeys = pubkeys
+	} else {
+		util.LogError(event, "GetNodes", err.Error())
 	}
 
 	outbound, inbound, dialing := r.Switch.NumPeers()

@@ -1,7 +1,9 @@
 package chains
 
 import (
-	pallets "wetee.app/dsecret/chains/pallets"
+	// pallets "wetee.app/dsecret/chains/pallets"
+	"github.com/wetee-dao/ink.go/util"
+	"wetee.app/dsecret/chains/contracts"
 	"wetee.app/dsecret/internal/model"
 )
 
@@ -19,7 +21,15 @@ type Chain interface {
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
 	var err error
-	MainChain, err = pallets.InitChain(url, pk)
 
+	// chain, err = pallets.InitChain(url, pk)
+
+	contractAddress, err := util.HexToH160("0x2F6991f9eF07B521d3b45e831aE816E13cc0e4c5")
+	if err != nil {
+		util.LogWithPurple("HexToH160", err)
+		return nil, err
+	}
+
+	MainChain, err = contracts.NewContract(url, pk, contractAddress)
 	return MainChain, err
 }

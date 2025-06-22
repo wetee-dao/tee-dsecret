@@ -17,5 +17,5 @@ export PASSWORD=123456
 export CHAIN_ADDR=ws://127.0.0.1:9944
 
 cd ./bin/
-# ego sign dsecret && ego run dsecret
-./dsecret
+ego sign dsecret && ego run dsecret
+# ./dsecret

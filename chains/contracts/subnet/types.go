@@ -211,6 +211,56 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		return fmt.Errorf("unrecognized enum")
 	}
 }
+func (ty *Error) Error() string {
+	if ty.NotEnoughBalance != nil {
+		return "NotEnoughBalance"
+	}
+
+	if ty.MustCallByMainContract != nil {
+		return "MustCallByMainContract"
+	}
+
+	if ty.WorkerNotExist != nil {
+		return "WorkerNotExist"
+	}
+
+	if ty.WorkerNotOwnedByCaller != nil {
+		return "WorkerNotOwnedByCaller"
+	}
+
+	if ty.WorkerStatusNotReady != nil {
+		return "WorkerStatusNotReady"
+	}
+
+	if ty.WorkerMortgageNotExist != nil {
+		return "WorkerMortgageNotExist"
+	}
+
+	if ty.TransferFailed != nil {
+		return "TransferFailed"
+	}
+
+	if ty.WorkerIsUseByUser != nil {
+		return "WorkerIsUseByUser"
+	}
+
+	if ty.NodeNotExist != nil {
+		return "NodeNotExist"
+	}
+
+	if ty.SecretNodeAlreadyExists != nil {
+		return "SecretNodeAlreadyExists"
+	}
+
+	if ty.SetCodeFailed != nil {
+		return "SetCodeFailed"
+	}
+
+	if ty.EpochNotExpired != nil {
+		return "EpochNotExpired"
+	}
+	return "Unknown"
+}
 
 type Tuple_69 struct { // Tuple
 	F0 uint32

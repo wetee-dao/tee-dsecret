@@ -30,15 +30,12 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 				return nil, err
 			}
 
-			util.LogWithPurple("SideChain  FinalizeTx", "New Epoch", p.Epoch.Epoch)
+			util.LogWithPurple("SideChain FinalizeTx", "New Epoch", p.Epoch.Epoch)
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
-			break
 		case *model.Tx_Bridge:
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
-			break
 		case *model.Tx_Test:
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
-			break
 		default:
 			fmt.Println("Payload is unknown")
 		}

@@ -55,7 +55,6 @@ func (app *SideChain) CheckEpoch() {
 			Epoch:      epoch,
 		})
 	}
-	return
 }
 
 func (app *SideChain) GetEpoch() uint32 {
@@ -154,7 +153,7 @@ func (app *SideChain) calcValidatorUpdates(epoch *model.Epoch) {
 	}
 
 	// 找删除
-	for pubkey, _ := range oldMap {
+	for pubkey := range oldMap {
 		_, exists := newMap[pubkey]
 		if !exists {
 			_, pubkey, _ := model.SS58Decode(pubkey)

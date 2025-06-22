@@ -13,19 +13,21 @@ import (
 	"wetee.app/dsecret/internal/util"
 )
 
+const StartEpoch = 1
+
 func (dkg *DKG) TryConsensus(msg model.ConsensusMsg) {
 	if !dkg.inConsensus {
-		if dkg.DkgKeyShare == nil && msg.Epoch > 1 {
+		if dkg.DkgKeyShare == nil && msg.Epoch > StartEpoch {
 			util.LogError("DKG Consensus", "Node is not old validator, cannot start consensus")
 			return
 		}
 
-		if msg.Epoch > 1 {
+		if msg.Epoch > StartEpoch {
 			msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.Commits)
 			msg.ConsensusNodeNum = len(dkg.DkgNodes)
 			msg.OldValidators = *util.DeepCopy(dkg.DkgNodes)
 		} else {
-			msg.Epoch = 1
+			msg.Epoch = StartEpoch
 			msg.ShareCommits = model.KyberPoints{Public: []kyber.Point{}}
 			msg.ConsensusNodeNum = 0
 		}
@@ -46,9 +48,9 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	}
 
 	dkg.inConsensus = true
-	if msg.Epoch <= 1 {
+	if msg.Epoch <= StartEpoch {
 		dkg.addConsensusTimeout()
-		dkg.log.Error("StartConsensus", "epoch", msg.Epoch)
+		util.LogWithGreen("StartConsensus Epoch", msg.Epoch)
 		return dkg.initConsensus(msg)
 	}
 
@@ -58,7 +60,7 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	}
 
 	dkg.addConsensusTimeout()
-	dkg.log.Error("ReConsensus", "epoch", msg.Epoch)
+	util.LogWithGreen("ReConsensus Epoch", msg.Epoch)
 	return dkg.reConsensus(msg)
 }
 
@@ -111,23 +113,20 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 	var err error
 	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
 	if err != nil {
+		dkg.stopConsensus(false)
 		return fmt.Errorf("failed to initialize DKG protocol: %w", err)
 	}
 
 	// 等待节点连接
-	for {
-		if dkg.connectLen()+1 < len(dkg.DkgNodes) {
-			time.Sleep(time.Second * 10)
-			fmt.Println("Number of nodes:", dkg.connectLen(), " len(dkg.DkgNodes) ", len(dkg.DkgNodes))
-			fmt.Println("The number of nodes is insufficient, please wait for more nodes to join")
-		} else {
-			break
-		}
+	if dkg.connectLen()+1 < len(dkg.DkgNodes) {
+		dkg.stopConsensus(false)
+		return fmt.Errorf("waiting for nodes to connect")
 	}
 
 	// 获取当前节点的协议
 	deal, err := dkg.DistKeyGenerator.Deals()
 	if err != nil {
+		dkg.stopConsensus(false)
 		return fmt.Errorf("failed to generate key shares: %w", err)
 	}
 
@@ -217,6 +216,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	var err error
 	dkg.DistKeyGenerator, err = pedersen.NewDistKeyHandler(&conf)
 	if err != nil {
+		dkg.stopConsensus(false)
 		fmt.Println("unable to create DistKeyGenerator", err.Error())
 		return err
 	}
@@ -229,43 +229,29 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	dkg.justifs = []*pedersen.JustificationBundle{}
 
 	// TODO
-	dkg.DkgKeyShare = nil
 	dkg.NewEoch = msg.Epoch
 
-	// old node issue deals
-	if priShare != nil {
-		// 获取当前节点的协议
-		deal, err := dkg.DistKeyGenerator.Deals()
-		if err != nil {
-			return fmt.Errorf("failed to generate key shares: %w", err)
-		}
+	// old node not issue deals
+	if priShare == nil {
+		return nil
+	}
 
-		// 开启节点共识
-		for _, node := range dkg.NewNodes {
-			msg.DealBundle = &model.DealBundle{DealBundle: deal}
-			err = dkg.sendDealMessage(&node.P2pId, &msg)
-			if err != nil {
-				fmt.Println("Send error:", err)
-			}
+	// 获取当前节点的协议
+	deal, err := dkg.DistKeyGenerator.Deals()
+	if err != nil {
+		dkg.stopConsensus(false)
+		return fmt.Errorf("failed to generate key shares: %w", err)
+	}
+
+	// 开启节点共识
+	for _, node := range dkg.NewNodes {
+		msg.DealBundle = &model.DealBundle{DealBundle: deal}
+		err = dkg.sendDealMessage(&node.P2pId, &msg)
+		if err != nil {
+			fmt.Println("Send error:", err)
 		}
 	}
 
-	// // 等待节点完成重组
-	// for {
-	// 	if dkg.DkgKeyShare.PriShare != nil {
-	// 		break
-	// 	}
-	// 	time.Sleep(time.Second)
-	// }
-
-	// if dkg.log != nil {
-	// 	dkg.log.Info("DKG uccessfully reshare <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	// }
-
-	// dkg.deals = map[string]*model.DealBundle{}
-	// dkg.responses = map[string]*pedersen.ResponseBundle{}
-	// dkg.justifs = []*pedersen.JustificationBundle{}
-	// dkg.DkgNodes = dkg.NewNodes
 	return nil
 }
 
@@ -281,9 +267,9 @@ func (dkg *DKG) stopConsensus(isok bool) {
 		dkg.Epoch = dkg.NewEoch
 		dkg.Threshold = len(dkg.NewNodes) * 2 / 3
 		dkg.NewNodes = []*model.Validator{}
-		util.LogWithGreen("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", dkg.Epoch)
+		util.LogWithGreen("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.Epoch)
 	} else {
-		util.LogWithRed("DKG consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+		util.LogWithRed("DKG consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEoch)
 	}
 
 	dkg.saveStore()

@@ -92,7 +92,6 @@ func SetJson[T any](namespace, key string, val *T) error {
 		return err
 	}
 
-	// fmt.Println("set", key, string(bt))
 	return SetKey(namespace, key, bt)
 }
 

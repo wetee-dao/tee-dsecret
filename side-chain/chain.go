@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"context"
+	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"wetee.app/dsecret/chains"
@@ -47,22 +48,14 @@ func (app *SideChain) Info(_ context.Context, info *abci.InfoRequest) (*abci.Inf
 }
 
 func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abci.QueryResponse, error) {
-	util.LogWithPurple("SideChain Query")
+	util.LogWithGreen("SideChain Query")
 	resp := abci.QueryResponse{Key: query.Data}
 
 	return &resp, nil
 }
 
-func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
-	util.LogWithPurple("SideChain", "CheckTx")
-
-	// check req.Tx
-
-	return &abci.CheckTxResponse{Code: CodeTypeOK}, nil
-}
-
 func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (*abci.InitChainResponse, error) {
-	util.LogWithPurple("SideChain", "InitChain")
+	util.LogWithGreen("SideChain", "InitChain")
 	app.saveValidators(req.Validators)
 	appHash := app.State.Hash()
 
@@ -71,8 +64,17 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 	return &abci.InitChainResponse{ConsensusParams: req.ConsensusParams, AppHash: appHash}, nil
 }
 
+func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
+	util.LogWithGreen("------------------------------ START BLOCK ------------------------------")
+	LogWithTime("🚀 Start Block CheckTx")
+
+	// check req.Tx
+
+	return &abci.CheckTxResponse{Code: CodeTypeOK}, nil
+}
+
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
-	util.LogWithPurple("SideChain", "PrepareProposal")
+	LogWithTime("🎁 PrepareProposal")
 
 	app.CheckEpoch()
 
@@ -85,15 +87,13 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 }
 
 func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessProposalRequest) (*abci.ProcessProposalResponse, error) {
-	util.LogWithPurple("SideChain", "ProcessProposal")
+	LogWithTime("🔖 ProcessProposal")
 
 	status := app.ProcessTx(req.Txs, app.onGoingBlock)
 	return &abci.ProcessProposalResponse{Status: status}, nil
 }
 
 func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRequest) (*abci.FinalizeBlockResponse, error) {
-	util.LogWithPurple("SideChain", "FinalizeBlock")
-
 	// Iterate over Tx in current block
 	app.onGoingBlock = model.DBINS.NewTransaction()
 	respTxs, err := app.FinalizeTx(req.Txs, app.onGoingBlock)
@@ -117,6 +117,8 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 		ValidatorUpdates: validatorUpdates,
 	}
 
+	LogWithTime("📥 FinalizeBlock =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
+
 	return response, nil
 }
 
@@ -139,20 +141,20 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 		}
 	}
 
-	util.LogWithPurple("SideChain", "Commit")
-	util.LogWithGreen("---------------------------------------------------------------")
+	LogWithTime("💤 Commit")
+	util.LogWithGreen("------------------------------- END BLOCK -------------------------------")
 
 	return &abci.CommitResponse{}, nil
 }
 
 func (app *SideChain) ExtendVote(_ context.Context, _ *abci.ExtendVoteRequest) (*abci.ExtendVoteResponse, error) {
-	util.LogWithPurple("SideChain", "ExtendVote")
+	LogWithTime("👌 ExtendVote")
 
 	return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
 }
 
 func (app *SideChain) VerifyVoteExtension(_ context.Context, req *abci.VerifyVoteExtensionRequest) (*abci.VerifyVoteExtensionResponse, error) {
-	util.LogWithPurple("SideChain", "VerifyVoteExtension")
+	LogWithTime("👌 VerifyVoteExtension")
 
 	// if len(curseWords) > CurseWordsLimitVE {
 	// 	return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil

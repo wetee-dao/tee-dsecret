@@ -7,10 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/p2p"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/suites"
+
+	inkutil "github.com/wetee-dao/ink.go/util"
 )
 
 type PubKey struct {
@@ -58,6 +61,10 @@ func (p PubKey) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.PublicKey)
 }
 
+func (p *PubKey) H160() types.H160 {
+	return H160FromPublicKey(p.PublicKey)
+}
+
 func (p *PubKey) UnmarshalJSON(bt []byte) error {
 	var key ed25519.PublicKey = []byte{}
 	err := json.Unmarshal(bt, &key)
@@ -68,6 +75,22 @@ func (p *PubKey) UnmarshalJSON(bt []byte) error {
 	p.PublicKey = key
 	p.suite = suites.MustFind("Ed25519")
 	return nil
+}
+
+func H160FromPublicKey(bytes []byte) types.H160 {
+	if inkutil.IsEthDerived(bytes) {
+		var byteArray [20]byte
+		copy(byteArray[:20], bytes[:])
+
+		return byteArray
+	}
+
+	account_hash := inkutil.Keccak256Hash(bytes)
+
+	var byteArray [20]byte
+	copy(byteArray[:20], account_hash[12:])
+
+	return byteArray
 }
 
 func PubKeyFromStdPubKey(pubkey ed25519.PublicKey) (*PubKey, error) {

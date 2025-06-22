@@ -6,6 +6,8 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"wetee.app/dsecret/internal/model"
@@ -16,7 +18,7 @@ import (
 func (r *mutationResolver) AddTx(ctx context.Context, text string) (bool, error) {
 	sidechain.SubmitTx(&model.Tx{
 		Payload: &model.Tx_Test{
-			Test: text,
+			Test: text + fmt.Sprint(time.Now().Unix()),
 		},
 	})
 

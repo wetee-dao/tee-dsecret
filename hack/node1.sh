@@ -20,5 +20,6 @@ ego sign dsecret
 
 rm nohup.out
 
+ego sign dsecret && ego run dsecret
 # nohup ego run dsecret &
-./dsecret
+# ./dsecret
