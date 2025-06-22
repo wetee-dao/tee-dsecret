@@ -31,7 +31,6 @@ Dockerfile.cross
 
 **/chain_data
 **/db/
-**/dsecret
 **/nohup.out
 bin/
 hack/node1/

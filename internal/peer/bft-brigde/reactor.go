@@ -46,8 +46,7 @@ func (r *BTFReactor) OnStart() error {
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
 	util.LogError("Local Address ", address.String())
-
-	r.PrintPeers("BTF OnStart")
+	r.PrintPeers("P2P OnStart")
 
 	// 启动协程、初始化资源
 	return nil
@@ -55,11 +54,11 @@ func (r *BTFReactor) OnStart() error {
 
 // 实现 OnStop 生命周期钩子
 func (r *BTFReactor) OnStop() {
-	util.LogError("BTF OnStop")
+	util.LogError("P2P OnStop")
 }
 
 func (r *BTFReactor) OnReset() error {
-	util.LogError("BTF OnReset")
+	util.LogError("P2P OnReset")
 	return nil
 }
 
