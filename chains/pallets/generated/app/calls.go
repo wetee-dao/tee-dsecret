@@ -1,6 +1,6 @@
 package app
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // App create
 // 注册任务

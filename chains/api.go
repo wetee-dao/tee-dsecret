@@ -1,10 +1,10 @@
 package chains
 
 import (
-	// pallets "wetee.app/dsecret/chains/pallets"
+	// pallets "github.com/wetee-dao/tee-dsecret/chains/pallets"
 	"github.com/wetee-dao/ink.go/util"
-	"wetee.app/dsecret/chains/contracts"
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/chains/contracts"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 var MainChain Chain

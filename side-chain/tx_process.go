@@ -7,8 +7,8 @@ import (
 	abcicli "github.com/cometbft/cometbft/abci/client"
 	"github.com/cometbft/cometbft/abci/types"
 	abci "github.com/cometbft/cometbft/abci/types"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model/protoio"
 )
 
 func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {

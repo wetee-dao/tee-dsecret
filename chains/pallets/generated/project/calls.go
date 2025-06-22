@@ -2,7 +2,7 @@ package project
 
 import (
 	types1 "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types "wetee.app/dsecret/chains/pallets/generated/types"
+	types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 // 申请加入团队

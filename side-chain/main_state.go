@@ -3,8 +3,8 @@ package sidechain
 // import (
 // 	"time"
 
-// 	"wetee.app/dsecret/chains"
-// 	"wetee.app/dsecret/internal/model"
+// 	"github.com/wetee-dao/tee-dsecret/chains"
+// 	"github.com/wetee-dao/tee-dsecret/internal/model"
 // )
 
 // var (

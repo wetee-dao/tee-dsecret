@@ -10,9 +10,9 @@ import (
 	"github.com/go-chi/cors"
 
 	nm "github.com/cometbft/cometbft/node"
-	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/internal/util"
-	sidechain "wetee.app/dsecret/side-chain"
+	"github.com/wetee-dao/tee-dsecret/internal/dkg"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 var dkgIns *dkg.DKG

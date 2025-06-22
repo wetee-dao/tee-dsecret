@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 )
 
 // Handler 处理DKG消息

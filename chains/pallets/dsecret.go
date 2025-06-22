@@ -6,11 +6,11 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	chain "github.com/wetee-dao/ink.go"
-	"wetee.app/dsecret/chains/pallets/generated/dsecret"
-	"wetee.app/dsecret/chains/pallets/generated/types"
-	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 )
 
 // RegisterNode register node

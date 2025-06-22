@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"wetee.app/dsecret/internal/model"
-	sidechain "wetee.app/dsecret/side-chain"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 // AddTx is the resolver for the add_tx field.

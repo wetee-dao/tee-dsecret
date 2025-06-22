@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/cometbft/cometbft/p2p"
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 func (p *BTFReactor) Send(node model.PubKey, topic string, message *model.Message) error {

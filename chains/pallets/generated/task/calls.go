@@ -1,6 +1,6 @@
 package task
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Task create
 // 注册任务

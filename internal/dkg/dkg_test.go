@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/peer/local"
-	"wetee.app/dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/peer/local"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 )
 
 var peerSecret = []string{

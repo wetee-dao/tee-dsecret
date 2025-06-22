@@ -1,6 +1,6 @@
 package wesudo
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Execute external transactions as root
 // 以 root 账户执行函数

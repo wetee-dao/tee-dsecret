@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 func GetUrlFromIp(ip model.Ip) string {

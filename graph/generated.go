@@ -16,7 +16,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/introspection"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 // region    ************************** generated!.gotpl **************************
@@ -770,7 +770,7 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 		if data, ok := tmp.(*model.SecretEnvWithHash); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *wetee.app/dsecret/internal/model.SecretEnvWithHash`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/wetee-dao/tee-dsecret/internal/model.SecretEnvWithHash`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

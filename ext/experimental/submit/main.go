@@ -7,10 +7,10 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
+	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 	"golang.org/x/crypto/blake2b"
-	"wetee.app/dsecret/chains/pallets/generated/dsecret"
-	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
-	"wetee.app/dsecret/internal/model"
 )
 
 func main() {

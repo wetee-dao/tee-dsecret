@@ -6,10 +6,10 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
-	"wetee.app/dsecret/chains/contracts/subnet"
-	"wetee.app/dsecret/chains/pallets/generated/revive"
+	"github.com/wetee-dao/tee-dsecret/chains/contracts/subnet"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/revive"
 
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 // Contract

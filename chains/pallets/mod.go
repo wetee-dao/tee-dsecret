@@ -6,13 +6,13 @@ import (
 
 	chain "github.com/wetee-dao/ink.go"
 
-	"wetee.app/dsecret/chains/pallets/generated/app"
-	"wetee.app/dsecret/chains/pallets/generated/dsecret"
-	"wetee.app/dsecret/chains/pallets/generated/gpu"
-	"wetee.app/dsecret/chains/pallets/generated/task"
-	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
-	"wetee.app/dsecret/chains/pallets/generated/worker"
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/app"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/gpu"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/task"
+	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/worker"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 // Chain

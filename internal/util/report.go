@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 func Int64ToBytes(time int64) []byte {

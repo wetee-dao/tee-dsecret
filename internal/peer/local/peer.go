@@ -4,8 +4,8 @@ import (
 	"crypto/ed25519"
 	"fmt"
 
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 	"go.dedis.ch/kyber/v4"
-	"wetee.app/dsecret/internal/model"
 )
 
 var (

@@ -10,8 +10,8 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 
-	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
-	"wetee.app/dsecret/chains/pallets/generated/worker"
+	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/worker"
 )
 
 // Worker

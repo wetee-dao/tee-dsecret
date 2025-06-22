@@ -2,7 +2,7 @@ package treasury
 
 import (
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types1 "wetee.app/dsecret/chains/pallets/generated/types"
+	types1 "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 func MakeSpendCall(daoId0 uint64, beneficiary1 [32]byte, amount2 types.UCompact) types1.RuntimeCall {

@@ -2,7 +2,7 @@ package balances
 
 import (
 	types1 "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	types "wetee.app/dsecret/chains/pallets/generated/types"
+	types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 // Transfer some liquid free balance to another account.

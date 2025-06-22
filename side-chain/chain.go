@@ -5,16 +5,15 @@ import (
 	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
-	"wetee.app/dsecret/chains"
-	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/internal/dkg"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 
 	"github.com/cometbft/cometbft/version"
 )
 
 const ApplicationVersion = 1
-const CurseWordsLimitVE = 10
 
 type SideChain struct {
 	abci.BaseApplication
@@ -65,7 +64,7 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 }
 
 func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
-	util.LogWithGreen("------------------------------ START BLOCK ------------------------------")
+	util.LogWithGreen("START BLOCK", "------------------------------------------------------------")
 	LogWithTime("🚀 Start Block CheckTx")
 
 	// check req.Tx
@@ -117,7 +116,7 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 		ValidatorUpdates: validatorUpdates,
 	}
 
-	LogWithTime("📥 FinalizeBlock =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
+	LogWithTime("📥 Finalize Block =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
 
 	return response, nil
 }
@@ -142,7 +141,7 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 	}
 
 	LogWithTime("💤 Commit")
-	util.LogWithGreen("------------------------------- END BLOCK -------------------------------")
+	util.LogWithGreen("END BLOCK  ", "--------------------------------------------------------------")
 
 	return &abci.CommitResponse{}, nil
 }

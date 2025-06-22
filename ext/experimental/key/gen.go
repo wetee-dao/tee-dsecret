@@ -8,8 +8,8 @@ import (
 
 	"github.com/cosmos/go-bip39"
 	oed "github.com/oasisprotocol/curve25519-voi/primitives/ed25519"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 	"go.dedis.ch/kyber/v4/suites"
-	"wetee.app/dsecret/internal/model"
 )
 
 func main() {

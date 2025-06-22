@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	p2peer "github.com/wetee-dao/tee-dsecret/internal/peer"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/suites"
-	"wetee.app/dsecret/internal/model"
-	p2peer "wetee.app/dsecret/internal/peer"
-	"wetee.app/dsecret/internal/util"
 )
 
 // DKG 代表  DKG 协议的实例

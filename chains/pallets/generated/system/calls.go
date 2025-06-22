@@ -1,6 +1,6 @@
 package system
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Make some on-chain remark.
 //

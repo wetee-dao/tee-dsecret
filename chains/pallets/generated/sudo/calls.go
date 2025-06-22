@@ -1,6 +1,6 @@
 package sudo
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Authenticates the sudo key and dispatches a function call with `Root` origin.
 func MakeSudoCall(call0 types.RuntimeCall) types.RuntimeCall {

@@ -1,6 +1,6 @@
 package grandpa
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Report voter equivocation/misbehavior. This method will verify the
 // equivocation proof and validate the given key ownership proof

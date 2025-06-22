@@ -9,12 +9,12 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	uuid "github.com/satori/go.uuid"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
+	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 	"golang.org/x/crypto/blake2b"
-	"wetee.app/dsecret/chains/pallets/generated/dsecret"
-	gtypes "wetee.app/dsecret/chains/pallets/generated/types"
-	"wetee.app/dsecret/internal/model"
 
-	"wetee.app/dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 )
 
 // HandleUploadClusterProof 函数处理上传集群证明的逻辑

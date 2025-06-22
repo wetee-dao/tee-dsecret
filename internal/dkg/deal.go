@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
 )
 
 // SendDealMessage 发送交易信息到指定节点

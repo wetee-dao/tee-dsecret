@@ -5,7 +5,7 @@ import (
 	state "github.com/centrifuge/go-substrate-rpc-client/v4/rpc/state"
 	types "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	codec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
-	types1 "wetee.app/dsecret/chains/pallets/generated/types"
+	types1 "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 // Make a storage key for TotalIssuance id={{false [6]}}

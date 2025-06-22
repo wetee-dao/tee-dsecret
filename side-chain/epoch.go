@@ -7,8 +7,8 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
-	"wetee.app/dsecret/chains"
-	"wetee.app/dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
 )
 
 func (app *SideChain) CheckEpoch() {

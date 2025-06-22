@@ -3,8 +3,8 @@ package pallets
 import (
 	"errors"
 
-	"wetee.app/dsecret/chains/pallets/generated/gpu"
-	"wetee.app/dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/gpu"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 func (c *Chain) GetGpuApp(publey []byte, id uint64) (*types.GpuApp, error) {

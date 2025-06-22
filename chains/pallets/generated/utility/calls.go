@@ -1,6 +1,6 @@
 package utility
 
-import types "wetee.app/dsecret/chains/pallets/generated/types"
+import types "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 
 // Send a batch of dispatch calls.
 //

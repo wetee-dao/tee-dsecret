@@ -3,8 +3,8 @@ package pallets
 import (
 	"errors"
 
-	"wetee.app/dsecret/chains/pallets/generated/app"
-	"wetee.app/dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/app"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 func (c *Chain) GetApp(publey []byte, id uint64) (*types.TeeApp, error) {

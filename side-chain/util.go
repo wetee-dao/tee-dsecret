@@ -15,7 +15,7 @@ const (
 func LogWithTime(a ...any) {
 	dim := "\033[2m"
 	reset := "\033[0m"
-	tag := dim + time.Now().Format("2006-01-02 15:04:05") + reset
+	tag := dim + time.Now().Format("06-01-02 15:04:05") + reset
 	a = append([]any{tag}, a...)
 	fmt.Println(a...)
 }

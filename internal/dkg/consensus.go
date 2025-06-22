@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
 	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
 )
 
 const StartEpoch = 1

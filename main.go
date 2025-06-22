@@ -9,12 +9,12 @@ import (
 
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
-	chain "wetee.app/dsecret/chains"
-	"wetee.app/dsecret/graph"
-	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/internal/model"
-	"wetee.app/dsecret/internal/util"
-	sidechain "wetee.app/dsecret/side-chain"
+	chain "github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/graph"
+	"github.com/wetee-dao/tee-dsecret/internal/dkg"
+	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/internal/util"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:9944"

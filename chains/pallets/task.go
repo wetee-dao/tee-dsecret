@@ -3,8 +3,8 @@ package pallets
 import (
 	"errors"
 
-	"wetee.app/dsecret/chains/pallets/generated/task"
-	"wetee.app/dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/task"
+	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 )
 
 func (c *Chain) GetTaskAccount(id uint64) ([]byte, error) {
