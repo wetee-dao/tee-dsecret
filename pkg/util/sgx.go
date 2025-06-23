@@ -13,7 +13,7 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {

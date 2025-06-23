@@ -4,7 +4,7 @@ package sidechain
 // 	"time"
 
 // 	"github.com/wetee-dao/tee-dsecret/chains"
-// 	"github.com/wetee-dao/tee-dsecret/internal/model"
+// 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 // )
 
 // var (

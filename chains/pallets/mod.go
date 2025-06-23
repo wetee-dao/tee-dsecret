@@ -12,7 +12,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/task"
 	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/worker"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 // Chain

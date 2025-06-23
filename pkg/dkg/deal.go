@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 )
 

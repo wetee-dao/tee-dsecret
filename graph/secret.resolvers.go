@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 // UploadSecret is the resolver for the upload_secret field.

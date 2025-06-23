@@ -9,7 +9,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/chains/contracts/subnet"
 	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/revive"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 // Contract

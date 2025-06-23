@@ -16,9 +16,9 @@ import (
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/version"
 	"github.com/wetee-dao/tee-dsecret/chains"
-	"github.com/wetee-dao/tee-dsecret/internal/dkg"
-	bftbrigde "github.com/wetee-dao/tee-dsecret/internal/peer/bft-brigde"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 var SideChainNode *nm.Node

@@ -1,7 +1,7 @@
 package dkg
 
 import (
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 type Logger struct {

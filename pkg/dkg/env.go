@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	proxy_reenc "github.com/wetee-dao/tee-dsecret/internal/dkg/proxy-reenc"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	proxy_reenc "github.com/wetee-dao/tee-dsecret/pkg/dkg/proxy-reenc"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 // SetSecretEnv 通过DKG流程设置秘密环境变量

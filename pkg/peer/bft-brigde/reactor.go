@@ -9,8 +9,8 @@ import (
 	"github.com/cometbft/cometbft/types"
 
 	"github.com/wetee-dao/tee-dsecret/chains"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 var MaxMsgSize = types.MaxBlockSizeBytes

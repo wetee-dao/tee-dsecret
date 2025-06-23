@@ -6,9 +6,9 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/chains"
-	"github.com/wetee-dao/tee-dsecret/internal/dkg"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 
 	"github.com/cometbft/cometbft/version"
 )

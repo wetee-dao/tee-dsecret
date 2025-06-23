@@ -9,8 +9,8 @@ import (
 	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
 	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
 	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 // RegisterNode register node

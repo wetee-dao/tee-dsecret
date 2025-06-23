@@ -11,9 +11,9 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	chain "github.com/wetee-dao/tee-dsecret/chains"
 	"github.com/wetee-dao/tee-dsecret/graph"
-	"github.com/wetee-dao/tee-dsecret/internal/dkg"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 

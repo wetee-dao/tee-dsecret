@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 type Peer interface {

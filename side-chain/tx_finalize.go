@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/model/protoio"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxResult, error) {

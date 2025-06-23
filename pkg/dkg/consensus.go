@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/sign/schnorr"

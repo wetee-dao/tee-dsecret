@@ -8,7 +8,7 @@ import (
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
-	"github.com/wetee-dao/tee-dsecret/internal/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 )
 
 var DBINS *DB

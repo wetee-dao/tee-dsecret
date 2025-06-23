@@ -4,7 +4,7 @@ import (
 	"crypto/ed25519"
 	"fmt"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"go.dedis.ch/kyber/v4"
 )
 

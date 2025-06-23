@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 

@@ -3,7 +3,7 @@ package dkg
 import (
 	"encoding/json"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 // SetData 向Peer发布密钥数据

@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/cors"
 
 	nm "github.com/cometbft/cometbft/node"
-	"github.com/wetee-dao/tee-dsecret/internal/dkg"
-	"github.com/wetee-dao/tee-dsecret/internal/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 

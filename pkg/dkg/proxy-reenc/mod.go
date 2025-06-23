@@ -7,7 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/wetee-dao/tee-dsecret/internal/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/share"
 	"go.dedis.ch/kyber/v4/suites"
