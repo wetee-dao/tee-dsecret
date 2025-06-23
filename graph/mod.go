@@ -2,7 +2,6 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -10,17 +9,21 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
-	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/util"
+	nm "github.com/cometbft/cometbft/node"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 var dkgIns *dkg.DKG
+var sideChainNode *nm.Node
+var sideChain *sidechain.SideChain
 
 // 启动GraphQL服务器
 // StartServer starts the GraphQL server.
-func StartServer(d *dkg.DKG) {
+func StartServer(d *dkg.DKG, node *nm.Node, sideChain *sidechain.SideChain, port int) {
 	dkgIns = d
-	port := util.GetEnvInt("GQL_PORT", 8880)
+	sideChainNode = node
 
 	// 创建路由
 	router := chi.NewRouter()
@@ -48,11 +51,11 @@ func StartServer(d *dkg.DKG) {
 	// main graphql
 	router.Handle("/gql", srv)
 
-	if util.IsFileExists("./ssl/ser.pem") && util.IsFileExists("./ssl/ser.key") {
-		log.Printf("connect to https://0.0.0.0:%s/ for GraphQL playground", fmt.Sprint(port))
-		http.ListenAndServeTLS(":"+fmt.Sprint(port), "./ssl/ser.pem", "./ssl/ser.key", router)
+	if util.IsFileExists("./chain_data/ssl/ser.pem") && util.IsFileExists("./chain_data/ssl/ser.key") {
+		util.LogWithBlue("GraphQL    ", "https://0.0.0.0:"+fmt.Sprint(port))
+		http.ListenAndServeTLS(":"+fmt.Sprint(port), "./chain_data/ssl/ser.pem", "./chain_data/ssl/ser.key", router)
 	} else {
-		log.Printf("connect to http://0.0.0.0:%s/ for GraphQL playground", fmt.Sprint(port))
+		util.LogWithBlue("GraphQL    ", "http://0.0.0.0:"+fmt.Sprint(port))
 		http.ListenAndServe(":"+fmt.Sprint(port), router)
 	}
 }

@@ -21,15 +21,17 @@ Dockerfile.cross
 
 !vendor/**/zz_generated.*
 
+
 # editor and IDE paraphernalia
 .idea
 .vscode
 *.swp
 *.swo
 *~
-mint/chain/gen/wetee-meta.json
+
+**/chain_data
 **/db/
-bin/
-**/dsecret
 **/nohup.out
-hack/node1/ssl
+bin/
+hack/node1/
+hack/node2/

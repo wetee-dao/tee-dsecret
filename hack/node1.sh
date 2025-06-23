@@ -9,16 +9,17 @@ DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
 cd $DIR/node1
 
-export PEER_PK=080112406bce93c01f4b51287b01e55565cf7933cb624b25d478e003ca23446bc3ef83b9d0380163fd5c55a0474b95709da5b31d386da0313bb69bd635618f5cb80f1dde
-export TCP_PORT=31000
-export UDP_PORT=31000
-export GQL_PORT=31001
+export SIDE_CHAIN_PORT=41000
+export SIDE_CHAIN_ADDR=192.168.111.105
+export GQL_PORT=41005
 export PASSWORD=123456
-export CHAIN_ADDR=ws://paseo.asyou.me/ws
+export CHAIN_ADDR=ws://127.0.0.1:9944
 
 ego-go build -o dsecret ../../main.go
 ego sign dsecret
 
 rm nohup.out
 
-nohup ego run dsecret &
+ego sign dsecret && ego run dsecret
+# nohup ego run dsecret &
+# ./dsecret

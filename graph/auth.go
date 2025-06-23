@@ -12,8 +12,7 @@ import (
 	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-
-	types "wetee.app/dsecret/type"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 var (
@@ -26,7 +25,7 @@ type contextKey struct {
 
 // AuthCheck checks the user's role and timestamp
 func AuthCheck(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
-	user := ctx.Value(loginStatCtxKey).(*types.User)
+	user := ctx.Value(loginStatCtxKey).(*model.PublicUser)
 	if user == nil {
 		err = gqlerror.Errorf("Please log in first.")
 		return
@@ -57,7 +56,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 }
 
 // InitUser decodes the share session cookie and packs the session into context
-func InitUser(w http.ResponseWriter, r *http.Request) *types.User {
+func InitUser(w http.ResponseWriter, r *http.Request) *model.PublicUser {
 	header := r.Header
 	token, ok := header["Authorization"]
 	if !ok || len(token) == 0 {
@@ -68,7 +67,7 @@ func InitUser(w http.ResponseWriter, r *http.Request) *types.User {
 }
 
 // decodeToken decodes the share session cookie and packs the session into context
-func decodeToken(tokenStr string) *types.User {
+func decodeToken(tokenStr string) *model.PublicUser {
 	token := strings.Split(tokenStr, "||")
 	if len(token) != 2 {
 		fmt.Println("token length error => ", len(token))
@@ -81,7 +80,7 @@ func decodeToken(tokenStr string) *types.User {
 		return nil
 	}
 
-	user := &types.User{}
+	user := &model.PublicUser{}
 	err := json.Unmarshal(bt, user)
 	if err != nil {
 		fmt.Println(err)
@@ -110,7 +109,7 @@ func decodeToken(tokenStr string) *types.User {
 	}
 
 	// 构造签名内容
-	uinput := types.User{
+	uinput := model.PublicUser{
 		Address:   user.Address,
 		Timestamp: user.Timestamp,
 	}

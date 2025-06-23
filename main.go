@@ -1,75 +1,109 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
-	"wetee.app/dsecret/graph"
-	"wetee.app/dsecret/internal/chain"
-	"wetee.app/dsecret/internal/dkg"
-	"wetee.app/dsecret/internal/peer/p2p"
-	"wetee.app/dsecret/internal/store"
-	types "wetee.app/dsecret/type"
-	"wetee.app/dsecret/util"
+	"github.com/cometbft/cometbft/p2p"
+	"github.com/cometbft/cometbft/privval"
+	chain "github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/graph"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:9944"
 
 func main() {
 	// 获取环境变量
-	peerSecret := util.GetEnv("PEER_PK", "")
-	tcpPort := util.GetEnvInt("TCP_PORT", 61000)
-	udpPort := util.GetEnvInt("UDP_PORT", 61000)
+	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
 	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
-	password := util.GetEnv("PASSWORD", "")
+	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
+	// password := util.GetEnv("PASSWORD", "")
 
-	// 初始化数据库
-	err := store.InitDB(password)
+	// Init app db
+	db, err := model.NewDB()
 	if err != nil {
 		fmt.Println("Init db error:", err)
 		os.Exit(1)
 	}
+	defer db.Close()
 
-	// 初始化加密套件
-	nodeSecret, err := types.PrivateKeyFromLibp2pHex(peerSecret)
+	// init sidechain node key
+	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
+	if err != nil {
+		fmt.Println("failed to load node key:", err)
+		os.Exit(1)
+	}
+	p2pKey, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
 	if err != nil {
 		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
 	}
 
-	// 链接区块链
-	err = chain.InitChain(chainAddr, nodeSecret)
+	// Init key for DKG
+	validatorKey := privval.LoadFilePV(
+		"./chain_data/config/priv_validator_key.json",
+		"./chain_data/data/priv_validator_state.json",
+	)
+	dkgKey := validatorKey.Key.PrivKey
+
+	// Init node key for Mainchain
+	nodePriv, err := model.PrivateKeyFromOed25519(dkgKey.Bytes())
+	if err != nil {
+		fmt.Println("Marshal PKG_PK error:", err)
+		os.Exit(1)
+	}
+
+	// Link to polkadot
+	mainChain, err := chain.ConnectMainChain(chainAddr, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 启动 P2P 网络
-	peer, err := p2p.NewP2PNetwork(ctx, nodeSecret, uint32(tcpPort), uint32(udpPort))
+	// Init node
+	node, sideChain, dkgReactor, err := sidechain.Init(chainPort, mainChain, func() {
+		fmt.Println()
+		util.LogWithYellow("Main Chain", chainAddr)
+		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
+		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
+	})
 	if err != nil {
-		fmt.Println("Start P2P peer error:", err)
-		os.Exit(1)
+		log.Fatalf("failed to init node: %v", err)
 	}
 
-	// 创建 DKG 实例
-	dkgIns, err := dkg.NewRabinDKG(nodeSecret, peer)
+	// Start BFT node
+	if err := node.Start(); err != nil {
+		log.Fatalf("failed to start BFT node: %v", err)
+	}
+	defer func() {
+		_ = node.Stop()
+		node.Wait()
+	}()
+
+	// Create DKG
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, nil)
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
 	}
+	go dkgIns.Start()
+	defer dkgIns.Stop()
 
-	// 启动节点
-	go peer.Start(ctx)
+	// Set DKG to sideChain
+	sideChain.SetDKG(dkgIns)
 
-	// 运行 DKG 协议
-	if err := dkgIns.Start(ctx, nil); err != nil {
-		fmt.Println("Start DKG error:", err)
-		os.Exit(1)
-	}
+	// 启动 graphql 服务器
+	go graph.StartServer(dkgIns, node, sideChain, gqlPort)
 
-	graph.StartServer(dkgIns)
+	// wait for stop signal
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
 }
