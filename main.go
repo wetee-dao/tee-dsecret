@@ -68,7 +68,7 @@ func main() {
 	}
 
 	// Init node
-	node, sideChain, dkgReactor, err := sidechain.Init(chainPort, mainChain, func() {
+	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, mainChain, func() {
 		fmt.Println()
 		util.LogWithYellow("Main Chain", chainAddr)
 		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
@@ -76,11 +76,13 @@ func main() {
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
+		os.Exit(1)
 	}
 
 	// Start BFT node
 	if err := node.Start(); err != nil {
 		log.Fatalf("failed to start BFT node: %v", err)
+		os.Exit(1)
 	}
 	defer func() {
 		_ = node.Stop()

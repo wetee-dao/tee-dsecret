@@ -2,6 +2,7 @@ package chains
 
 import (
 	// pallets "github.com/wetee-dao/tee-dsecret/chains/pallets"
+	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/chains/contracts"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -10,6 +11,8 @@ import (
 var MainChain Chain
 
 type Chain interface {
+	// get chain client
+	GetClient() *chain.ChainClient
 	GetSignerAddress() string
 	// nodes
 	GetBootPeers() ([]model.P2PAddr, error)

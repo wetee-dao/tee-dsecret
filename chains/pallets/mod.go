@@ -38,6 +38,10 @@ func InitChain(url string, pk *model.PrivKey) (*Chain, error) {
 	}, nil
 }
 
+func (c *Chain) GetClient() *chain.ChainClient {
+	return c.ChainClient
+}
+
 func (c *Chain) GetSignerAddress() string {
 	return c.signer.SS58Address(42)
 }

@@ -9,11 +9,17 @@ import (
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
-func (app *SideChain) CheckEpoch() {
+func (app *SideChain) CheckEpochFromValidator() {
 	if chains.MainChain == nil {
-		fmt.Println("SideChain CheckEpoch error", "chains.MainChain is nil")
+		util.LogWithGreen("SideChain CheckEpochFromValidator", "error chains.MainChain is nil")
+		return
+	}
+
+	if app.dkg == nil {
+		util.LogWithGreen("SideChain CheckEpochFromValidator", "error app.dkg is nil")
 		return
 	}
 

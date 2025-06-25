@@ -23,7 +23,7 @@ import (
 
 var SideChainNode *nm.Node
 
-func Init(
+func InitSideChain(
 	chainPort int,
 	mainChain chains.Chain,
 	callback func(),

@@ -15,6 +15,18 @@ type Txn struct {
 	in *pebble.Batch
 }
 
+func (db *DB) NewTransaction() *Txn {
+	return &Txn{in: db.DB.NewIndexedBatch()}
+}
+
+func (txn *Txn) SetKey(namespace, key string, value []byte) error {
+	return txn.Set([]byte(comboKey(namespace, key)), value)
+}
+
+func (txn *Txn) GetKey(namespace, key string, value proto.Message) ([]byte, error) {
+	return txn.Get([]byte(comboKey(namespace, key)))
+}
+
 func (txn *Txn) Set(key, value []byte) error {
 	val, err := SealWithProductKey(value, nil)
 	if err != nil {

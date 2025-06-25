@@ -75,7 +75,7 @@ func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abc
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	LogWithTime("🎁 PrepareProposal")
 
-	app.CheckEpoch()
+	app.CheckEpochFromValidator()
 
 	finalProposal := make([][]byte, 0)
 	for _, tx := range req.Txs {

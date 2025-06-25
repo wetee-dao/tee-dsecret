@@ -63,6 +63,10 @@ func NewContract(url string, pk *model.PrivKey, subNetAddress types.H160) (*Cont
 	}, nil
 }
 
+func (c *Contract) GetClient() *chain.ChainClient {
+	return c.ChainClient
+}
+
 func (c *Contract) GetSignerAddress() string {
 	return c.signer.SS58Address(42)
 }

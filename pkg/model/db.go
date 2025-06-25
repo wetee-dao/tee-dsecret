@@ -21,10 +21,6 @@ type DB struct {
 	*pebble.DB
 }
 
-func (db *DB) NewTransaction() *Txn {
-	return &Txn{in: db.DB.NewIndexedBatch()}
-}
-
 func NewDB() (*DB, error) {
 	// Open DB
 	db, err := pebble.Open(dbPath, &pebble.Options{})
@@ -59,7 +55,7 @@ func SetKey(namespace, key string, value []byte) error {
 }
 
 func GetKey(namespace, key string) ([]byte, error) {
-	value, _, err := DBINS.Get([]byte(namespace + "_" + key))
+	value, _, err := DBINS.Get([]byte(comboKey(namespace, key)))
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +104,7 @@ func keyUpperBound(b []byte) []byte {
 }
 
 func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
-	rkey := []byte(namespace + "_" + key)
+	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
 		UpperBound: keyUpperBound(rkey),
@@ -165,11 +161,11 @@ func SetProtoMessage[T proto.Message](namespace, key string, value T) error {
 }
 
 func DeleteKey(namespace, key string) error {
-	return DBINS.Delete([]byte(namespace+"_"+key), pebble.Sync)
+	return DBINS.Delete([]byte(comboKey(namespace, key)), pebble.Sync)
 }
 
 func DeletekeysByPrefix(namespace, key string) error {
-	rkey := []byte(namespace + "_" + key)
+	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
 		UpperBound: keyUpperBound(rkey),
@@ -185,4 +181,8 @@ func DeletekeysByPrefix(namespace, key string) error {
 	}
 
 	return txn.Commit(pebble.Sync)
+}
+
+func comboKey(namespace, key string) string {
+	return namespace + "_" + key
 }
