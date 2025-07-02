@@ -14,6 +14,10 @@ func Int64ToBytes(time int64) []byte {
 	return b
 }
 
+func BytesToInt64(b []byte) int64 {
+	return int64(binary.BigEndian.Uint64(b))
+}
+
 // GetReport 通过给定的哈希值获取 TeeParam 和 TeeReport
 // 参数 hash 用于标识要获取报告的数据哈希值
 // 返回值包括 TeeParam、TeeReport 和错误类型

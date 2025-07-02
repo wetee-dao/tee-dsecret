@@ -20,6 +20,10 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 		}
 
 		switch p := tx.Payload.(type) {
+		case *model.Tx_EpochStatus:
+			app.SetEpochStatus(p.EpochStatus)
+
+			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		case *model.Tx_Epoch:
 			// calc validator updates
 			app.calcValidatorUpdates(p.Epoch)

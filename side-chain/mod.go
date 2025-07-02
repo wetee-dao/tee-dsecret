@@ -15,7 +15,7 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/version"
-	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"

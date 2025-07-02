@@ -8,7 +8,7 @@ import (
 	"github.com/cometbft/cometbft/p2p/conn"
 	"github.com/cometbft/cometbft/types"
 
-	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	abcicli "github.com/cometbft/cometbft/abci/client"
-	"github.com/cometbft/cometbft/abci/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
@@ -13,12 +12,19 @@ import (
 
 func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
 	buf := new(bytes.Buffer)
-	err := types.WriteMessage(tx, buf)
+	err := abci.WriteMessage(tx, buf)
 	if err != nil {
 		return nil, err
 	}
 
 	return SideChainNode.Mempool().CheckTx(buf.Bytes(), SideChainNode.NodeInfo().ID())
+}
+
+func GetTxBytes(tx *model.Tx) []byte {
+	buf := new(bytes.Buffer)
+	abci.WriteMessage(tx, buf)
+
+	return buf.Bytes()
 }
 
 func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessProposalStatus {
@@ -30,6 +36,8 @@ func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessPropos
 		}
 
 		switch tx.Payload.(type) {
+		case *model.Tx_EpochStatus:
+			break
 		case *model.Tx_Epoch:
 			break
 		case *model.Tx_Bridge:

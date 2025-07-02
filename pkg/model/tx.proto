@@ -8,6 +8,7 @@ option go_package = "";
 message Tx {
   oneof payload {
     string test = 3;
+    int64 epoch_status = 4;
     Epoch epoch = 1;
     Bridge bridge = 2;
   }

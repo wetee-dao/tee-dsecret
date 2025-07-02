@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v4"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
@@ -11,12 +12,17 @@ import (
 )
 
 type ConsensusMsg struct {
+	Sponsor          Validator
 	DealBundle       *DealBundle
 	Epoch            uint32
 	ShareCommits     KyberPoints
 	OldValidators    []*Validator
 	Validators       []*Validator
 	ConsensusNodeNum int
+
+	// side chain key
+	SideChainPub      types.AccountID
+	NodeNewEpochShare []byte
 }
 
 type DealBundle struct {

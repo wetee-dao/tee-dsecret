@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/vedhavyas/go-subkey/v2"
-	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 

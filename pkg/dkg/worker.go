@@ -9,8 +9,8 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	uuid "github.com/satori/go.uuid"
-	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
-	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/dsecret"
+	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"golang.org/x/crypto/blake2b"
 
@@ -38,7 +38,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 
 	// 请求节点验证签名
 	errNum := 0
-	for _, node := range dkg.DkgNodes {
+	for _, node := range dkg.Nodes {
 		// 向节点发送消息
 		err := dkg.sendToNode(&node.P2pId, "worker", &model.Message{
 			MsgID:   msgID,
@@ -52,13 +52,13 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	}
 
 	// 检查有效响应数量是否达到阈值
-	if len(dkg.DkgNodes)-errNum < dkg.Threshold {
+	if len(dkg.Nodes)-errNum < dkg.Threshold {
 		return nil, errors.New("not enough nodes")
 	}
 
 	// 初始化变量，用于存储公钥和签名
-	pubs := make([][32]byte, 0, len(dkg.DkgNodes))
-	sigs := make([]gtypes.MultiSignature, 0, len(dkg.DkgNodes))
+	pubs := make([][32]byte, 0, len(dkg.Nodes))
+	sigs := make([]gtypes.MultiSignature, 0, len(dkg.Nodes))
 
 	// 从通道中接收节点的响应
 	for i := 0; i > dkg.Threshold; i++ {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -68,10 +69,23 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	pubkey := types.AccountID{}
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      1,
+	}, func(pub types.AccountID, sig [64]byte) {
+		util.LogWithBlue("CONSENSUS SUCCESS", pub, sig)
+		pubkey = pub
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
@@ -119,30 +133,47 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      2,
+	}, func(pub types.AccountID, sig [64]byte) {
+		util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
+		pubkey = pub
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare != nil {
-			util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare.String())
-		}
+		util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare.String())
 	}
 
 	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      3,
+	}, func(pub types.AccountID, sig [64]byte) {
+		util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare.PriShare.PriShare != nil {
-			util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare.String())
-		}
+		util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare.String())
 	}
 }
 

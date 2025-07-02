@@ -9,8 +9,8 @@ import (
 
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
-	chain "github.com/wetee-dao/tee-dsecret/chains"
 	"github.com/wetee-dao/tee-dsecret/graph"
+	chain "github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -89,8 +89,9 @@ func main() {
 		node.Wait()
 	}()
 
-	// Create DKG
-	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, nil)
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, dkg.Logger{
+		NodeTag: "DKG",
+	})
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	p2peer "github.com/wetee-dao/tee-dsecret/pkg/peer"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -25,26 +26,35 @@ type DKG struct {
 	Signer *model.PrivKey
 	// DistKeyGenerator
 	DistKeyGenerator *pedersen.DistKeyGenerator
-	// Peer 是 P2P 网络主机
-	DkgNodes []*model.Validator
+
 	// Threshold 是密钥重建所需的最小份额数量
 	Threshold int
-	// DKG epoch
-	Epoch uint32
 
-	// DistPubKey globle public key
-	DkgPubKey *model.PubKey
-	// DistKeyShare is the node private share
-	DkgKeyShare *model.DistKeyShare
+	// epoch data
+	Nodes        []*model.Validator
+	Epoch        uint32
+	DkgPubKey    *model.PubKey
+	DkgKeyShare  *model.DistKeyShare
+	SideKeyPub   types.AccountID
+	SideKeyShare []byte
+
+	// next epoch data
+	NewNodes        []*model.Validator
+	NewEoch         uint32
+	NewDkgPubKey    *model.PubKey // dkg key
+	NewDkgKeyShare  *model.DistKeyShare
+	NewSideKeyPub   types.AccountID // side key
+	NewSideKeyShare []byte
+	NewEochSponsor  *model.Validator
+
+	// must be set nil
+	NewSideKeyShares map[string][]byte
+	NewEochOldShares map[string][]byte
 
 	// cache the deal, response, justification, result
 	deals     map[string]*model.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
-
-	// next epoch data
-	NewNodes []*model.Validator
-	NewEoch  uint32
 
 	// mainChan is the channel to receive out message
 	mainChan chan *model.Message
@@ -52,8 +62,10 @@ type DKG struct {
 	preRecerve map[string]chan any
 
 	// Consensus is running
-	inConsensus        bool
-	failConsensusTimer *time.Timer
+	lastConsensusTime     int64
+	failConsensusTimer    *time.Timer
+	consensusSuccededBack func(types.AccountID, [64]byte)
+	consensusFailBack     func(error)
 
 	// 未初始化状态 => 0 | 初始化成功 => 1
 	status uint8
@@ -82,11 +94,7 @@ func NewDKG(
 		responses:  make(map[string]*pedersen.ResponseBundle),
 	}
 
-	// dkg.Peer.AddHandler("worker", dkg.HandleWorker)
-	dkg.Peer.Sub("dkg", dkg.TryRun)
-
-	// 添加网络节点变化回调
-	// peer.SetNetworkChangeBack(dkg.CallFromPeer)
+	dkg.Peer.Sub("dkg", dkg.DkgOutHandler)
 
 	// 复原 DKG 对象
 	err := dkg.reStore()
@@ -96,6 +104,12 @@ func NewDKG(
 
 	dkg.mainChan = make(chan *model.Message, 800)
 	return dkg, nil
+}
+
+// out dkg event Handler
+func (dkg *DKG) DkgOutHandler(data *model.Message) error {
+	dkg.mainChan <- data
+	return nil
 }
 
 // Start DKG service
@@ -118,7 +132,7 @@ func (dkg *DKG) connectLen() int {
 	var len int
 	peers := dkg.Peer.Nodes()
 	for _, p := range peers {
-		for _, node := range dkg.DkgNodes {
+		for _, node := range dkg.Nodes {
 			if p.String() == node.P2pId.String() {
 				len = len + 1
 			}
@@ -134,7 +148,7 @@ func (d *DKG) Share() model.DistKeyShare {
 // Get validator id
 func (dkg *DKG) validatorID() *model.PubKey {
 	pub := dkg.Signer.GetPublic()
-	for _, p := range dkg.DkgNodes {
+	for _, p := range dkg.Nodes {
 		if p.ValidatorId.String() == pub.String() {
 			return &p.ValidatorId
 		}
@@ -151,7 +165,7 @@ func (dkg *DKG) validatorID() *model.PubKey {
 // Get p2p id of self node
 func (dkg *DKG) p2pId() *model.PubKey {
 	pub := dkg.Signer.GetPublic()
-	for _, p := range dkg.DkgNodes {
+	for _, p := range dkg.Nodes {
 		if p.ValidatorId.String() == pub.String() {
 			return &p.P2pId
 		}
@@ -164,65 +178,6 @@ func (dkg *DKG) p2pId() *model.PubKey {
 
 	util.LogError("P2P 404 ", dkg.Signer.GetPublic().SS58())
 	return nil
-}
-
-type DKGStore struct {
-	// Peer 是 P2P 网络主机
-	DkgNodes []*model.Validator
-	// Threshold 是密钥重建所需的最小份额数量
-	Threshold int
-	// DKG epoch
-	Epoch uint32
-
-	// DistPubKey globle public key
-	DkgPubKey *model.PubKey
-	// DistKeyShare is the node private share
-	DkgKeyShare *model.DistKeyShare
-
-	// next epoch data
-	NewNodes []*model.Validator
-	NewEoch  uint32
-
-	status uint8
-}
-
-// Restore dkg state
-func (dkg *DKG) reStore() error {
-	d, err := model.GetJson[DKGStore]("DKG", dkg.Signer.GetPublic().SS58())
-	if err != nil {
-		return fmt.Errorf("get dkg: %w", err)
-	}
-
-	if d == nil {
-		return nil
-	}
-
-	dkg.DkgNodes = d.DkgNodes
-	dkg.Threshold = d.Threshold
-	dkg.Epoch = d.Epoch
-
-	dkg.DkgPubKey = d.DkgPubKey
-	dkg.DkgKeyShare = d.DkgKeyShare
-
-	dkg.NewNodes = d.NewNodes
-	dkg.NewEoch = d.NewEoch
-	dkg.status = d.status
-
-	return nil
-}
-
-func (dkg *DKG) saveStore() error {
-	d := DKGStore{
-		DkgNodes:    dkg.DkgNodes,
-		Threshold:   dkg.Threshold,
-		Epoch:       dkg.Epoch,
-		DkgPubKey:   dkg.DkgPubKey,
-		DkgKeyShare: dkg.DkgKeyShare,
-		NewNodes:    dkg.NewNodes,
-		NewEoch:     dkg.NewEoch,
-		status:      dkg.status,
-	}
-	return model.SetJson("DKG", dkg.Signer.GetPublic().SS58(), &d)
 }
 
 // Send message to node

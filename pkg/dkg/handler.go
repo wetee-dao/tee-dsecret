@@ -9,12 +9,6 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
-// Handler 处理DKG消息
-func (dkg *DKG) TryRun(data *model.Message) error {
-	dkg.mainChan <- data
-	return nil
-}
-
 // HandleDkg 处理不同的DKG消息类型
 // msg: 被处理的消息对象
 // 返回：可能的错误
@@ -28,6 +22,12 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 		err := dkg.startConsensus(consensusMsg)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
+		}
+		return err
+	case "consensus_side_key_rebuild":
+		err := dkg.SideKeyRebuild(msg.OrgId, msg.Payload)
+		if err != nil {
+			util.LogError("DEAL <<<<<<<< ERROR", "SideKeyRebuild:", err)
 		}
 		return err
 	case "deal":

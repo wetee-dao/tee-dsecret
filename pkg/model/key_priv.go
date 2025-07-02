@@ -98,9 +98,7 @@ func PrivateKeyFromStd(privkey ed25519.PrivateKey) (*PrivKey, error) {
 }
 
 func PrivateKeyFromHex(s string) (*PrivKey, error) {
-	if strings.HasPrefix(s, "0x") {
-		s = s[2:]
-	}
+	s = strings.TrimPrefix(s, "0x")
 	bt, err := hex.DecodeString(s)
 	if err != nil {
 		return nil, err

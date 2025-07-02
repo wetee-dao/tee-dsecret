@@ -20,7 +20,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	github.com/vektah/gqlparser/v2 v2.5.27
-	github.com/wetee-dao/ink.go v0.1.10
+	github.com/wetee-dao/ink.go v0.1.13
 	go.dedis.ch/kyber/v4 v4.0.0-pre2.0.20250414164612-66d4dee8d2e6
 	golang.org/x/crypto v0.38.0
 	google.golang.org/protobuf v1.36.6

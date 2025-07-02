@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/cometbft/cometbft/version"
+
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
-
-	"github.com/cometbft/cometbft/version"
 )
 
 const ApplicationVersion = 1
@@ -55,7 +55,7 @@ func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abc
 
 func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (*abci.InitChainResponse, error) {
 	util.LogWithGreen("SideChain", "InitChain")
-	app.saveValidators(req.Validators)
+	app.initValidators(req.Validators)
 	appHash := app.State.Hash()
 
 	// This parameter can also be set in the genesis file
@@ -65,7 +65,7 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 
 func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
 	util.LogWithGreen("START BLOCK", "------------------------------------------------------------")
-	LogWithTime("🚀 Start Block CheckTx")
+	LogWithTime("🚀 CheckTx")
 
 	// check req.Tx
 
@@ -75,9 +75,12 @@ func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abc
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	LogWithTime("🎁 PrepareProposal")
 
-	app.CheckEpochFromValidator()
+	tx := app.CheckEpochFromValidator()
 
-	finalProposal := make([][]byte, 0)
+	finalProposal := make([][]byte, 0, len(req.Txs)+2)
+	if tx != nil {
+		finalProposal = append(finalProposal, tx)
+	}
 	for _, tx := range req.Txs {
 		finalProposal = append(finalProposal, tx)
 	}
@@ -86,7 +89,7 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 }
 
 func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessProposalRequest) (*abci.ProcessProposalResponse, error) {
-	LogWithTime("🔖 ProcessProposal")
+	LogWithTime("🌈 ProcessProposal")
 
 	status := app.ProcessTx(req.Txs, app.onGoingBlock)
 	return &abci.ProcessProposalResponse{Status: status}, nil
@@ -104,6 +107,11 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 	var validatorUpdates []abci.ValidatorUpdate
 	if app.onGoingValidators != nil {
 		validatorUpdates = app.onGoingValidators
+		ss58 := []string{}
+		for _, v := range app.onGoingValidators {
+			ss58 = append(ss58, model.PubKeyFromByte(v.PubKeyBytes).SS58())
+		}
+		util.LogWithGreen("SideChain Validator updates", ss58)
 	}
 
 	// save proposer of currut block
@@ -116,7 +124,9 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 		ValidatorUpdates: validatorUpdates,
 	}
 
-	LogWithTime("📥 Finalize Block =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
+	LogWithTime("📦 Finalize Block =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
+
+	// Send main-chain tx sig to validator for multi-sig
 
 	return response, nil
 }
@@ -147,13 +157,13 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 }
 
 func (app *SideChain) ExtendVote(_ context.Context, _ *abci.ExtendVoteRequest) (*abci.ExtendVoteResponse, error) {
-	LogWithTime("👌 ExtendVote")
+	LogWithTime("💊 Issue TEE report")
 
 	return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
 }
 
 func (app *SideChain) VerifyVoteExtension(_ context.Context, req *abci.VerifyVoteExtensionRequest) (*abci.VerifyVoteExtensionResponse, error) {
-	LogWithTime("👌 VerifyVoteExtension")
+	LogWithTime("💊 Verify TEE report")
 
 	// if len(curseWords) > CurseWordsLimitVE {
 	// 	return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil

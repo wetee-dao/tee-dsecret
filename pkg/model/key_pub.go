@@ -65,6 +65,13 @@ func (p *PubKey) H160() types.H160 {
 	return H160FromPublicKey(p.PublicKey)
 }
 
+func (p *PubKey) AccountID() types.AccountID {
+	var bt [32]byte
+	copy(bt[:], p.PublicKey)
+
+	return types.AccountID(bt)
+}
+
 func (p *PubKey) UnmarshalJSON(bt []byte) error {
 	var key ed25519.PublicKey = []byte{}
 	err := json.Unmarshal(bt, &key)
