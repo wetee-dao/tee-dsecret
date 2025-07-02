@@ -7,7 +7,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
-	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxResult, error) {
@@ -34,7 +33,6 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 				return nil, err
 			}
 
-			util.LogWithPurple("SideChain FinalizeTx", "New Epoch", p.Epoch.Epoch)
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		case *model.Tx_Bridge:
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})

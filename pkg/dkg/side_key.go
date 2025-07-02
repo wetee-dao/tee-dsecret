@@ -1,31 +1,49 @@
 package dkg
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/hashicorp/vault/shamir"
+	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func NewSr25519(nodes int, threshold int) ([][]byte, types.AccountID, error) {
+func NewSr25519Split(nodes int, threshold int) ([][]byte, types.AccountID, error) {
 	// 生成64字节sr25519私钥种子（示例）
 	kyr, err := sr25519.Scheme{}.Generate()
 	if err != nil {
 		return nil, types.AccountID{}, err
 	}
 
+	return SplitSr25519(kyr, nodes, threshold)
+}
+
+func SplitSr25519(key subkey.KeyPair, nodes, threshold int) ([][]byte, types.AccountID, error) {
 	// 拆分私钥
-	shares, err := shamir.Split(kyr.Seed(), nodes, threshold)
+	shares, err := shamir.Split(key.Seed(), nodes, threshold)
 	if err != nil {
 		return nil, types.AccountID{}, err
 	}
 
 	var pub [32]byte
-	copy(pub[:], kyr.Public())
+	copy(pub[:], key.Public())
 
 	return shares, types.AccountID(pub), nil
+}
+
+func CombineSr25519(shares [][]byte) (subkey.KeyPair, error) {
+	oldkey, err := shamir.Combine(shares)
+	if err != nil {
+		return nil, err
+	}
+
+	scheme := sr25519.Scheme{}
+
+	return scheme.FromSeed(oldkey)
 }
 
 func (dkg *DKG) SaveSideKey(newMsg *model.ConsensusMsg) {
@@ -68,46 +86,42 @@ func (dkg *DKG) SideKeyRebuild(OrgId string, data []byte) error {
 		return err
 	}
 
-	if dkg.NewEochOldShares == nil {
-		dkg.NewEochOldShares = make(map[string][]byte)
+	if dkg.NewOldSharesCache == nil {
+		dkg.NewOldSharesCache = make(map[string][]byte)
 	}
 
-	dkg.NewEochOldShares[OrgId] = kmessage.OldShare
-	if len(dkg.NewEochOldShares) < dkg.Threshold {
+	dkg.NewOldSharesCache[OrgId] = kmessage.OldShare
+	if len(dkg.NewOldSharesCache) <= dkg.Threshold {
 		return nil
 	}
 
-	shares := make([][]byte, 0, len(dkg.NewEochOldShares))
-	for v := range dkg.NewEochOldShares {
-		shares = append(shares, dkg.NewEochOldShares[v])
+	shares := make([][]byte, 0, len(dkg.NewOldSharesCache))
+	for v := range dkg.NewOldSharesCache {
+		shares = append(shares, dkg.NewOldSharesCache[v])
 	}
 
-	if dkg.NewEoch <= StartEpoch {
-		dkg.consensusSuccededBack(dkg.NewSideKeyPub, [64]byte{})
-		return nil
-	}
-
-	oldkey, err := shamir.Combine(shares)
+	kyr, err := CombineSr25519(shares)
 	if err != nil {
-		return err
-	}
-
-	scheme := sr25519.Scheme{}
-	kyr, err := scheme.FromSeed(oldkey)
-	if err != nil {
+		dkg.consensusFailBack(errors.New("SideKeyRebuild CombineSr25519 error:" + err.Error()))
 		return err
 	}
 
 	sig, err := kyr.Sign(dkg.NewSideKeyPub.ToBytes())
 	if err != nil {
+		dkg.consensusFailBack(errors.New("SideKeyRebuild sign:" + err.Error()))
 		return err
 	}
 
 	var btsig [64]byte
 	copy(btsig[:], sig)
 
-	dkg.consensusSuccededBack(dkg.NewSideKeyPub, btsig)
+	if !bytes.Equal(dkg.SideKeyPub[:], kyr.Public()) {
+		dkg.consensusFailBack(errors.New("SideKeyRebuild old key is not equal to privkey public"))
+		return nil
+	}
 
+	dkg.consensusSuccededBack(dkg.NewSideKeyPub, btsig)
+	dkg.NewOldSharesCache = nil
 	return nil
 }
 

@@ -157,7 +157,7 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 		dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 		// 保存密钥份额
-		dkg.saveStore()
+		dkg.saveState()
 		dkg.finishDkgConsensusStep(true, "")
 		return nil
 	}
@@ -174,7 +174,7 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 			dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 			// 保存密钥份额
-			dkg.saveStore()
+			dkg.saveState()
 			dkg.finishDkgConsensusStep(true, "")
 			return nil
 		}

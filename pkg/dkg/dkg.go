@@ -48,8 +48,8 @@ type DKG struct {
 	NewEochSponsor  *model.Validator
 
 	// must be set nil
-	NewSideKeyShares map[string][]byte
-	NewEochOldShares map[string][]byte
+	NewSideKeyShares  map[string][]byte
+	NewOldSharesCache map[string][]byte
 
 	// cache the deal, response, justification, result
 	deals     map[string]*model.DealBundle
@@ -97,7 +97,7 @@ func NewDKG(
 	dkg.Peer.Sub("dkg", dkg.DkgOutHandler)
 
 	// 复原 DKG 对象
-	err := dkg.reStore()
+	err := dkg.reState()
 	if err != nil {
 		return nil, fmt.Errorf("restore dkg: %w", err)
 	}

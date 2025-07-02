@@ -45,7 +45,7 @@ func NewBTFReactor(name string, main chains.Chain) *BTFReactor {
 func (r *BTFReactor) OnStart() error {
 	nodeInfo := r.Switch.NodeInfo()
 	address, _ := nodeInfo.NetAddress()
-	util.LogError("Local Address ", address.String())
+	util.LogWithYellow("Local Address ", address.String())
 	r.PrintPeers("P2P OnStart")
 
 	// 启动协程、初始化资源
@@ -54,11 +54,11 @@ func (r *BTFReactor) OnStart() error {
 
 // 实现 OnStop 生命周期钩子
 func (r *BTFReactor) OnStop() {
-	util.LogError("P2P OnStop")
+	util.LogWithYellow("P2P OnStop")
 }
 
 func (r *BTFReactor) OnReset() error {
-	util.LogError("P2P OnReset")
+	util.LogWithYellow("P2P OnReset")
 	return nil
 }
 
@@ -95,10 +95,10 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 				OrgId:   pub.String(),
 			})
 		} else {
-			util.LogError("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
+			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
 		}
 	default:
-		util.LogError("P2P Receive", "Receive error", "msg", msg)
+		util.LogWithRed("P2P Receive", "Receive error", "msg", msg)
 	}
 }
 
@@ -124,12 +124,9 @@ func (r *BTFReactor) PrintPeers(event string) {
 	if err == nil {
 		r.nodekeys = pubkeys
 	} else {
-		util.LogError(event, "GetNodes", err.Error())
+		util.LogWithRed(event, "GetNodes", err.Error())
 	}
 
 	outbound, inbound, dialing := r.Switch.NumPeers()
-	util.LogError(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, " || nodekeys=>", len(r.nodekeys))
-	// r.Switch.Peers().ForEach(func(peer p2p.Peer) {
-	// 	fmt.Println("             ", peer.ID())
-	// })
+	util.LogWithYellow(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, " || nodekeys=>", len(r.nodekeys))
 }

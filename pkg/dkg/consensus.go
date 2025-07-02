@@ -38,7 +38,7 @@ func (dkg *DKG) TryEpochConsensus(msg model.ConsensusMsg, callback func(types.Ac
 	}
 
 	// create new side chain key
-	shares, pub, err := NewSr25519(len(msg.Validators), len(msg.Validators)*2/3)
+	shares, pub, err := NewSr25519Split(len(msg.Validators), len(msg.Validators)*2/3)
 	if err != nil {
 		util.LogError("DKG Consensus", "NewSr25519 error:", err)
 		return err
@@ -91,11 +91,11 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	dkg.addConsensusTimeout()
 
 	if msg.Epoch <= StartEpoch {
-		util.LogWithGreen("InitConsensus Epoch ======> ", msg.Epoch)
+		util.LogWithGray("InitConsensus Epoch ======> ", msg.Epoch)
 		return dkg.initConsensus(msg)
 	}
 
-	util.LogWithGreen("ReConsensus Epoch ======> ", msg.Epoch)
+	util.LogWithGray("ReConsensus Epoch ======> ", msg.Epoch)
 	return dkg.reConsensus(msg)
 }
 
@@ -176,6 +176,7 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 			fmt.Println("Send error:", err)
 		}
 	}
+	dkg.NewSideKeyShares = nil
 
 	// for {
 	// 	if dkg.DkgKeyShare.PriShare != nil {
@@ -265,7 +266,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 
 	// old node not issue deals
 	if priShare == nil {
-		util.LogWithCyan("DKG", "old node not issue deals")
+		dkg.log.Info("node is not old validator, not send deal")
 		return nil
 	}
 
@@ -290,6 +291,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 			fmt.Println("Send error:", err)
 		}
 	}
+	dkg.NewSideKeyShares = nil
 
 	return nil
 }
@@ -322,19 +324,14 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 		return
 	}
 
-	// cancel new epoch if not sucsess
-	dkg.failConsensusTimer = time.AfterFunc(time.Second*80, func() {
-		dkg.cancelNewEpoch()
-	})
-
 	if dkg.NewEoch > StartEpoch {
 		dkg.SendSideKeyToSponsor()
-		dkg.saveStore()
 	} else {
 		if dkg.NewEochSponsor.ValidatorId.SS58() == dkg.Signer.GetPublic().SS58() && dkg.consensusSuccededBack != nil {
-			dkg.consensusSuccededBack(dkg.NewSideKeyPub, [64]byte{})
+			go dkg.consensusSuccededBack(dkg.NewSideKeyPub, [64]byte{})
 		}
 	}
+	dkg.saveState()
 }
 
 // to next epoch
@@ -368,26 +365,13 @@ func (dkg *DKG) ToNewEpoch() {
 	dkg.NewSideKeyPub = types.AccountID{}
 	dkg.NewSideKeyShare = nil
 
+	// reset cache
 	dkg.NewEochSponsor = nil
 	dkg.NewSideKeyShares = nil
-	dkg.NewEochOldShares = nil
+	dkg.NewOldSharesCache = nil
 
-	util.LogWithGreen("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.Epoch)
-	dkg.saveStore()
-}
-
-func (dkg *DKG) cancelNewEpoch() {
-	dkg.NewNodes = nil
-	dkg.NewEoch = 0
-	dkg.NewDkgPubKey = nil
-	dkg.NewDkgKeyShare = nil
-	dkg.NewSideKeyPub = types.AccountID{}
-	dkg.NewSideKeyShare = nil
-
-	dkg.NewEochSponsor = nil
-	dkg.NewSideKeyShares = nil
-	dkg.NewEochOldShares = nil
-	dkg.setConsensusFree()
+	util.LogWithGray("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.Epoch)
+	dkg.saveState()
 }
 
 func (dkg *DKG) ConsensusIsbusy() bool {

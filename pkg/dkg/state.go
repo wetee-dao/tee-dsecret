@@ -34,7 +34,7 @@ type DKGStore struct {
 }
 
 // Restore dkg state
-func (dkg *DKG) reStore() error {
+func (dkg *DKG) reState() error {
 	from, err := model.GetJson[DKGStore]("DKG", dkg.Signer.GetPublic().SS58())
 	if err != nil {
 		return fmt.Errorf("get dkg: %w", err)
@@ -63,7 +63,7 @@ func (dkg *DKG) reStore() error {
 	return nil
 }
 
-func (dkg *DKG) saveStore() error {
+func (dkg *DKG) saveState() error {
 	to := DKGStore{
 
 		Threshold: dkg.Threshold,

@@ -47,14 +47,14 @@ func (app *SideChain) Info(_ context.Context, info *abci.InfoRequest) (*abci.Inf
 }
 
 func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abci.QueryResponse, error) {
-	util.LogWithGreen("SideChain Query")
+	util.LogWithGreen("Query")
 	resp := abci.QueryResponse{Key: query.Data}
 
 	return &resp, nil
 }
 
 func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (*abci.InitChainResponse, error) {
-	util.LogWithGreen("SideChain", "InitChain")
+	util.LogWithGreen("InitChain")
 	app.initValidators(req.Validators)
 	appHash := app.State.Hash()
 
@@ -64,7 +64,8 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (
 }
 
 func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abci.CheckTxResponse, error) {
-	util.LogWithGreen("START BLOCK", "------------------------------------------------------------")
+	fmt.Println()
+	util.LogWithGreen("START BLOCK", "--------------------------------------------------------------")
 	LogWithTime("🚀 CheckTx")
 
 	// check req.Tx
@@ -111,7 +112,7 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 		for _, v := range app.onGoingValidators {
 			ss58 = append(ss58, model.PubKeyFromByte(v.PubKeyBytes).SS58())
 		}
-		util.LogWithGreen("SideChain Validator updates", ss58)
+		util.LogWithPurple("Validator updates", ss58)
 	}
 
 	// save proposer of currut block

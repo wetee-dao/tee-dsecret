@@ -15,12 +15,12 @@ import (
 
 func (app *SideChain) CheckEpochFromValidator() []byte {
 	if chains.MainChain == nil {
-		util.LogWithGreen("SideChain CheckEpochFromValidator", "error chains.MainChain is nil")
+		util.LogWithRed("CheckEpochFromValidator", "error chains.MainChain is nil")
 		return nil
 	}
 
 	if app.dkg == nil {
-		util.LogWithGreen("SideChain CheckEpochFromValidator", "error app.dkg is nil")
+		util.LogWithRed("CheckEpochFromValidator", "error app.dkg is nil")
 		return nil
 	}
 
@@ -30,35 +30,9 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		return nil
 	}
 
-	// query local epoch
-	epochStatus := app.GetEpochStatus()
-
-	if now-lastEpochBlock >= epochSolt-1 || epoch == 0 {
-		if time.Now().Unix()-int64(epochStatus) > 60 {
-			validators, err := chains.MainChain.GetNextEpochValidatorList()
-			if err != nil {
-				return nil
-			}
-
-			util.LogWithYellow("SideChain NewEpoch", "P1 at epoch", epoch)
-			err = app.dkg.TryEpochConsensus(model.ConsensusMsg{
-				Validators: validators,
-				Epoch:      epoch + 1,
-			}, app.newEpochSucceded, app.newEpochFail)
-			if err == nil {
-				return GetTxBytes(&model.Tx{
-					Payload: &model.Tx_EpochStatus{
-						EpochStatus: time.Now().Unix(), // start epoch, stop submit main chain tx
-					},
-				})
-			}
-		}
-		return nil
-	}
-
-	// Step4 update new epoch to side chain
+	// STEP3 update new epoch to side chain (sync epoch form main chain)
 	if app.GetEpoch() < epoch {
-		util.LogWithYellow("SideChain NewEpoch", "P2")
+		util.LogWithYellow("NewEpoch", "P3")
 		validators, err := chains.MainChain.GetValidatorList()
 		if err != nil {
 			return nil
@@ -81,31 +55,61 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 			},
 		})
 	}
+
+	// query local epoch
+	epochStatus := app.GetEpochStatus()
+
+	// STEP1 check new epoch
+	if now-lastEpochBlock >= epochSolt-1 || epoch == 0 {
+		if time.Now().Unix()-int64(epochStatus) > 120 {
+			validators, err := chains.MainChain.GetNextEpochValidatorList()
+			if err != nil {
+				return nil
+			}
+
+			util.LogWithYellow("NewEpoch", "P1 at epoch", epoch)
+			err = app.dkg.TryEpochConsensus(model.ConsensusMsg{
+				Validators: validators,
+				Epoch:      epoch + 1,
+			}, app.newEpochSucceded, app.newEpochFail)
+			if err == nil {
+				return GetTxBytes(&model.Tx{
+					Payload: &model.Tx_EpochStatus{
+						EpochStatus: time.Now().Unix(), // start epoch, stop submit main chain tx
+					},
+				})
+			}
+		}
+		return nil
+	}
+
 	return nil
 }
 
+// STEP2
 func (app *SideChain) newEpochSucceded(pubkey types.AccountID, sig [64]byte) {
-	util.LogWithYellow("SideChain NewEpoch", "P2 submit tx to main chain")
+	util.LogWithYellow("NewEpoch", "P2 submit tx to main chain")
 	if chains.MainChain == nil {
-		util.LogWithYellow("SideChain CheckEpochFromValidator", "error chains.MainChain is nil")
+		util.LogWithRed("NewEpoch CheckEpochFromValidator", "error chains.MainChain is nil")
 		return
 	}
-
-	// fmt.Println(hex.EncodeToString(pubkey[:]))
-	// fmt.Println(hex.EncodeToString(sig[:]))
 
 	// submit new epoch to main chain
 	err := chains.MainChain.SetNewEpoch(pubkey, sig)
 	if err != nil {
-		util.LogWithRed("SideChain next epoch main chain", "error %v", err)
-	} else {
-		util.LogWithYellow("SideChain next epoch main chain success")
+		util.LogWithRed("NewEpoch next epoch main chain", "error", err)
 	}
 
+	// // target next block
+	// SubmitTx(&model.Tx{
+	// 	Payload: &model.Tx_EpochStatus{
+	// 		EpochStatus: time.Now().Unix(),
+	// 	},
+	// })
 }
 
 func (app *SideChain) newEpochFail(err error) {
-	util.LogWithYellow("SideChain NewEpoch", "step2 Error", err.Error())
+	util.LogWithYellow("NewEpoch", "P2 Error", err.Error())
 }
 
 func (app *SideChain) GetEpochStatus() int64 {
