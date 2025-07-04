@@ -71,6 +71,8 @@ type K8sCluster struct {
 }
 
 type Validator struct {
+	// node id
+	NodeID uint64
 	// account32
 	ValidatorId PubKey
 	// account32

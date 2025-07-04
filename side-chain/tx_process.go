@@ -10,23 +10,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 )
 
-func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
-	buf := new(bytes.Buffer)
-	err := abci.WriteMessage(tx, buf)
-	if err != nil {
-		return nil, err
-	}
-
-	return SideChainNode.Mempool().CheckTx(buf.Bytes(), SideChainNode.NodeInfo().ID())
-}
-
-func GetTxBytes(tx *model.Tx) []byte {
-	buf := new(bytes.Buffer)
-	abci.WriteMessage(tx, buf)
-
-	return buf.Bytes()
-}
-
+// Process tx
 func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessProposalStatus {
 	for _, txbt := range txs {
 		tx := new(model.Tx)
@@ -50,4 +34,17 @@ func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessPropos
 	}
 
 	return abci.PROCESS_PROPOSAL_STATUS_ACCEPT
+}
+
+// Submit tx to sidechain
+func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
+	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), SideChainNode.NodeInfo().ID())
+}
+
+// Get tx bytes
+func GetTxBytes(tx *model.Tx) []byte {
+	buf := new(bytes.Buffer)
+	abci.WriteMessage(tx, buf)
+
+	return buf.Bytes()
 }

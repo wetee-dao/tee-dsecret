@@ -140,8 +140,8 @@ func Reencrypt(distKeyShare model.DistKeyShare, scrt *model.Secret, rdrPk model.
 	var reply ReencryptReply
 	ste := rdrPk.Suite()
 
-	idx := distKeyShare.PriShare.I
-	ski := distKeyShare.PriShare.V
+	idx := distKeyShare.PriShare().I
+	ski := distKeyShare.PriShare().V
 
 	encCmt := ste.Point()
 	err := encCmt.UnmarshalBinary(scrt.EncCmt)

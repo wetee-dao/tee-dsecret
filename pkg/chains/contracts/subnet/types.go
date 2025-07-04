@@ -56,6 +56,7 @@ type Error struct { // Enum
 	EpochNotExpired           *bool // 11
 	InvalidSideChainSignature *bool // 12
 	NodeIsRunning             *bool // 13
+	InvalidSideChainCaller    *bool // 14
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -170,6 +171,14 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.InvalidSideChainCaller != nil {
+		err = encoder.PushByte(14)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -235,6 +244,10 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.NodeIsRunning = &t
 		return
+	case 14: // Base
+		t := true
+		ty.InvalidSideChainCaller = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -295,6 +308,10 @@ func (ty *Error) Error() string {
 	if ty.NodeIsRunning != nil {
 		return "NodeIsRunning"
 	}
+
+	if ty.InvalidSideChainCaller != nil {
+		return "InvalidSideChainCaller"
+	}
 	return "Unknown"
 }
 
@@ -311,9 +328,10 @@ type EpochInfo struct { // Composite
 	EpochSolt      uint32
 	LastEpochBlock uint32
 	Now            uint32
-	SideChainPub   [32]byte
+	SideChainPub   types.H160
 }
 type Tuple_82 struct { // Tuple
-	F0 SecretNode
-	F1 uint32
+	F0 uint64
+	F1 SecretNode
+	F2 uint32
 }

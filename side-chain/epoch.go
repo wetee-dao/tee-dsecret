@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
+	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
@@ -24,7 +24,7 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		return nil
 	}
 
-	// query epoch
+	// Query epoch from main chain
 	epoch, epochSolt, lastEpochBlock, now, _, err := chains.MainChain.GetEpoch()
 	if err != nil {
 		return nil
@@ -56,7 +56,7 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		})
 	}
 
-	// query local epoch
+	// Query local epoch
 	epochStatus := app.GetEpochStatus()
 
 	// STEP1 check new epoch
@@ -64,6 +64,7 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		if time.Now().Unix()-int64(epochStatus) > 120 {
 			validators, err := chains.MainChain.GetNextEpochValidatorList()
 			if err != nil {
+				util.LogWithYellow("GetNextEpochValidatorList error:", err)
 				return nil
 			}
 
@@ -87,7 +88,7 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 }
 
 // STEP2
-func (app *SideChain) newEpochSucceded(pubkey types.AccountID, sig [64]byte) {
+func (app *SideChain) newEpochSucceded(signer *dkg.DssSigner, nodeId uint64) {
 	util.LogWithYellow("NewEpoch", "P2 submit tx to main chain")
 	if chains.MainChain == nil {
 		util.LogWithRed("NewEpoch CheckEpochFromValidator", "error chains.MainChain is nil")
@@ -95,23 +96,21 @@ func (app *SideChain) newEpochSucceded(pubkey types.AccountID, sig [64]byte) {
 	}
 
 	// submit new epoch to main chain
-	err := chains.MainChain.SetNewEpoch(pubkey, sig)
-	if err != nil {
-		util.LogWithRed("NewEpoch next epoch main chain", "error", err)
-	}
+	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId)
 
-	// // target next block
-	// SubmitTx(&model.Tx{
-	// 	Payload: &model.Tx_EpochStatus{
-	// 		EpochStatus: time.Now().Unix(),
-	// 	},
-	// })
+	client := chains.MainChain.GetClient()
+	err := client.SignAndSubmit(signer, *call, false)
+	if err != nil {
+		util.LogWithRed("NewEpoch client.SignAndSubmit", err.Error())
+	}
 }
 
+// Callback when DKG consensus failed
 func (app *SideChain) newEpochFail(err error) {
 	util.LogWithYellow("NewEpoch", "P2 Error", err.Error())
 }
 
+// Callback when DKG consensus success
 func (app *SideChain) GetEpochStatus() int64 {
 	bt, err := model.GetKey("G", "epoch_status")
 	if err != nil {
@@ -121,12 +120,12 @@ func (app *SideChain) GetEpochStatus() int64 {
 	return util.BytesToInt64(bt)
 }
 
+// SetEpochStatus last epoch timestamp
 func (app *SideChain) SetEpochStatus(status int64) error {
-	model.SetKey("G", "epoch_status", util.Int64ToBytes(status))
-
-	return nil
+	return model.SetKey("G", "epoch_status", util.Int64ToBytes(status))
 }
 
+// GetEpoch get last epoch
 func (app *SideChain) GetEpoch() uint32 {
 	bt, err := model.GetKey("G", "epoch")
 	if err != nil {
@@ -140,6 +139,7 @@ func (app *SideChain) GetEpoch() uint32 {
 	return x
 }
 
+// SetEpoch set new epoch
 func (app *SideChain) SetEpoch(epoch *model.Epoch, txn *model.Txn) error {
 	// Save new epoch to DKG
 	app.dkg.ToNewEpoch()
@@ -165,6 +165,7 @@ func (app *SideChain) SetEpoch(epoch *model.Epoch, txn *model.Txn) error {
 	return nil
 }
 
+// Get validators form local db
 func (app *SideChain) GetValidators() ([]*model.SideValidator, map[string]*model.PubKey, error) {
 	var err error
 	list, err := model.GetProtoMessageList[model.SideValidator]("G", "validator")
@@ -181,6 +182,7 @@ func (app *SideChain) GetValidators() ([]*model.SideValidator, map[string]*model
 	return list, validatorMap, nil
 }
 
+// Init validator to db From init chain
 func (app *SideChain) initValidators(vs []abci.ValidatorUpdate) error {
 	tx := model.DBINS.NewTransaction()
 
@@ -198,6 +200,7 @@ func (app *SideChain) initValidators(vs []abci.ValidatorUpdate) error {
 	return nil
 }
 
+// Calc validator updates
 func (app *SideChain) calcValidatorUpdates(epoch *model.Epoch) {
 	oldValidators, _, _ := app.GetValidators()
 	newValidators := epoch.Validators

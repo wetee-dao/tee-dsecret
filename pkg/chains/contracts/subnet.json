@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xb5f78fddf1611d5c8ae3e2ff0ecf7719afac254f15892fbb9c57f3aff756aeed",
+    "hash": "0x91c9798c28e3dc078c741a8b58edfad58bda3bd49aa45596bf8beec943aa5840",
     "language": "ink! 6.0.0-alpha",
     "compiler": "rustc 1.85.0",
     "build_info": {
@@ -59,13 +59,13 @@
         "displayName": [
           "ChainExtension"
         ],
-        "type": 87
+        "type": 86
       },
       "hash": {
         "displayName": [
           "Hash"
         ],
-        "type": 86
+        "type": 85
       },
       "maxEventTopics": 4,
       "staticBufferSize": 16384,
@@ -649,17 +649,12 @@
       {
         "args": [
           {
-            "label": "new_key",
+            "label": "_node_id",
             "type": {
-              "displayName": [],
-              "type": 7
-            }
-          },
-          {
-            "label": "sig",
-            "type": {
-              "displayName": [],
-              "type": 83
+              "displayName": [
+                "u64"
+              ],
+              "type": 3
             }
           }
         ],
@@ -681,6 +676,22 @@
         "args": [],
         "default": false,
         "docs": [],
+        "label": "reset_sidekey",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 61
+        },
+        "selector": "0x2256ea82"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
         "label": "next_epoch_validators",
         "mutates": false,
         "payable": false,
@@ -689,7 +700,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 84
+          "type": 83
         },
         "selector": "0x9f8ccaab"
       }
@@ -1408,18 +1419,12 @@
             },
             {
               "layout": {
-                "array": {
-                  "layout": {
-                    "leaf": {
-                      "key": "0x00000000",
-                      "ty": 2
-                    }
-                  },
-                  "len": 32,
-                  "offset": "0x00000000"
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 0
                 }
               },
-              "name": "side_chain_pub"
+              "name": "side_chain_key"
             },
             {
               "layout": {
@@ -2802,9 +2807,9 @@
                 "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<3816918884u32, ()>,>>::Type"
               },
               {
-                "name": "side_chain_pub",
-                "type": 7,
-                "typeName": "<[u8; 32] as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<3061411225u32, ()>,>>::Type"
+                "name": "side_chain_key",
+                "type": 0,
+                "typeName": "<Address as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<11134681u32, ()>,>>::Type"
               },
               {
                 "name": "last_epoch_block",
@@ -3180,6 +3185,10 @@
               {
                 "index": 13,
                 "name": "NodeIsRunning"
+              },
+              {
+                "index": 14,
+                "name": "InvalidSideChainCaller"
               }
             ]
           }
@@ -3691,8 +3700,8 @@
               },
               {
                 "name": "side_chain_pub",
-                "type": 7,
-                "typeName": "[u8; 32]"
+                "type": 0,
+                "typeName": "Address"
               }
             ]
           }
@@ -3761,6 +3770,7 @@
       "type": {
         "def": {
           "tuple": [
+            3,
             35,
             5
           ]
@@ -3771,23 +3781,12 @@
       "id": 83,
       "type": {
         "def": {
-          "array": {
-            "len": 64,
-            "type": 2
-          }
-        }
-      }
-    },
-    {
-      "id": 84,
-      "type": {
-        "def": {
           "variant": {
             "variants": [
               {
                 "fields": [
                   {
-                    "type": 85
+                    "type": 84
                   }
                 ],
                 "index": 0,
@@ -3808,7 +3807,7 @@
         "params": [
           {
             "name": "T",
-            "type": 85
+            "type": 84
           },
           {
             "name": "E",
@@ -3821,7 +3820,7 @@
       }
     },
     {
-      "id": 85,
+      "id": 84,
       "type": {
         "def": {
           "variant": {
@@ -3863,7 +3862,7 @@
       }
     },
     {
-      "id": 86,
+      "id": 85,
       "type": {
         "def": {
           "composite": {
@@ -3883,7 +3882,7 @@
       }
     },
     {
-      "id": 87,
+      "id": 86,
       "type": {
         "def": {
           "variant": {}

@@ -1,0 +1,162 @@
+package dkg
+
+import (
+	"encoding/json"
+	"errors"
+
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/revive"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
+)
+
+var skipPartialSign = false
+
+func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
+	if dkg.NewEpochSponsor == nil {
+		return
+	}
+
+	// skip partial sign return []byte
+	if skipPartialSign {
+		msg := model.NewEpochMsg{
+			PartialSig: []byte{},
+		}
+		bt, _ := json.Marshal(msg)
+		dkg.sendToNode(&dkg.NewEpochSponsor.P2pId, "dkg", &model.Message{
+			Type:    "consensus_to_newpoch",
+			Payload: bt,
+		})
+		return
+	}
+
+	if chains.MainChain == nil {
+		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "chains.MainChain is nil, not send new epoch partial sig to sponsor")
+		return
+	}
+
+	client := chains.MainChain.GetClient()
+	var mapAccountPartialSig []byte
+
+	h160 := dkg.NewDkgPubKey.H160()
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	if err != nil {
+		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "GetOriginalAccountLatest error:"+err.Error())
+		return
+	}
+
+	// at first epoch account must call MapAccount
+	if !isSome {
+		runtimeCall := revive.MakeMapAccountCall()
+		call, _ := (runtimeCall).AsCall()
+		signer := DssSigner{
+			dkg: dkg,
+		}
+
+		var err error
+		mapAccountPartialSig, err = client.PartialSign(&signer, call)
+		if err != nil {
+			util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "client.PartialSign error:"+err.Error())
+			return
+		}
+	}
+
+	call, err := chains.MainChain.TxCallOfSetNextEpoch(dkg.NewEpochSponsor.NodeID)
+	util.LogWithPurple("DKG SendNewEpochPartialSigToSponsor", "side chain key", dkg.NewDkgPubKey.SS58(), dkg.NewDkgPubKey.H160().Hex())
+	if err != nil {
+		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "chains.MainChain.TxCallOfSetNextEpoch error:"+err.Error())
+		return
+	}
+
+	signer := DssSigner{
+		dkg: dkg,
+	}
+	sig, err := client.PartialSign(&signer, *call)
+	if err != nil {
+		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "SendNewEpochPartialSigToSponsor client.PartialSign error:"+err.Error())
+		return
+	}
+
+	msg := model.NewEpochMsg{
+		Time:                 dkg.NewEpochTime,
+		MapAccountPartialSig: mapAccountPartialSig,
+		PartialSig:           sig,
+	}
+	bt, _ := json.Marshal(msg)
+
+	dkg.sendToNode(&dkg.NewEpochSponsor.P2pId, "dkg", &model.Message{
+		Type:    "consensus_to_newpoch",
+		Payload: bt,
+	})
+}
+
+func (dkg *DKG) SubmitToNepoch(OrgId string, data []byte) error {
+	if !dkg.ConsensusIsbusy() {
+		return nil
+	}
+
+	msg := new(model.NewEpochMsg)
+	err := json.Unmarshal(data, msg)
+	if err != nil {
+		dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor client.PartialSign error:" + err.Error()))
+		return err
+	}
+
+	if dkg.NewEpochPartialSigs == nil || dkg.NewEpochPartialSigTime != dkg.NewEpochTime {
+		dkg.NewEpochPartialSigs = make(map[string]*model.NewEpochMsg)
+		dkg.NewEpochPartialSigTime = dkg.NewEpochTime
+	}
+
+	dkg.NewEpochPartialSigs[OrgId] = msg
+	if len(dkg.NewEpochPartialSigs) <= dkg.Threshold {
+		return nil
+	}
+
+	shares := make([][]byte, 0, len(dkg.NewEpochPartialSigs))
+	mapShares := make([][]byte, 0, len(dkg.NewEpochPartialSigs))
+	for v := range dkg.NewEpochPartialSigs {
+		shares = append(shares, dkg.NewEpochPartialSigs[v].PartialSig)
+		mapShares = append(mapShares, dkg.NewEpochPartialSigs[v].MapAccountPartialSig)
+	}
+
+	// check key is has been mapped
+	client := chains.MainChain.GetClient()
+	h160 := dkg.NewDkgPubKey.H160()
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	if err != nil {
+		dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor GetOriginalAccountLatest error:" + err.Error()))
+		return errors.New("SendNewEpochPartialSigToSponsor error:" + err.Error())
+	}
+
+	// mapAccount
+	if !isSome {
+		signer := DssSigner{
+			dkg: dkg,
+		}
+		signer.SetSigs(mapShares)
+
+		runtimeCall := revive.MakeMapAccountCall()
+		call, _ := (runtimeCall).AsCall()
+		err := client.SignAndSubmit(&signer, call, false)
+		if err != nil {
+			dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor side chain key MapAccount error:" + err.Error()))
+			return errors.New("side chain key MapAccount error:" + err.Error())
+		}
+	}
+
+	// util.LogWithPurple("DKG", "SubmitToNepoch side chain key", dkg.NewDkgPubKey.SS58(), dkg.NewDkgPubKey.H160().Hex())
+	signer := DssSigner{
+		dkg: dkg,
+	}
+	signer.SetSigs(shares)
+
+	dkg.consensusSuccessBack(&signer, dkg.NewEpochSponsor.NodeID)
+	return nil
+}
+
+func (dkg *DKG) SaveSponsor(newMsg *model.ConsensusMsg) {
+	if newMsg.Sponsor != nil {
+		dkg.NewEpochSponsor = newMsg.Sponsor
+		dkg.NewEpochTime = newMsg.EpochTime
+	}
+}

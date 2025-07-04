@@ -1,30 +1,22 @@
 package dkg
 
 import (
+	"crypto/ed25519"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/peer/local"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
+
+	chain "github.com/wetee-dao/ink.go"
 )
 
-var peerSecret = []string{
-	"7512939e37970b04c2b9a6060b16654473cf0721b71f8e56126ee314cbd0a7e9fe9125a81688d932ea792e9722c777f7696117363f86a107ab9d3681a8c922c8",
-	"dc72ceaf44e1e382a2ee4bbf47d6eabcca460740d5c28dd7bc097db90700594636922ff5c13eded54d1ba710bf043eed221112eb726da532149e1e3619fb9336",
-	"ebecd85320c3a05a1c170738c321a58d6560be9a1fbb323028f24aa874dece755a10bfc8865e3015c7496a3831d0e5e3abaadf964116d5ea5d8ada52135286a1",
-}
-
-var newPeerSecret = []string{
-	"2d1f5379cc0475c169e7d5ee5e53437c0b6fe60dc4ea822c61d7db9dfe5e33b8931f5771269844909f1e73bd51e9da82eb8a7b2def0313417003f978d9010eb4",
-	"66dfdf585852c8aa4b111c15b69d4b40ad6db7cfabd7ae0b25384c950f5018cb2b4c0a71a9d97d6eb9bfcb29acc0d71df41015c5c5cc697d9471728a2a508a8a",
-}
-
-func TestNetwork(t *testing.T) {
+func TestDSS(t *testing.T) {
 	os.RemoveAll("./chain_data")
 
 	db, err := model.NewDB()
@@ -33,9 +25,6 @@ func TestNetwork(t *testing.T) {
 		os.Exit(1)
 	}
 	defer db.Close()
-
-	// Skip partial sign
-	skipPartialSign = true
 
 	nodes := []*model.PubKey{}
 	validators := []*model.Validator{}
@@ -71,7 +60,6 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	dkg_pubkey := new(model.PubKey)
 	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      1,
@@ -89,17 +77,66 @@ func TestNetwork(t *testing.T) {
 
 	time.Sleep(time.Second * 1)
 
+	msg := []byte("hello word")
+	signers := []DssSigner{}
+	sigs := [][]byte{}
+
+	// Partial Sign
 	for _, d := range dkgs {
-		util.LogWithYellow("V0 |||", d.DkgKeyShare.PriShare().String())
+		signer := DssSigner{
+			dkg: d,
+		}
+		sig, _ := signer.PartialSign(msg)
+		signers = append(signers, signer)
+		sigs = append(sigs, sig)
 	}
-	dkg_pubkey = dkgs[0].DkgPubKey
+	signers[0].SetSigs(sigs)
 
-	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
+	// sign
+	sigbt, err := signers[0].Sign(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	for _, s := range newPeerSecret {
+	isok := ed25519.Verify(dkgs[0].DkgPubKey.Ed25519PublicKey(), msg, sigbt)
+	fmt.Println("ed25519.Verify", isok)
+}
+
+func TestDssSubmitTx(t *testing.T) {
+	os.RemoveAll("./chain_data")
+
+	db, err := model.NewDB()
+	if err != nil {
+		require.NoErrorf(t, err, "failed store.InitDB")
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	// init amount
+	alice, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		t.Fatal(err)
+	}
+	fmt.Println(alice.Address)
+
+	nodePriv, err := model.PrivateKeyFromHex("0xc068c8db6ead1dd57777daeb3ec8bb84342bf9d7e08a812aee130d684283b5a8a39c7474d228cb55224f1932652e05a949b4d9ba6328413485289159e519bd99")
+	if err != nil {
+		fmt.Println(err)
+		t.Fatal(err)
+	}
+
+	// Link to polkadot
+	_, err = chains.ConnectMainChain("ws://127.0.0.1:9944", nodePriv)
+	if err != nil {
+		fmt.Println("Connect to chain error:", err)
+		t.Fatal(err)
+	}
+
+	nodes := []*model.PubKey{}
+	validators := []*model.Validator{}
+	for _, s := range peerSecret {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
-
-		// new peer
 		nodes = append(nodes, nodeSecret.GetPublic())
 		validators = append(validators, &model.Validator{
 			ValidatorId: *nodeSecret.GetPublic(),
@@ -107,27 +144,22 @@ func TestNetwork(t *testing.T) {
 		})
 	}
 
-	for _, s := range newPeerSecret {
+	peers := make([]*local.Peer, 0, len(nodes))
+	for _, s := range peerSecret {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
 
-		// 启动 P2P 网络
 		peer, err := local.NewNetwork(nodeSecret, []string{}, nodes, uint32(0), uint32(0))
 		require.NoErrorf(t, err, "failed peer.NewNetwork")
 
 		peers = append(peers, peer)
 	}
 
-	// set nodes
-	for _, peer := range peers {
-		peer.SetNodes(nodes)
-	}
-
-	for i, s := range newPeerSecret {
+	dkgs := make([]*DKG, 0, len(nodes))
+	for i, s := range peerSecret {
 		nodeSecret, _ := model.PrivateKeyFromHex(s)
 
-		// 创建 DKG 实例
-		dkg, err := NewDKG(nodeSecret, peers[3+i], Logger{
-			NodeTag: "NODE " + fmt.Sprint(3+i),
+		dkg, err := NewDKG(nodeSecret, peers[i], Logger{
+			NodeTag: "NODE " + fmt.Sprint(i),
 		})
 		require.NoErrorf(t, err, "failed NewDKG")
 		go dkg.Start()
@@ -137,32 +169,18 @@ func TestNetwork(t *testing.T) {
 
 	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
-		Epoch:      2,
+		Epoch:      1,
 	}, func(signer *DssSigner, nodeId uint64) {
-		// util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
-		for _, dkg := range dkgs {
-			dkg.ToNewEpoch()
+		util.LogWithBlue("CONSENSUS SUCCESS", nodeId)
+		call, err := chains.MainChain.TxCallOfSetNextEpoch(nodeId)
+		if err != nil {
+			panic(err)
 		}
-	}, func(error) {
-		util.LogWithBlue("CONSENSUS Error", err.Error())
-	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
-	time.Sleep(time.Second * 1)
+		client := chains.MainChain.GetClient()
+		err = client.SignAndSubmit(signer, *call, false)
+		fmt.Println(err)
 
-	for _, d := range dkgs {
-		util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare().String())
-	}
-
-	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
-
-	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
-		Validators: validators,
-		Epoch:      3,
-	}, func(signer *DssSigner, nodeId uint64) {
-		// util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
 		for _, dkg := range dkgs {
 			dkg.ToNewEpoch()
 		}
@@ -174,14 +192,4 @@ func TestNetwork(t *testing.T) {
 	}
 
 	time.Sleep(time.Second * 1)
-
-	for _, d := range dkgs {
-		util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare().String())
-	}
-
-	fmt.Println("dkg pubkey", dkgs[0].DkgPubKey.SS58())
-	fmt.Println("dkg pubkey", dkg_pubkey.SS58())
-	if dkgs[0].DkgPubKey.SS58() != dkg_pubkey.SS58() {
-		t.Fatal("dkg pubkey error")
-	}
 }

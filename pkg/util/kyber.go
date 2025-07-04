@@ -11,14 +11,14 @@ import (
 func HexToScalar(suite suites.Suite, hexStr string) (kyber.Scalar, error) {
 	okbt, err := hex.DecodeString(hexStr)
 	if err != nil {
-		fmt.Println("HexToScalar hex.DecodeString 失败:", err)
+		fmt.Println("HexToScalar hex.DecodeString Error:", err)
 		return nil, err
 	}
 
 	pk := suite.Scalar()
 	err = pk.UnmarshalBinary(okbt)
 	if err != nil {
-		fmt.Println("HexToScalar UnmarshalBinary 失败:", err)
+		fmt.Println("HexToScalar UnmarshalBinary Error:", err)
 		return nil, err
 	}
 	return pk, nil
@@ -27,14 +27,14 @@ func HexToScalar(suite suites.Suite, hexStr string) (kyber.Scalar, error) {
 func HexToPoint(suite suites.Suite, hexStr string) (kyber.Point, error) {
 	okbt, err := hex.DecodeString(hexStr)
 	if err != nil {
-		fmt.Println("HexToPoint hex.DecodeString 失败:", err)
+		fmt.Println("HexToPoint hex.DecodeString Error:", err)
 		return nil, err
 	}
 
 	pk := suite.Point()
 	err = pk.UnmarshalBinary(okbt)
 	if err != nil {
-		fmt.Println("HexToScalar UnmarshalBinary 失败:", err)
+		fmt.Println("HexToScalar UnmarshalBinary Error:", err)
 		return nil, err
 	}
 	return pk, nil

@@ -38,7 +38,6 @@ func TestReencryptAndVerify(t *testing.T) {
 	encCmt, encScrt := EncryptSecret(suite, dkgPk, scrt)
 
 	for idx := range n {
-
 		dkgSki := priPoly.Eval(uint32(idx)).V
 		dkgCmt := pubPoly.Eval(uint32(idx)).V
 

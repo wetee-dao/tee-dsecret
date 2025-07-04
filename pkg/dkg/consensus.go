@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	"go.dedis.ch/kyber/v4"
@@ -16,7 +15,11 @@ import (
 
 const StartEpoch = 1
 
-func (dkg *DKG) TryEpochConsensus(msg model.ConsensusMsg, callback func(types.AccountID, [64]byte), fail func(error)) error {
+func (dkg *DKG) TryEpochConsensus(
+	msg model.ConsensusMsg,
+	callback func(*DssSigner, uint64),
+	fail func(error),
+) error {
 	if dkg.ConsensusIsbusy() {
 		util.LogError("DKG Consensus", "in consensus")
 		return errors.New("in consensus")
@@ -27,29 +30,19 @@ func (dkg *DKG) TryEpochConsensus(msg model.ConsensusMsg, callback func(types.Ac
 		return errors.New("node is not old validator, cannot start consensus")
 	}
 
-	if msg.Epoch > StartEpoch {
-		msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.Commits)
+	if dkg.DkgKeyShare != nil {
+		msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.CommitsWrap)
 		msg.ConsensusNodeNum = len(dkg.Nodes)
 		msg.OldValidators = *util.DeepCopy(dkg.Nodes)
 	} else {
-		msg.Epoch = StartEpoch
 		msg.ShareCommits = model.KyberPoints{Public: []kyber.Point{}}
 		msg.ConsensusNodeNum = 0
 	}
 
-	// create new side chain key
-	shares, pub, err := NewSr25519Split(len(msg.Validators), len(msg.Validators)*2/3)
-	if err != nil {
-		util.LogError("DKG Consensus", "NewSr25519 error:", err)
-		return err
-	}
-
 	// generate new validators sidekey
-	newShares := map[string][]byte{}
 	dkgSigner := dkg.Signer.GetPublic().SS58()
 	validator := new(model.Validator)
-	for i, v := range msg.Validators {
-		newShares[v.P2pId.SS58()] = shares[i]
+	for _, v := range msg.Validators {
 		if v.ValidatorId.SS58() == dkgSigner {
 			validator = v
 		}
@@ -57,15 +50,14 @@ func (dkg *DKG) TryEpochConsensus(msg model.ConsensusMsg, callback func(types.Ac
 
 	if validator == nil {
 		util.LogError("DKG Consensus", "Currunt Node is not in new validators")
-		return err
+		return errors.New("DKG Consensus Currunt Node is not in new validators")
 	}
 
-	msg.SideChainPub = pub
-	msg.Sponsor = *validator
+	msg.Sponsor = validator
+	msg.EpochTime = time.Now().Unix()
 
 	// Must set nil
-	dkg.NewSideKeyShares = newShares
-	dkg.consensusSuccededBack = callback
+	dkg.consensusSuccessBack = callback
 	dkg.consensusFailBack = fail
 
 	bt, _ := json.Marshal(msg)
@@ -90,7 +82,7 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	dkg.setConsensusBusy()
 	dkg.addConsensusTimeout()
 
-	if msg.Epoch <= StartEpoch {
+	if dkg.DkgPubKey == nil {
 		util.LogWithGray("InitConsensus Epoch ======> ", msg.Epoch)
 		return dkg.initConsensus(msg)
 	}
@@ -159,24 +151,14 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 
 	// 开启节点共识
 	for _, node := range dkg.Nodes {
-		nodeShare := []byte{}
-		if key, ok := dkg.NewSideKeyShares[node.P2pId.SS58()]; ok {
-			nodeShare = key
-		}
-		err = dkg.sendDealMessage(&node.P2pId, &model.ConsensusMsg{
-			DealBundle:        &model.DealBundle{DealBundle: deal},
-			ShareCommits:      model.KyberPoints{},
-			Validators:        dkg.Nodes,
-			Epoch:             msg.Epoch,
-			SideChainPub:      msg.SideChainPub,
-			NodeNewEpochShare: nodeShare,
-			Sponsor:           msg.Sponsor,
-		})
+		newMsg := util.DeepCopy(msg)
+		newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
+		newMsg.ShareCommits = model.KyberPoints{}
+		err = dkg.sendDealMessage(&node.P2pId, newMsg)
 		if err != nil {
 			fmt.Println("Send error:", err)
 		}
 	}
-	dkg.NewSideKeyShares = nil
 
 	// for {
 	// 	if dkg.DkgKeyShare.PriShare != nil {
@@ -203,7 +185,7 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	dkg.Nodes = msg.OldValidators
 	// new
 	dkg.NewNodes = msg.Validators
-	dkg.NewEoch = msg.Epoch
+	dkg.NewEpoch = msg.Epoch
 
 	// new DKG 节点列表
 	newNodes := make([]pedersen.Node, 0, len(msg.Validators))
@@ -242,8 +224,8 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	if dkg.DkgKeyShare != nil {
 		priv := dkg.DkgKeyShare
 		conf.Share = &pedersen.DistKeyShare{
-			Commits: priv.Commits.Public,
-			Share:   priv.PriShare.PriShare,
+			Commits: priv.Commitments(),
+			Share:   priv.PriShare(),
 		}
 	} else {
 		conf.PublicCoeffs = msg.ShareCommits.Public
@@ -279,19 +261,14 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 
 	// 开启节点共识
 	for _, node := range dkg.NewNodes {
-		nodeShare := []byte{}
-		if key, ok := dkg.NewSideKeyShares[node.P2pId.SS58()]; ok {
-			nodeShare = key
-		}
-		msg.DealBundle = &model.DealBundle{DealBundle: deal}
-		msg.NodeNewEpochShare = nodeShare
+		newMsg := util.DeepCopy(msg)
+		newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
 
-		err = dkg.sendDealMessage(&node.P2pId, &msg)
+		err = dkg.sendDealMessage(&node.P2pId, newMsg)
 		if err != nil {
 			fmt.Println("Send error:", err)
 		}
 	}
-	dkg.NewSideKeyShares = nil
 
 	return nil
 }
@@ -316,7 +293,7 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
 	if !isok {
-		util.LogWithRed("DKG dkg consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEoch, "error", tag)
+		util.LogWithRed("DKG dkg consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEpoch, "error", tag)
 		dkg.setConsensusFree()
 		if dkg.consensusFailBack != nil {
 			dkg.consensusFailBack(errors.New("DKG dkg consensus failed"))
@@ -324,14 +301,16 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 		return
 	}
 
-	if dkg.NewEoch > StartEpoch {
-		dkg.SendSideKeyToSponsor()
-	} else {
-		if dkg.NewEochSponsor.ValidatorId.SS58() == dkg.Signer.GetPublic().SS58() && dkg.consensusSuccededBack != nil {
-			go dkg.consensusSuccededBack(dkg.NewSideKeyPub, [64]byte{})
-		}
-	}
 	dkg.saveState()
+	// if dkg.DkgPubKey == nil, set new data to init
+	if dkg.DkgPubKey == nil {
+		dkg.Nodes = dkg.NewNodes
+		dkg.Epoch = dkg.NewEpoch
+		dkg.Threshold = len(dkg.NewNodes) * 2 / 3
+		dkg.DkgPubKey = dkg.NewDkgPubKey
+		dkg.DkgKeyShare = dkg.NewDkgKeyShare
+	}
+	dkg.SendNewEpochPartialSigToSponsor()
 }
 
 // to next epoch
@@ -343,7 +322,7 @@ func (dkg *DKG) ToNewEpoch() {
 	defer dkg.setConsensusFree()
 
 	if dkg.NewDkgKeyShare == nil {
-		util.LogWithRed("DKG consensus ToNewEpoch", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEoch)
+		util.LogWithRed("DKG consensus ToNewEpoch", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEpoch)
 		if dkg.consensusFailBack != nil {
 			dkg.consensusFailBack(errors.New("DKG consensus failed"))
 		}
@@ -351,24 +330,18 @@ func (dkg *DKG) ToNewEpoch() {
 	}
 
 	dkg.Nodes = dkg.NewNodes
-	dkg.Epoch = dkg.NewEoch
+	dkg.Epoch = dkg.NewEpoch
 	dkg.Threshold = len(dkg.NewNodes) * 2 / 3
 	dkg.DkgPubKey = dkg.NewDkgPubKey
 	dkg.DkgKeyShare = dkg.NewDkgKeyShare
-	dkg.SideKeyPub = dkg.NewSideKeyPub
-	dkg.SideKeyShare = dkg.NewSideKeyShare
 
 	dkg.NewNodes = nil
-	dkg.NewEoch = 0
+	dkg.NewEpoch = 0
 	dkg.NewDkgPubKey = nil
 	dkg.NewDkgKeyShare = nil
-	dkg.NewSideKeyPub = types.AccountID{}
-	dkg.NewSideKeyShare = nil
 
 	// reset cache
-	dkg.NewEochSponsor = nil
-	dkg.NewSideKeyShares = nil
-	dkg.NewOldSharesCache = nil
+	dkg.NewEpochSponsor = nil
 
 	util.LogWithGray("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.Epoch)
 	dkg.saveState()

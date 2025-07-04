@@ -24,7 +24,7 @@ type DKGStore struct {
 
 	// next epoch data
 	NewNodes        []*model.Validator
-	NewEoch         uint32
+	NewEpoch        uint32
 	NewDkgPubKey    *model.PubKey // dkg key
 	NewDkgKeyShare  *model.DistKeyShare
 	NewSideKeyPub   types.AccountID // side key
@@ -50,15 +50,11 @@ func (dkg *DKG) reState() error {
 	to.Nodes = from.Nodes
 	to.DkgPubKey = from.DkgPubKey
 	to.DkgKeyShare = from.DkgKeyShare
-	to.SideKeyPub = from.SideKeyPub
-	to.SideKeyShare = from.SideKeyShare
 
 	to.NewNodes = from.NewNodes
-	to.NewEoch = from.NewEoch
+	to.NewEpoch = from.NewEpoch
 	to.NewDkgPubKey = from.NewDkgPubKey
 	to.NewDkgKeyShare = from.NewDkgKeyShare
-	to.NewSideKeyPub = from.NewSideKeyPub
-	to.NewSideKeyShare = from.NewSideKeyShare
 
 	return nil
 }
@@ -76,15 +72,11 @@ func (dkg *DKG) saveState() error {
 	to.Nodes = from.Nodes
 	to.DkgPubKey = from.DkgPubKey
 	to.DkgKeyShare = from.DkgKeyShare
-	to.SideKeyPub = from.SideKeyPub
-	to.SideKeyShare = from.SideKeyShare
 
 	to.NewNodes = from.NewNodes
-	to.NewEoch = from.NewEoch
+	to.NewEpoch = from.NewEpoch
 	to.NewDkgPubKey = from.NewDkgPubKey
 	to.NewDkgKeyShare = from.NewDkgKeyShare
-	to.NewSideKeyPub = from.NewSideKeyPub
-	to.NewSideKeyShare = from.NewSideKeyShare
 
 	return model.SetJson("DKG", dkg.Signer.GetPublic().SS58(), &to)
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
 )
@@ -31,10 +32,16 @@ type SecretCommitJson struct {
 // DistKeyShare
 type DistKeyShare struct {
 	// Coefficients of the public polynomial holding the public key
-	Commits KyberPoints //[]kyber.Point
-
+	CommitsWrap KyberPoints `json:"Commits"`
 	// PriShare of the distributed secret
-	PriShare PriShare
+	PriShareWrap PriShare `json:"PriShare"`
+}
+
+func (d DistKeyShare) PriShare() *share.PriShare {
+	return d.PriShareWrap.PriShare
+}
+func (d DistKeyShare) Commitments() []kyber.Point {
+	return d.CommitsWrap.Public
 }
 
 type PriShare struct {

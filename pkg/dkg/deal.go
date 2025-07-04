@@ -51,7 +51,7 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	// 开始本地节点的共识
 	// start local node consensus
 	newMsg := util.DeepCopy(*pmessage)
-	dkg.SaveSideKey(newMsg)
+	dkg.SaveSponsor(newMsg)
 	dkg.startConsensus(*newMsg)
 	// end local node
 
@@ -151,8 +151,8 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 	// 检查是否生成了密钥份额
 	if res != nil {
 		dkg.NewDkgKeyShare = &model.DistKeyShare{
-			Commits:  model.KyberPoints{Public: res.Key.Commits},
-			PriShare: model.PriShare{PriShare: res.Key.Share},
+			CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
+			PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 		}
 		dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
@@ -168,8 +168,8 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err == nil {
 			dkg.NewDkgKeyShare = &model.DistKeyShare{
-				Commits:  model.KyberPoints{Public: res.Key.Commits},
-				PriShare: model.PriShare{PriShare: res.Key.Share},
+				CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
+				PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 			}
 			dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 

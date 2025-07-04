@@ -36,6 +36,10 @@ func (p *PubKey) Std() (gocrypto.PublicKey, error) {
 	return p.PublicKey, nil
 }
 
+func (p *PubKey) Ed25519PublicKey() ed25519.PublicKey {
+	return p.PublicKey
+}
+
 func (p *PubKey) String() string {
 	return hex.EncodeToString(p.PublicKey)
 }

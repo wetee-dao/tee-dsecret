@@ -211,7 +211,7 @@ func (d *DKG) HandleReencryptedShare(reqBt []byte, msgID string, OrgId string) e
 
 	// 获取分布式密钥的份额和多项式承诺
 	distKeyShare := d.Share()
-	poly := share.NewPubPoly(ste, nil, distKeyShare.Commits.Public)
+	poly := share.NewPubPoly(ste, nil, distKeyShare.Commitments())
 
 	// 获取与请求的秘密ID相关联的密钥材料
 	scrt, err := d.GetSecretData(req.SecretId)

@@ -75,7 +75,7 @@ func (c *Contract) GetSignerAddress() string {
 
 // nodes
 func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
-	result, _, err := c.subnet.QueryBootNodes(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+	result, _, err := c.subnet.QueryBootNodes(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +98,11 @@ func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
 }
 
 func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
-	workers, _, err := c.subnet.QueryWorkers(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+	workers, _, err := c.subnet.QueryWorkers(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}
-	dsecrets, _, err := c.subnet.QuerySecrets(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+	dsecrets, _, err := c.subnet.QuerySecrets(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,6 +119,7 @@ func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
 		}
 		nodes = append(nodes, model.PubKeyFromByte(v.F1.P2pId[:]))
 		validators = append(validators, &model.Validator{
+			NodeID:      v.F0,
 			P2pId:       *model.PubKeyFromByte(v.F1.P2pId[:]),
 			ValidatorId: *model.PubKeyFromByte(v.F1.ValidatorId[:]),
 		})
@@ -128,7 +129,7 @@ func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
 }
 
 func (c *Contract) GetValidatorList() ([]*model.Validator, error) {
-	dsecrets, _, err := c.subnet.QueryValidators(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+	dsecrets, _, err := c.subnet.QueryValidators(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, err
 	}
@@ -136,8 +137,9 @@ func (c *Contract) GetValidatorList() ([]*model.Validator, error) {
 	validators := make([]*model.Validator, 0, len(*dsecrets))
 	for _, v := range *dsecrets {
 		validators = append(validators, &model.Validator{
-			P2pId:       *model.PubKeyFromByte(v.F0.P2pId[:]),
-			ValidatorId: *model.PubKeyFromByte(v.F0.ValidatorId[:]),
+			NodeID:      uint64(v.F0),
+			P2pId:       *model.PubKeyFromByte(v.F1.P2pId[:]),
+			ValidatorId: *model.PubKeyFromByte(v.F1.ValidatorId[:]),
 		})
 	}
 
@@ -145,37 +147,32 @@ func (c *Contract) GetValidatorList() ([]*model.Validator, error) {
 }
 
 // epoch
-func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, [32]byte, error) {
-	d, _, err := c.subnet.QueryEpochInfo(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error) {
+	d, _, err := c.subnet.QueryEpochInfo(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
-		return 0, 0, 0, 0, [32]byte{}, err
+		return 0, 0, 0, 0, types.H160{}, err
 	}
 
 	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, d.SideChainPub, nil
 }
 
 // go to new epoch
-func (c *Contract) SetNewEpoch(new_key [32]byte, sig [64]byte) error {
-	_, gas, err := c.subnet.DryRunSetNextEpoch(
-		new_key,
-		sig,
-		chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())),
-	)
+func (c *Contract) SetNewEpoch(nodeId uint64) error {
+	return c.subnet.CallSetNextEpoch(nodeId, chain.CallParams{
+		Signer:    c.signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+}
 
-	if err != nil {
-		return err
-	}
-
-	return c.subnet.CallSetNextEpoch(new_key, sig, chain.CallParams{
-		Signer:              c.signer,
-		PayAmount:           types.NewU128(*big.NewInt(0)),
-		GasLimit:            gas.GasRequired,
-		StorageDepositLimit: gas.StorageDeposit,
+func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64) (*types.Call, error) {
+	return c.subnet.TxCallOfSetNextEpoch(nodeId, chain.CallParams{
+		Signer:    c.signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
 
 func (c *Contract) GetNextEpochValidatorList() ([]*model.Validator, error) {
-	dsecrets, _, err := c.subnet.QueryNextEpochValidators(chain.DefaultParamWithOragin(types.AccountID(c.signer.AccountID())))
+	dsecrets, _, err := c.subnet.QueryNextEpochValidators(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, err
 	}
@@ -183,8 +180,9 @@ func (c *Contract) GetNextEpochValidatorList() ([]*model.Validator, error) {
 	validators := make([]*model.Validator, 0, len(dsecrets.V))
 	for _, v := range dsecrets.V {
 		validators = append(validators, &model.Validator{
-			P2pId:       *model.PubKeyFromByte(v.F0.P2pId[:]),
-			ValidatorId: *model.PubKeyFromByte(v.F0.ValidatorId[:]),
+			NodeID:      v.F0,
+			P2pId:       *model.PubKeyFromByte(v.F1.P2pId[:]),
+			ValidatorId: *model.PubKeyFromByte(v.F1.ValidatorId[:]),
 		})
 	}
 

@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	p2peer "github.com/wetee-dao/tee-dsecret/pkg/peer"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -31,25 +30,18 @@ type DKG struct {
 	Threshold int
 
 	// epoch data
-	Nodes        []*model.Validator
-	Epoch        uint32
-	DkgPubKey    *model.PubKey
-	DkgKeyShare  *model.DistKeyShare
-	SideKeyPub   types.AccountID
-	SideKeyShare []byte
+	Nodes       []*model.Validator
+	Epoch       uint32
+	DkgPubKey   *model.PubKey // dkg key
+	DkgKeyShare *model.DistKeyShare
 
 	// next epoch data
 	NewNodes        []*model.Validator
-	NewEoch         uint32
+	NewEpoch        uint32
 	NewDkgPubKey    *model.PubKey // dkg key
 	NewDkgKeyShare  *model.DistKeyShare
-	NewSideKeyPub   types.AccountID // side key
-	NewSideKeyShare []byte
-	NewEochSponsor  *model.Validator
-
-	// must be set nil
-	NewSideKeyShares  map[string][]byte
-	NewOldSharesCache map[string][]byte
+	NewEpochSponsor *model.Validator
+	NewEpochTime    int64
 
 	// cache the deal, response, justification, result
 	deals     map[string]*model.DealBundle
@@ -62,10 +54,14 @@ type DKG struct {
 	preRecerve map[string]chan any
 
 	// Consensus is running
-	lastConsensusTime     int64
-	failConsensusTimer    *time.Timer
-	consensusSuccededBack func(types.AccountID, [64]byte)
-	consensusFailBack     func(error)
+	lastConsensusTime    int64
+	failConsensusTimer   *time.Timer
+	consensusSuccessBack func(*DssSigner, uint64)
+	consensusFailBack    func(error)
+
+	// cache
+	NewEpochPartialSigTime int64
+	NewEpochPartialSigs    map[string]*model.NewEpochMsg
 
 	// 未初始化状态 => 0 | 初始化成功 => 1
 	status uint8
@@ -145,22 +141,22 @@ func (d *DKG) Share() model.DistKeyShare {
 	return *d.DkgKeyShare
 }
 
-// Get validator id
-func (dkg *DKG) validatorID() *model.PubKey {
-	pub := dkg.Signer.GetPublic()
-	for _, p := range dkg.Nodes {
-		if p.ValidatorId.String() == pub.String() {
-			return &p.ValidatorId
-		}
-	}
-	for _, p := range dkg.NewNodes {
-		if p.ValidatorId.String() == pub.String() {
-			return &p.ValidatorId
-		}
-	}
+// // Get validator id
+// func (dkg *DKG) validatorID() *model.PubKey {
+// 	pub := dkg.Signer.GetPublic()
+// 	for _, p := range dkg.Nodes {
+// 		if p.ValidatorId.String() == pub.String() {
+// 			return &p.ValidatorId
+// 		}
+// 	}
+// 	for _, p := range dkg.NewNodes {
+// 		if p.ValidatorId.String() == pub.String() {
+// 			return &p.ValidatorId
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // Get p2p id of self node
 func (dkg *DKG) p2pId() *model.PubKey {
@@ -184,7 +180,7 @@ func (dkg *DKG) p2pId() *model.PubKey {
 func (dkg *DKG) sendToNode(node *model.PubKey, pid string, message *model.Message) error {
 	if node == nil {
 		fmt.Println("sendToNode node is nil")
-		return errors.New("Node is nil")
+		return errors.New("node is nil")
 	}
 
 	p2pId := dkg.p2pId()

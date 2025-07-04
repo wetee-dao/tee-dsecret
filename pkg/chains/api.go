@@ -2,6 +2,7 @@ package chains
 
 import (
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts"
@@ -19,16 +20,17 @@ type Chain interface {
 	GetNodes() ([]*model.Validator, []*model.PubKey, error)
 	GetValidatorList() ([]*model.Validator, error)
 	// epoch
-	GetEpoch() (uint32, uint32, uint32, uint32, [32]byte, error)
+	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
 	GetNextEpochValidatorList() ([]*model.Validator, error)
-	SetNewEpoch(new_key [32]byte, sig [64]byte) error
+	SetNewEpoch(nodeId uint64) error
+	TxCallOfSetNextEpoch(nodeId uint64) (*types.Call, error)
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
 	var err error
 
 	// chain, err = pallets.InitChain(url, pk)
-	contractAddress, err := util.HexToH160("0xC2A11E61acC3Bc9598150Fd3086Ea88f8B5c1377")
+	contractAddress, err := util.HexToH160("0xcA47e488514Ca3207346B821D73413212242DaA5")
 	if err != nil {
 		util.LogWithPurple("HexToH160", err)
 		return nil, err

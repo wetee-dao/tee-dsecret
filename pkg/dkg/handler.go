@@ -24,8 +24,8 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
 		}
 		return err
-	case "consensus_side_key_rebuild":
-		err := dkg.SideKeyRebuild(msg.OrgId, msg.Payload)
+	case "consensus_to_newpoch":
+		err := dkg.SubmitToNepoch(msg.OrgId, msg.Payload)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<< ERROR", "SideKeyRebuild:", err)
 		}
