@@ -13,7 +13,7 @@ import (
 )
 
 func TestInitNetwork(t *testing.T) {
-	contractAddress, err := util.HexToH160("0xcA47e488514Ca3207346B821D73413212242DaA5")
+	contractAddress, err := util.HexToH160("0x541cf79eE8aAc449f3f0b09Ee54006Db81bE7629")
 	if err != nil {
 		util.LogWithPurple("HexToH160", err)
 		t.Fatal(err)

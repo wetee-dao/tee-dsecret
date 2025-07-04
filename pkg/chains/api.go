@@ -23,14 +23,14 @@ type Chain interface {
 	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
 	GetNextEpochValidatorList() ([]*model.Validator, error)
 	SetNewEpoch(nodeId uint64) error
-	TxCallOfSetNextEpoch(nodeId uint64) (*types.Call, error)
+	TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error)
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
 	var err error
 
 	// chain, err = pallets.InitChain(url, pk)
-	contractAddress, err := util.HexToH160("0xcA47e488514Ca3207346B821D73413212242DaA5")
+	contractAddress, err := util.HexToH160("0x541cf79eE8aAc449f3f0b09Ee54006Db81bE7629")
 	if err != nil {
 		util.LogWithPurple("HexToH160", err)
 		return nil, err

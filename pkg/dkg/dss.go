@@ -17,9 +17,9 @@ type DssSigner struct {
 	sigs []*dss.PartialSig
 }
 
-func (d *DssSigner) SetSigs(bts [][]byte) {
-	sigs := make([]*dss.PartialSig, 0, len(bts))
-	for _, bt := range bts {
+func (d *DssSigner) SetSigs(btsigs [][]byte) {
+	sigs := make([]*dss.PartialSig, 0, len(btsigs))
+	for _, bt := range btsigs {
 		sig := &model.PartialSigWrap{}
 		err := json.Unmarshal(bt, sig)
 		if err != nil {
@@ -36,17 +36,17 @@ func (d *DssSigner) SetSigs(bts [][]byte) {
 }
 
 func (d *DssSigner) Public() []byte {
-	if d.dkg.NewDkgPubKey != nil {
-		return d.dkg.NewDkgPubKey.Byte()
+	if d.dkg.DkgPubKey != nil {
+		return d.dkg.DkgPubKey.Byte()
 	}
-	return d.dkg.DkgPubKey.Byte()
+	return d.dkg.NewDkgPubKey.Byte()
 }
 
 func (d *DssSigner) AccountID() types.AccountID {
-	if d.dkg.NewDkgPubKey != nil {
-		return d.dkg.NewDkgPubKey.AccountID()
+	if d.dkg.DkgPubKey != nil {
+		return d.dkg.DkgPubKey.AccountID()
 	}
-	return d.dkg.DkgPubKey.AccountID()
+	return d.dkg.NewDkgPubKey.AccountID()
 }
 
 func (d *DssSigner) Sign(msg []byte) ([]byte, error) {

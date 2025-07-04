@@ -96,7 +96,7 @@ func (app *SideChain) newEpochSucceded(signer *dkg.DssSigner, nodeId uint64) {
 	}
 
 	// submit new epoch to main chain
-	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId)
+	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer)
 
 	client := chains.MainChain.GetClient()
 	err := client.SignAndSubmit(signer, *call, false)

@@ -315,11 +315,11 @@ func (ty *Error) Error() string {
 	return "Unknown"
 }
 
-type Tuple_69 struct { // Tuple
+type Tuple_70 struct { // Tuple
 	F0 uint64
 	F1 K8sCluster
 }
-type Tuple_76 struct { // Tuple
+type Tuple_77 struct { // Tuple
 	F0 uint64
 	F1 SecretNode
 }
@@ -328,9 +328,9 @@ type EpochInfo struct { // Composite
 	EpochSolt      uint32
 	LastEpochBlock uint32
 	Now            uint32
-	SideChainPub   types.H160
+	SideChainPub   util.Option[types.H160]
 }
-type Tuple_82 struct { // Tuple
+type Tuple_83 struct { // Tuple
 	F0 uint64
 	F1 SecretNode
 	F2 uint32

@@ -82,7 +82,7 @@ func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
 	dkg.setConsensusBusy()
 	dkg.addConsensusTimeout()
 
-	if dkg.DkgPubKey == nil {
+	if len(msg.ShareCommits.Public) == 0 {
 		util.LogWithGray("InitConsensus Epoch ======> ", msg.Epoch)
 		return dkg.initConsensus(msg)
 	}

@@ -2,7 +2,7 @@ package sidechain
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -20,14 +20,11 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 
 		switch p := tx.Payload.(type) {
 		case *model.Tx_EpochStatus:
-			// set epoch last time
-			app.SetEpochStatus(p.EpochStatus)
+			app.SetEpochStatus(p.EpochStatus) // set epoch last time
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		case *model.Tx_Epoch:
-			// calc validator updates
-			app.calcValidatorUpdates(p.Epoch)
-			// set epoch and validators
-			err = app.SetEpoch(p.Epoch, txn)
+			app.calcValidatorUpdates(p.Epoch) // calc validator updates
+			err = app.SetEpoch(p.Epoch, txn)  // set epoch and validators
 			if err != nil {
 				return nil, err
 			}
@@ -37,7 +34,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 		case *model.Tx_Test:
 			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		default:
-			fmt.Println("Payload is unknown")
+			return nil, errors.New("invalid tx type")
 		}
 	}
 

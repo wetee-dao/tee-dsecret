@@ -2,10 +2,12 @@ package subnet
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 type Subnet struct {
@@ -45,18 +47,18 @@ func (c *Subnet) DryRunSetCode(
 }
 
 func (c *Subnet) CallSetCode(
-	code_hash types.H256, params chain.CallParams,
+	code_hash types.H256, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetCode(code_hash, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -67,18 +69,18 @@ func (c *Subnet) CallSetCode(
 }
 
 func (c *Subnet) TxCallOfSetCode(
-	code_hash types.H256, params chain.CallParams,
+	code_hash types.H256, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetCode(code_hash, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -137,18 +139,18 @@ func (c *Subnet) DryRunSetBootNodes(
 }
 
 func (c *Subnet) CallSetBootNodes(
-	nodes []uint64, params chain.CallParams,
+	nodes []uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetBootNodes(nodes, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -159,18 +161,18 @@ func (c *Subnet) CallSetBootNodes(
 }
 
 func (c *Subnet) TxCallOfSetBootNodes(
-	nodes []uint64, params chain.CallParams,
+	nodes []uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetBootNodes(nodes, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -182,8 +184,8 @@ func (c *Subnet) TxCallOfSetBootNodes(
 
 func (c *Subnet) QueryWorkers(
 	params chain.DryRunCallParams,
-) (*[]Tuple_69, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_69](
+) (*[]Tuple_70, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_70](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -225,18 +227,18 @@ func (c *Subnet) DryRunWorkerRegister(
 }
 
 func (c *Subnet) CallWorkerRegister(
-	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, params chain.CallParams,
+	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerRegister(name, p2p_id, ip, port, level, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -247,18 +249,18 @@ func (c *Subnet) CallWorkerRegister(
 }
 
 func (c *Subnet) TxCallOfWorkerRegister(
-	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, params chain.CallParams,
+	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerRegister(name, p2p_id, ip, port, level, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -293,18 +295,18 @@ func (c *Subnet) DryRunWorkerMortgage(
 }
 
 func (c *Subnet) CallWorkerMortgage(
-	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, params chain.CallParams,
+	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerMortgage(id, cpu, mem, cvm_cpu, cvm_mem, disk, gpu, deposit, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -315,18 +317,18 @@ func (c *Subnet) CallWorkerMortgage(
 }
 
 func (c *Subnet) TxCallOfWorkerMortgage(
-	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, params chain.CallParams,
+	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerMortgage(id, cpu, mem, cvm_cpu, cvm_mem, disk, gpu, deposit, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -361,18 +363,18 @@ func (c *Subnet) DryRunWorkerUnmortgage(
 }
 
 func (c *Subnet) CallWorkerUnmortgage(
-	id uint64, mortgage_id uint32, params chain.CallParams,
+	id uint64, mortgage_id uint32, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerUnmortgage(id, mortgage_id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -383,18 +385,18 @@ func (c *Subnet) CallWorkerUnmortgage(
 }
 
 func (c *Subnet) TxCallOfWorkerUnmortgage(
-	id uint64, mortgage_id uint32, params chain.CallParams,
+	id uint64, mortgage_id uint32, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerUnmortgage(id, mortgage_id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -429,18 +431,18 @@ func (c *Subnet) DryRunWorkerStop(
 }
 
 func (c *Subnet) CallWorkerStop(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerStop(id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -451,18 +453,18 @@ func (c *Subnet) CallWorkerStop(
 }
 
 func (c *Subnet) TxCallOfWorkerStop(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunWorkerStop(id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -474,8 +476,8 @@ func (c *Subnet) TxCallOfWorkerStop(
 
 func (c *Subnet) QuerySecrets(
 	params chain.DryRunCallParams,
-) (*[]Tuple_76, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_76](
+) (*[]Tuple_77, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_77](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -517,18 +519,18 @@ func (c *Subnet) DryRunSecretRegister(
 }
 
 func (c *Subnet) CallSecretRegister(
-	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, params chain.CallParams,
+	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretRegister(name, validator_id, p2p_id, ip, port, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -539,18 +541,18 @@ func (c *Subnet) CallSecretRegister(
 }
 
 func (c *Subnet) TxCallOfSecretRegister(
-	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, params chain.CallParams,
+	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretRegister(name, validator_id, p2p_id, ip, port, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -585,18 +587,18 @@ func (c *Subnet) DryRunSecretDeposit(
 }
 
 func (c *Subnet) CallSecretDeposit(
-	id uint64, deposit types.U256, params chain.CallParams,
+	id uint64, deposit types.U256, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretDeposit(id, deposit, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -607,18 +609,18 @@ func (c *Subnet) CallSecretDeposit(
 }
 
 func (c *Subnet) TxCallOfSecretDeposit(
-	id uint64, deposit types.U256, params chain.CallParams,
+	id uint64, deposit types.U256, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretDeposit(id, deposit, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -653,18 +655,18 @@ func (c *Subnet) DryRunSecretDelete(
 }
 
 func (c *Subnet) CallSecretDelete(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretDelete(id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -675,18 +677,18 @@ func (c *Subnet) CallSecretDelete(
 }
 
 func (c *Subnet) TxCallOfSecretDelete(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSecretDelete(id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -721,18 +723,18 @@ func (c *Subnet) DryRunValidatorJoin(
 }
 
 func (c *Subnet) CallValidatorJoin(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunValidatorJoin(id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -743,18 +745,18 @@ func (c *Subnet) CallValidatorJoin(
 }
 
 func (c *Subnet) TxCallOfValidatorJoin(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunValidatorJoin(id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -809,18 +811,18 @@ func (c *Subnet) DryRunValidatorDelete(
 }
 
 func (c *Subnet) CallValidatorDelete(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunValidatorDelete(id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -831,18 +833,18 @@ func (c *Subnet) CallValidatorDelete(
 }
 
 func (c *Subnet) TxCallOfValidatorDelete(
-	id uint64, params chain.CallParams,
+	id uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunValidatorDelete(id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -874,8 +876,8 @@ func (c *Subnet) QueryEpochInfo(
 
 func (c *Subnet) QueryValidators(
 	params chain.DryRunCallParams,
-) (*[]Tuple_82, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_82](
+) (*[]Tuple_83, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_83](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -913,18 +915,18 @@ func (c *Subnet) DryRunSetEpochSolt(
 }
 
 func (c *Subnet) CallSetEpochSolt(
-	epoch_solt uint32, params chain.CallParams,
+	epoch_solt uint32, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetEpochSolt(epoch_solt, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -935,18 +937,18 @@ func (c *Subnet) CallSetEpochSolt(
 }
 
 func (c *Subnet) TxCallOfSetEpochSolt(
-	epoch_solt uint32, params chain.CallParams,
+	epoch_solt uint32, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetEpochSolt(epoch_solt, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -981,18 +983,18 @@ func (c *Subnet) DryRunSetNextEpoch(
 }
 
 func (c *Subnet) CallSetNextEpoch(
-	_node_id uint64, params chain.CallParams,
+	_node_id uint64, __ink_params chain.CallParams,
 ) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetNextEpoch(_node_id, _param)
 	if err != nil {
 		return err
 	}
 	return chain.CallInk(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -1003,18 +1005,20 @@ func (c *Subnet) CallSetNextEpoch(
 }
 
 func (c *Subnet) TxCallOfSetNextEpoch(
-	_node_id uint64, params chain.CallParams,
+	_node_id uint64, __ink_params chain.CallParams,
 ) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
+	pubkey := model.PubKeyFromByte(__ink_params.Signer.Public())
+	fmt.Println(pubkey.SS58())
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
 	_, gas, err := c.DryRunSetNextEpoch(_node_id, _param)
 	if err != nil {
 		return nil, err
 	}
 	return chain.TxCall(
 		c,
-		params.Signer,
-		params.PayAmount,
+		__ink_params.Signer,
+		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
@@ -1024,78 +1028,10 @@ func (c *Subnet) TxCallOfSetNextEpoch(
 	)
 }
 
-func (c *Subnet) DryRunResetSidekey(
-	params chain.DryRunCallParams,
-) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
-		c,
-		params.Origin,
-		params.PayAmount,
-		params.GasLimit,
-		params.StorageDepositLimit,
-		util.InkContractInput{
-			Selector: "reset_sidekey",
-			Args:     []any{},
-		},
-	)
-	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
-		return nil, nil, err
-	}
-	if v != nil && v.IsErr {
-		return nil, nil, errors.New("Contract Reverted: " + v.E.Error())
-	}
-
-	return v, gas, nil
-}
-
-func (c *Subnet) CallResetSidekey(
-	params chain.CallParams,
-) error {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
-	_, gas, err := c.DryRunResetSidekey(_param)
-	if err != nil {
-		return err
-	}
-	return chain.CallInk(
-		c,
-		params.Signer,
-		params.PayAmount,
-		gas.GasRequired,
-		gas.StorageDeposit,
-		util.InkContractInput{
-			Selector: "reset_sidekey",
-			Args:     []any{},
-		},
-	)
-}
-
-func (c *Subnet) TxCallOfResetSidekey(
-	params chain.CallParams,
-) (*types.Call, error) {
-	_param := chain.DefaultParamWithOrigin(params.Signer.AccountID())
-	_param.PayAmount = params.PayAmount
-	_, gas, err := c.DryRunResetSidekey(_param)
-	if err != nil {
-		return nil, err
-	}
-	return chain.TxCall(
-		c,
-		params.Signer,
-		params.PayAmount,
-		gas.GasRequired,
-		gas.StorageDeposit,
-		util.InkContractInput{
-			Selector: "reset_sidekey",
-			Args:     []any{},
-		},
-	)
-}
-
 func (c *Subnet) QueryNextEpochValidators(
 	params chain.DryRunCallParams,
-) (*util.Result[[]Tuple_82, Error], *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[util.Result[[]Tuple_82, Error]](
+) (*util.Result[[]Tuple_83, Error], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Result[[]Tuple_83, Error]](
 		c,
 		params.Origin,
 		params.PayAmount,

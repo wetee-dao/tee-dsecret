@@ -153,7 +153,12 @@ func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error
 		return 0, 0, 0, 0, types.H160{}, err
 	}
 
-	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, d.SideChainPub, nil
+	address := types.H160{}
+	if !d.SideChainPub.IsNone {
+		address = d.SideChainPub.V
+	}
+
+	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, address, nil
 }
 
 // go to new epoch
@@ -164,9 +169,9 @@ func (c *Contract) SetNewEpoch(nodeId uint64) error {
 	})
 }
 
-func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64) (*types.Call, error) {
+func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error) {
 	return c.subnet.TxCallOfSetNextEpoch(nodeId, chain.CallParams{
-		Signer:    c.signer,
+		Signer:    signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
