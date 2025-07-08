@@ -1,6 +1,7 @@
 package contracts
 
 //go:generate go-ink-gen -json subnet.json
+//go:generate go-ink-gen -json cloud.json
 
 import (
 	"math/big"
@@ -18,10 +19,13 @@ import (
 type Contract struct {
 	*chain.ChainClient
 	signer *chain.Signer
-	subnet subnet.Subnet
+	subnet *subnet.Subnet
 }
 
-func NewContract(url string, pk *model.PrivKey, subNetAddress types.H160) (*Contract, error) {
+// const cloudAddress = "0x3a61314D1d9Fd9Cd581eB910022d0dbB9fEe8cF6"
+const subnetAddress = "0x5d59cefde70e81a3cdcd20f9556d5aa6cf9fa327"
+
+func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 	client, err := chain.ClientInit(url, false)
 	if err != nil {
 		return nil, err
@@ -35,14 +39,16 @@ func NewContract(url string, pk *model.PrivKey, subNetAddress types.H160) (*Cont
 	util.LogWithYellow("Mainchain Key", pk.GetPublic().SS58())
 	h160 := pk.GetPublic().H160()
 
-	subnet := subnet.Subnet{
-		ChainClient: client,
-		Address:     subNetAddress,
+	subnet, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		util.LogWithPurple("HexToH160", err)
+		return nil, err
 	}
 
 	// check account is mapaccount in revive
 	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
 	if err != nil {
+		util.LogWithPurple("GetOriginalAccountLatest", err)
 		return nil, err
 	}
 	if !isSome {
@@ -114,7 +120,7 @@ func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
 		nodes = append(nodes, model.PubKeyFromByte(v.F1.P2pId[:]))
 	}
 	for _, v := range *dsecrets {
-		if !v.F1.TerminalBlock.IsNone {
+		if !v.F1.TerminalBlock.IsNone() {
 			continue
 		}
 		nodes = append(nodes, model.PubKeyFromByte(v.F1.P2pId[:]))
@@ -154,7 +160,7 @@ func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error
 	}
 
 	address := types.H160{}
-	if !d.SideChainPub.IsNone {
+	if !d.SideChainPub.IsNone() {
 		address = d.SideChainPub.V
 	}
 
@@ -170,7 +176,7 @@ func (c *Contract) SetNewEpoch(nodeId uint64) error {
 }
 
 func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error) {
-	return c.subnet.TxCallOfSetNextEpoch(nodeId, chain.CallParams{
+	return c.subnet.CallOfSetNextEpochTx(nodeId, chain.CallParams{
 		Signer:    signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})

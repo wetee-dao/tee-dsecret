@@ -142,7 +142,9 @@ func (app *SideChain) GetEpoch() uint32 {
 // SetEpoch set new epoch
 func (app *SideChain) SetEpoch(epoch *model.Epoch, txn *model.Txn) error {
 	// Save new epoch to DKG
-	app.dkg.ToNewEpoch()
+	if app.dkg != nil {
+		app.dkg.ToNewEpoch()
+	}
 
 	// Save new epoch to DB
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -208,14 +210,14 @@ func (app *SideChain) calcValidatorUpdates(epoch *model.Epoch) {
 	for _, newv := range newValidators {
 		isIn := false
 		for i, oldv := range oldValidators {
-			// 更新
+			// update validator
 			if bytes.Equal(oldv.Pubkey, newv.Pubkey) {
 				oldValidators[i].Power = newv.Power
 				isIn = true
 			}
 		}
 
-		// 新增
+		// add new validator
 		if !isIn {
 			oldValidators = append(oldValidators, newv)
 		}
@@ -229,7 +231,7 @@ func (app *SideChain) calcValidatorUpdates(epoch *model.Epoch) {
 			}
 		}
 
-		// 删除
+		// delete old validator
 		if !isIn {
 			oldValidators[i].Power = 0
 		}

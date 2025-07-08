@@ -9,16 +9,16 @@ import (
 
 func GetUrlFromIp(ip model.Ip) string {
 	url := ""
-	if !ip.Domain.IsNone {
+	if !ip.Domain.IsNone() {
 		url = "/dns4/" + string(ip.Domain.V)
-	} else if !ip.Ipv4.IsNone {
+	} else if !ip.Ipv4.IsNone() {
 		ipv4 := ip.Ipv4.V
 		url = "/ip4/" + fmt.Sprintf("%d.%d.%d.%d",
 			(ipv4>>24)&0xFF,
 			(ipv4>>16)&0xFF,
 			(ipv4>>8)&0xFF,
 			ipv4&0xFF)
-	} else if !ip.Ipv6.IsNone {
+	} else if !ip.Ipv6.IsNone() {
 		ipv6 := ip.Ipv6.V
 		ipv6Int128 := big.NewInt(0)
 		ipv6Int128.SetBytes(ipv6.Bytes())

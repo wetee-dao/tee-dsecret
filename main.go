@@ -69,7 +69,6 @@ func main() {
 
 	// Init node
 	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, mainChain, func() {
-		fmt.Println()
 		util.LogWithYellow("Main Chain", chainAddr)
 		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
 		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())

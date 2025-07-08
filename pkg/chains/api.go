@@ -4,7 +4,6 @@ import (
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -29,13 +28,6 @@ type Chain interface {
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
 	var err error
 
-	// chain, err = pallets.InitChain(url, pk)
-	contractAddress, err := util.HexToH160("0x541cf79eE8aAc449f3f0b09Ee54006Db81bE7629")
-	if err != nil {
-		util.LogWithPurple("HexToH160", err)
-		return nil, err
-	}
-
-	MainChain, err = contracts.NewContract(url, pk, contractAddress)
+	MainChain, err = contracts.NewContract(url, pk)
 	return MainChain, err
 }

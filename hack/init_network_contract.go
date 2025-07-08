@@ -1,38 +1,98 @@
-package contracts
+package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
-	"testing"
+	"os"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/cloud"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/subnet"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func TestInitNetwork(t *testing.T) {
-	contractAddress, err := util.HexToH160("0x541cf79eE8aAc449f3f0b09Ee54006Db81bE7629")
+func main() {
+	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
 	if err != nil {
-		util.LogWithPurple("HexToH160", err)
-		t.Fatal(err)
+		panic(err)
 	}
 
 	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
 	if err != nil {
 		util.LogWithPurple("Sr25519PairFromSecret", err)
-		t.Fatal(err)
+		panic(err)
 	}
 
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	podData, err := os.ReadFile("./contract_cache/pod.polkavm")
 	if err != nil {
-		t.Fatal(err)
+		util.LogWithPurple("read file error", err)
+		panic(err)
 	}
 
-	contract := subnet.Subnet{
-		ChainClient: client,
-		Address:     contractAddress,
+	podCode, err := client.UploadInkCode(podData, &pk)
+	if err != nil {
+		util.LogWithPurple("UploadInkCode", err)
+		panic(err)
+	}
+
+	fmt.Println(podCode.Hex())
+	subnetAddress := DeploySubnetContract(client, pk)
+
+	data, err := os.ReadFile("./contract_cache/subnet.polkavm")
+	if err != nil {
+		util.LogWithPurple("read file error", err)
+		panic(err)
+	}
+
+	salt := genSalt()
+	cloudAddress, err := cloud.DeployCloudWithNew(*subnetAddress, *podCode, chain.DeployParams{
+		Client: client,
+		Signer: &pk,
+		Code:   util.InkCode{Upload: &data},
+		Salt:   util.NewSome(salt),
+	})
+
+	if err != nil {
+		util.LogWithPurple("DeployContract", err)
+		panic(err)
+	}
+
+	fmt.Println("subnet address ======> ", subnetAddress.Hex())
+	InitSubnet(client, pk, subnetAddress.Hex())
+	fmt.Println("subnet address ======> ", subnetAddress.Hex())
+	fmt.Println("cloud  address ======> ", cloudAddress.Hex())
+}
+
+func DeploySubnetContract(client *chain.ChainClient, pk chain.Signer) *types.H160 {
+	data, err := os.ReadFile("./contract_cache/subnet.polkavm")
+	if err != nil {
+		util.LogWithPurple("read file error", err)
+		panic(err)
+	}
+
+	salt := genSalt()
+	res, err := subnet.DeploySubnetWithNew(chain.DeployParams{
+		Client: client,
+		Signer: &pk,
+		Code:   util.InkCode{Upload: &data},
+		Salt:   util.NewSome(salt),
+	})
+
+	if err != nil {
+		util.LogWithPurple("DeployContract", err)
+		panic(err)
+	}
+
+	return res
+}
+
+func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string) {
+	contract, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		panic(err)
 	}
 
 	v1, _ := model.PubKeyFromSS58("5CdERUzLMFh5D8RB82bd6t4nuqKJLdNr6ZQ9NAsoQqVMyz5B")
@@ -106,4 +166,16 @@ func TestInitNetwork(t *testing.T) {
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
+}
+
+func genSalt() [32]byte {
+	bytes := make([]byte, 32)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err)
+	}
+	randomBytes := [32]byte{}
+	copy(randomBytes[:], bytes)
+
+	return randomBytes
 }

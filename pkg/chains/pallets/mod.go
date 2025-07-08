@@ -21,7 +21,7 @@ type Chain struct {
 	signer *chain.Signer
 }
 
-func InitChain(url string, pk *model.PrivKey) (*Chain, error) {
+func NewContract(url string, pk *model.PrivKey) (*Chain, error) {
 	client, err := chain.ClientInit(url, true)
 	if err != nil {
 		return nil, err

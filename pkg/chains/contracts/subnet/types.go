@@ -13,6 +13,7 @@ type K8sCluster struct {  // Composite
 	Name          []byte
 	Owner         types.H160
 	Level         byte
+	RegionId      uint32
 	StartBlock    uint32
 	StopBlock     util.Option[uint32]
 	TerminalBlock util.Option[uint32]
@@ -37,7 +38,7 @@ type SecretNode struct { // Composite
 	Port          uint32
 	Status        byte
 }
-type Tuple_45 struct { // Tuple
+type Tuple_61 struct { // Tuple
 	F0 uint64
 	F1 uint32
 }
@@ -57,6 +58,7 @@ type Error struct { // Enum
 	InvalidSideChainSignature *bool // 12
 	NodeIsRunning             *bool // 13
 	InvalidSideChainCaller    *bool // 14
+	RegionNotExist            *bool // 15
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -179,6 +181,14 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.RegionNotExist != nil {
+		err = encoder.PushByte(15)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -248,6 +258,10 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.InvalidSideChainCaller = &t
 		return
+	case 15: // Base
+		t := true
+		ty.RegionNotExist = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -312,16 +326,25 @@ func (ty *Error) Error() string {
 	if ty.InvalidSideChainCaller != nil {
 		return "InvalidSideChainCaller"
 	}
+
+	if ty.RegionNotExist != nil {
+		return "RegionNotExist"
+	}
 	return "Unknown"
 }
 
-type Tuple_70 struct { // Tuple
+type Tuple_88 struct { // Tuple
 	F0 uint64
 	F1 K8sCluster
 }
-type Tuple_77 struct { // Tuple
+type Tuple_95 struct { // Tuple
 	F0 uint64
 	F1 SecretNode
+}
+type Tuple_98 struct { // Tuple
+	F0 uint64
+	F1 SecretNode
+	F2 uint32
 }
 type EpochInfo struct { // Composite
 	Epoch          uint32
@@ -329,9 +352,4 @@ type EpochInfo struct { // Composite
 	LastEpochBlock uint32
 	Now            uint32
 	SideChainPub   util.Option[types.H160]
-}
-type Tuple_83 struct { // Tuple
-	F0 uint64
-	F1 SecretNode
-	F2 uint32
 }

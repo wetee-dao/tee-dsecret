@@ -21,21 +21,20 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn) ([]*abci.ExecTxRe
 		switch p := tx.Payload.(type) {
 		case *model.Tx_EpochStatus:
 			app.SetEpochStatus(p.EpochStatus) // set epoch last time
-			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		case *model.Tx_Epoch:
 			app.calcValidatorUpdates(p.Epoch) // calc validator updates
 			err = app.SetEpoch(p.Epoch, txn)  // set epoch and validators
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 		case *model.Tx_Bridge:
-			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
+			break
 		case *model.Tx_Test:
-			res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
+			break
 		default:
 			return nil, errors.New("invalid tx type")
 		}
+		res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 	}
 
 	return res, nil
