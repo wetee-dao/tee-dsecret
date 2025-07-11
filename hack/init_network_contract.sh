@@ -13,6 +13,8 @@ cargo contract build --release --manifest-path contracts/Pod/Cargo.toml
 cargo contract build --release --manifest-path contracts/Subnet/Cargo.toml
 cargo contract build --release --manifest-path contracts/Cloud/Cargo.toml
 
+rm $DIR/contract_cache/*
+
 cp target/ink/cloud/cloud.contract $DIR/contract_cache
 cp target/ink/cloud/cloud.polkavm $DIR/contract_cache
 cp target/ink/cloud/cloud.json $DIR/contract_cache
@@ -38,3 +40,5 @@ go-ink-gen -json subnet.json
 go-ink-gen -json pod.json
 
 cd $DIR
+
+go run init_network_contract.go

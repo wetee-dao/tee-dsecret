@@ -26,6 +26,7 @@ func main() {
 		panic(err)
 	}
 
+	/// init pod
 	podData, err := os.ReadFile("./contract_cache/pod.polkavm")
 	if err != nil {
 		util.LogWithPurple("read file error", err)
@@ -38,10 +39,11 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(podCode.Hex())
+	/// init subnet
 	subnetAddress := DeploySubnetContract(client, pk)
 
-	data, err := os.ReadFile("./contract_cache/subnet.polkavm")
+	/// init cloud
+	cloudCode, err := os.ReadFile("./contract_cache/cloud.polkavm")
 	if err != nil {
 		util.LogWithPurple("read file error", err)
 		panic(err)
@@ -51,7 +53,7 @@ func main() {
 	cloudAddress, err := cloud.DeployCloudWithNew(*subnetAddress, *podCode, chain.DeployParams{
 		Client: client,
 		Signer: &pk,
-		Code:   util.InkCode{Upload: &data},
+		Code:   util.InkCode{Upload: &cloudCode},
 		Salt:   util.NewSome(salt),
 	})
 
@@ -60,8 +62,8 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("subnet address ======> ", subnetAddress.Hex())
 	InitSubnet(client, pk, subnetAddress.Hex())
+	InitWorker(client, pk, subnetAddress.Hex())
 	fmt.Println("subnet address ======> ", subnetAddress.Hex())
 	fmt.Println("cloud  address ======> ", cloudAddress.Hex())
 }
@@ -90,14 +92,18 @@ func DeploySubnetContract(client *chain.ChainClient, pk chain.Signer) *types.H16
 }
 
 func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string) {
-	contract, err := subnet.InitSubnetContract(client, subnetAddress)
+	_call := chain.CallParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	}
+	subnetContract, err := subnet.InitSubnetContract(client, subnetAddress)
 	if err != nil {
 		panic(err)
 	}
 
 	v1, _ := model.PubKeyFromSS58("5CdERUzLMFh5D8RB82bd6t4nuqKJLdNr6ZQ9NAsoQqVMyz5B")
 	p1, _ := model.PubKeyFromSS58("5CAG6XhZY5Q3seRa4BwDhSQGFHqoA4H2m3GJKew7xArJwcNJ")
-	err = contract.CallSecretRegister(
+	err = subnetContract.CallSecretRegister(
 		[]byte("node0"),
 		v1.AccountID(),
 		p1.AccountID(),
@@ -107,16 +113,13 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 			Domain: util.NewNone[[]byte](),
 		},
 		31000,
-		chain.CallParams{
-			Signer:    &pk,
-			PayAmount: types.NewU128(*big.NewInt(0)),
-		},
+		_call,
 	)
-	fmt.Println("worker register result:", err)
+	fmt.Println("node0 register result:", err)
 
 	v2, _ := model.PubKeyFromSS58("5Fk6tyXKk9HmATcSvtcEjMHsyfn2e49H76qP72yFXzUU4ws6")
 	p2, _ := model.PubKeyFromSS58("5GuRb3N6Qraej2S3kQNX33UMnk47saYTAH4EBGzPiuqG8kni")
-	err = contract.CallSecretRegister(
+	err = subnetContract.CallSecretRegister(
 		[]byte("node1"),
 		v2.AccountID(),
 		p2.AccountID(),
@@ -126,16 +129,13 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 			Domain: util.NewNone[[]byte](),
 		},
 		41000,
-		chain.CallParams{
-			Signer:    &pk,
-			PayAmount: types.NewU128(*big.NewInt(0)),
-		},
+		_call,
 	)
-	fmt.Println("worker register result:", err)
+	fmt.Println("node1 register result:", err)
 
 	v3, _ := model.PubKeyFromSS58("5CK7kDvy6svMswxifABZAu8GFrcAvEw1z9nt7Wuuvh8YMzx1")
 	p3, _ := model.PubKeyFromSS58("5FgmV7fM5yAyZK5DfbAv3x9CrSBcnNt3Zykbxs9S9HHrvbeG")
-	err = contract.CallSecretRegister(
+	err = subnetContract.CallSecretRegister(
 		[]byte("node2"),
 		v3.AccountID(),
 		p3.AccountID(),
@@ -145,27 +145,43 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 			Domain: util.NewNone[[]byte](),
 		},
 		51000,
-		chain.CallParams{
-			Signer:    &pk,
-			PayAmount: types.NewU128(*big.NewInt(0)),
-		},
+		_call,
 	)
-	fmt.Println("worker register result:", err)
+	fmt.Println("node2 register result:", err)
 
-	contract.CallSetBootNodes([]uint64{0, 1, 2}, chain.CallParams{
+	subnetContract.CallSetBootNodes([]uint64{0, 1, 2}, _call)
+	subnetContract.CallValidatorJoin(1, _call)
+	subnetContract.CallValidatorJoin(2, _call)
+}
+
+func InitWorker(client *chain.ChainClient, pk chain.Signer, subnetAddress string) {
+	_call := chain.CallParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
+	}
+	subnetContract, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		panic(err)
+	}
 
-	contract.CallValidatorJoin(1, chain.CallParams{
-		Signer:    &pk,
-		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
+	subnetContract.CallSetRegion(0, []byte("defalut"), _call)
 
-	contract.CallValidatorJoin(2, chain.CallParams{
-		Signer:    &pk,
-		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
+	pubkey, _ := model.PubKeyFromSS58("5GSBfdb3PxME3XM4JrkFKAgHH77ADDWXUx6o8KGVmavLnZ44")
+	subnetContract.CallWorkerRegister([]byte("worker0"), pubkey.AccountID(), subnet.Ip{
+		Ipv4:   util.NewNone[uint32](),
+		Ipv6:   util.NewNone[types.U128](),
+		Domain: util.NewSome([]byte("xiaobai.asyou.me")),
+	}, 10000, 1, 0, _call)
+
+	// subnetContract.CallWorkerMortgage(
+	// 	0,
+	// 	10000, 10000,
+	// 	0, 0,
+	// 	1000000,
+	// 	0,
+	// 	types.NewU256(*big.NewInt(10000000)),
+	// 	_call,
+	// )
 }
 
 func genSalt() [32]byte {

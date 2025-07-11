@@ -226,8 +226,8 @@ func (c *Subnet) QueryWorker(
 
 func (c *Subnet) QueryWorkers(
 	params chain.DryRunCallParams,
-) (*[]Tuple_88, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_88](
+) (*[]Tuple_90, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_90](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -236,6 +236,46 @@ func (c *Subnet) QueryWorkers(
 		util.InkContractInput{
 			Selector: "0xc9dfba3b",
 			Args:     []any{},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	return v, gas, nil
+}
+
+func (c *Subnet) QueryUserWorker(
+	user types.H160, params chain.DryRunCallParams,
+) (*util.Option[uint64], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Option[uint64]](
+		c,
+		params.Origin,
+		params.PayAmount,
+		params.GasLimit,
+		params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0x936d50f4",
+			Args:     []any{user},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	return v, gas, nil
+}
+
+func (c *Subnet) QueryMintWorker(
+	id AccountId, params chain.DryRunCallParams,
+) (*util.Option[uint64], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Option[uint64]](
+		c,
+		params.Origin,
+		params.PayAmount,
+		params.GasLimit,
+		params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0x59a206f7",
+			Args:     []any{id},
 		},
 	)
 	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
@@ -518,8 +558,8 @@ func (c *Subnet) CallOfWorkerStopTx(
 
 func (c *Subnet) QuerySecrets(
 	params chain.DryRunCallParams,
-) (*[]Tuple_95, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_95](
+) (*[]Tuple_99, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_99](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -742,8 +782,8 @@ func (c *Subnet) CallOfSecretDeleteTx(
 
 func (c *Subnet) QueryValidators(
 	params chain.DryRunCallParams,
-) (*[]Tuple_98, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_98](
+) (*[]Tuple_102, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_102](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -762,8 +802,8 @@ func (c *Subnet) QueryValidators(
 
 func (c *Subnet) QueryGetPendingSecrets(
 	params chain.DryRunCallParams,
-) (*[]Tuple_61, *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[[]Tuple_61](
+) (*[]Tuple_63, *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[[]Tuple_63](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -1070,8 +1110,8 @@ func (c *Subnet) CallOfSetNextEpochTx(
 
 func (c *Subnet) QueryNextEpochValidators(
 	params chain.DryRunCallParams,
-) (*util.Result[[]Tuple_98, Error], *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[util.Result[[]Tuple_98, Error]](
+) (*util.Result[[]Tuple_102, Error], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Result[[]Tuple_102, Error]](
 		c,
 		params.Origin,
 		params.PayAmount,

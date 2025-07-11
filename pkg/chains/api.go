@@ -23,6 +23,15 @@ type Chain interface {
 	GetNextEpochValidatorList() ([]*model.Validator, error)
 	SetNewEpoch(nodeId uint64) error
 	TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error)
+
+	/// query node id
+	GetWorkerId(user types.AccountID) (uint64, error)
+
+	// query pods by worker
+	GetPodsVersionByWorker(workerId uint64) ([]model.PodVersion, error)
+	GetPodsByIds(podIds []uint64) ([]model.Pod, error)
+	GetWorker(workerId uint64) (*model.K8sCluster, error)
+	ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {

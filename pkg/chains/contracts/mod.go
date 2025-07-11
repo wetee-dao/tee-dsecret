@@ -4,11 +4,13 @@ package contracts
 //go:generate go-ink-gen -json cloud.json
 
 import (
+	"encoding/json"
 	"math/big"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/cloud"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/subnet"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/revive"
 
@@ -20,14 +22,31 @@ type Contract struct {
 	*chain.ChainClient
 	signer *chain.Signer
 	subnet *subnet.Subnet
+	cloud  *cloud.Cloud
 }
 
-// const cloudAddress = "0x3a61314D1d9Fd9Cd581eB910022d0dbB9fEe8cF6"
-const subnetAddress = "0x5d59cefde70e81a3cdcd20f9556d5aa6cf9fa327"
+const subnetAddress = "0x4d8724f07d80d0602ed85cf2bb3bfd71ed431f13"
+const cloudAddress = "0xab4888c642cdc218e6393fdbd27c77da3ed86265"
+
+func GetCloudAddress() string {
+	return cloudAddress
+}
 
 func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 	client, err := chain.ClientInit(url, false)
 	if err != nil {
+		return nil, err
+	}
+
+	subnet, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		return nil, err
+	}
+
+	cloud, err := cloud.InitCloudContract(client, cloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
 		return nil, err
 	}
 
@@ -38,12 +57,6 @@ func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 
 	util.LogWithYellow("Mainchain Key", pk.GetPublic().SS58())
 	h160 := pk.GetPublic().H160()
-
-	subnet, err := subnet.InitSubnetContract(client, subnetAddress)
-	if err != nil {
-		util.LogWithPurple("HexToH160", err)
-		return nil, err
-	}
 
 	// check account is mapaccount in revive
 	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
@@ -68,6 +81,7 @@ func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 		ChainClient: client,
 		signer:      p,
 		subnet:      subnet,
+		cloud:       cloud,
 	}, nil
 }
 
@@ -198,4 +212,36 @@ func (c *Contract) GetNextEpochValidatorList() ([]*model.Validator, error) {
 	}
 
 	return validators, nil
+}
+
+func (c *Contract) GetPodsByIds(podIds []uint64) ([]model.Pod, error) {
+	data, _, err := c.cloud.QueryPodsByIds(podIds, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]model.Pod, 0, len(*data))
+	for _, v := range *data {
+		bt, _ := json.Marshal(v.F2)
+		contariners := []model.Container{}
+		json.Unmarshal(bt, &contariners)
+		pods = append(pods, model.Pod{
+			PodId:      v.F0,
+			Owner:      v.F1.Owner,
+			Ptype:      model.PodType(v.F1.Ptype),
+			TeeType:    ConvertTEEType(v.F1.TeeType),
+			Containers: contariners,
+			Version:    v.F3,
+			Status:     v.F4,
+		})
+	}
+
+	return pods, nil
+}
+
+func ConvertTEEType(t cloud.TEEType) model.TEEType {
+	return model.TEEType{
+		SGX: t.SGX,
+		CVM: t.CVM,
+	}
 }

@@ -82,6 +82,34 @@ func GetJson[T any](namespace, key string) (*T, error) {
 	return val, err
 }
 
+func GetJsonList[T any](namespace, key string) (list []*T, err error) {
+	rkey := []byte(comboKey(namespace, key))
+	iter, err := DBINS.NewIter(&pebble.IterOptions{
+		LowerBound: rkey,
+		UpperBound: keyUpperBound(rkey),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		v := iter.Value()
+		value, err := Unseal(v, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		val := new(T)
+		err = json.Unmarshal(value, val)
+		if err == nil {
+			list = append(list, val)
+		}
+	}
+
+	return
+}
+
 func SetJson[T any](namespace, key string, val *T) error {
 	bt, err := json.Marshal(val)
 	if err != nil {

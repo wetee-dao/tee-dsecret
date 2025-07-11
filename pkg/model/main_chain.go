@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/wetee-dao/ink.go/util"
@@ -58,14 +59,16 @@ func (ip *Ip) ToString() string {
 	return url
 }
 
-type K8sCluster struct {
-	Id            uint64
-	Account       [32]byte
+type K8sCluster struct { // Composite
+	Name          []byte
+	Owner         types.H160
+	Level         byte
+	RegionId      uint32
 	StartBlock    uint32
 	StopBlock     util.Option[uint32]
 	TerminalBlock util.Option[uint32]
-	Name          []byte
-	Ip            []Ip
+	P2pId         types.AccountID
+	Ip            Ip
 	Port          uint32
 	Status        byte
 }

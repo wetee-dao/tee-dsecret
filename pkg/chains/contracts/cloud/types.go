@@ -522,8 +522,26 @@ func (ty *Error) Error() string {
 	return "Unknown"
 }
 
-type Tuple_74 struct { // Tuple
+type Tuple_87 struct { // Tuple
 	F0 uint64
 	F1 Pod
 	F2 []Container
+}
+type Tuple_91 struct { // Tuple
+	F0 uint64
+	F1 uint32
+	F2 byte
+}
+type Tuple_94 struct { // Tuple
+	F0 Pod
+	F1 []Container
+	F2 uint32
+	F3 byte
+}
+type Tuple_98 struct { // Tuple
+	F0 uint64
+	F1 Pod
+	F2 []Container
+	F3 uint32
+	F4 byte
 }
