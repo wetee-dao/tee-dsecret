@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 
@@ -10,17 +11,32 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func (c *Contract) GetWorkerId(user types.AccountID) (uint64, error) {
-	id, _, err := c.subnet.QueryMintWorker(user, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
+func (c *Contract) GetMintWorker(user types.AccountID) (*model.K8sCluster, error) {
+	workerWrap, _, err := c.subnet.QueryMintWorker(user, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	if id.IsNone() {
-		return 0, errors.New("worker not found")
+	if workerWrap.IsNone() {
+		return nil, errors.New("worker not found")
 	}
 
-	return id.UnWrap()
+	tuple, _ := workerWrap.UnWrap()
+	worker := tuple.F1
+	return &model.K8sCluster{
+		Id:            tuple.F0,
+		Name:          worker.Name,
+		Owner:         worker.Owner,
+		Level:         worker.Level,
+		RegionId:      worker.RegionId,
+		StartBlock:    worker.StartBlock,
+		StopBlock:     worker.StopBlock,
+		TerminalBlock: worker.TerminalBlock,
+		P2pId:         worker.P2pId,
+		Ip:            model.Ip(worker.Ip),
+		Port:          worker.Port,
+		Status:        worker.Status,
+	}, nil
 }
 
 func (c *Contract) GetWorker(workerId uint64) (*model.K8sCluster, error) {
@@ -36,6 +52,7 @@ func (c *Contract) GetWorker(workerId uint64) (*model.K8sCluster, error) {
 	worker, _ := workerWrap.UnWrap()
 
 	return &model.K8sCluster{
+		Id:            workerId,
 		Name:          worker.Name,
 		Owner:         worker.Owner,
 		Level:         worker.Level,
@@ -48,6 +65,13 @@ func (c *Contract) GetWorker(workerId uint64) (*model.K8sCluster, error) {
 		Port:          worker.Port,
 		Status:        worker.Status,
 	}, nil
+}
+
+func (c *Contract) ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error {
+	return c.subnet.CallWorkerRegister(name, p2p_id, subnet.Ip(ip), port, level, region_id, chain.CallParams{
+		Signer:    c.signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
 }
 
 func (c *Contract) GetPodsVersionByWorker(workerId uint64) ([]model.PodVersion, error) {
@@ -68,9 +92,31 @@ func (c *Contract) GetPodsVersionByWorker(workerId uint64) ([]model.PodVersion, 
 	return list, nil
 }
 
-func (c *Contract) ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error {
-	return c.subnet.CallWorkerRegister(name, p2p_id, subnet.Ip(ip), port, level, region_id, chain.CallParams{
-		Signer:    c.signer,
-		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
+func (c *Contract) GetPodsByIds(podIds []uint64) ([]model.Pod, error) {
+	data, _, err := c.cloud.QueryPodsByIds(podIds, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]model.Pod, 0, len(*data))
+	for _, v := range *data {
+		contariners := make([]model.Container, 0, len(v.F2))
+		for i := range v.F2 {
+			bt, _ := json.Marshal(v.F2[i].F1)
+			contariner := model.Container{}
+			json.Unmarshal(bt, &contariner)
+			contariners = append(contariners, contariner)
+		}
+		pods = append(pods, model.Pod{
+			PodId:      v.F0,
+			Owner:      v.F1.Owner,
+			Ptype:      model.PodType(v.F1.Ptype),
+			TeeType:    ConvertTEEType(v.F1.TeeType),
+			Containers: contariners,
+			Version:    v.F3,
+			Status:     v.F4,
+		})
+	}
+
+	return pods, nil
 }

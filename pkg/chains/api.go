@@ -25,7 +25,7 @@ type Chain interface {
 	TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error)
 
 	/// query node id
-	GetWorkerId(user types.AccountID) (uint64, error)
+	GetMintWorker(user types.AccountID) (*model.K8sCluster, error)
 
 	// query pods by worker
 	GetPodsVersionByWorker(workerId uint64) ([]model.PodVersion, error)

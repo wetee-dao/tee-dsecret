@@ -4,7 +4,6 @@ package contracts
 //go:generate go-ink-gen -json cloud.json
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -25,8 +24,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0x4d8724f07d80d0602ed85cf2bb3bfd71ed431f13"
-const cloudAddress = "0xab4888c642cdc218e6393fdbd27c77da3ed86265"
+const subnetAddress = "0xd4b3f313be7143e117a021ef649e5324a2fd30fa"
+const cloudAddress = "0xda3d54a1f5321c873b053f164e2ced96c614788e"
 
 func GetCloudAddress() string {
 	return cloudAddress
@@ -118,7 +117,7 @@ func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
 }
 
 func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
-	workers, _, err := c.subnet.QueryWorkers(chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
+	workers, _, err := c.subnet.QueryWorkers(1, 5000, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -212,31 +211,6 @@ func (c *Contract) GetNextEpochValidatorList() ([]*model.Validator, error) {
 	}
 
 	return validators, nil
-}
-
-func (c *Contract) GetPodsByIds(podIds []uint64) ([]model.Pod, error) {
-	data, _, err := c.cloud.QueryPodsByIds(podIds, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
-	if err != nil {
-		return nil, err
-	}
-
-	pods := make([]model.Pod, 0, len(*data))
-	for _, v := range *data {
-		bt, _ := json.Marshal(v.F2)
-		contariners := []model.Container{}
-		json.Unmarshal(bt, &contariners)
-		pods = append(pods, model.Pod{
-			PodId:      v.F0,
-			Owner:      v.F1.Owner,
-			Ptype:      model.PodType(v.F1.Ptype),
-			TeeType:    ConvertTEEType(v.F1.TeeType),
-			Containers: contariners,
-			Version:    v.F3,
-			Status:     v.F4,
-		})
-	}
-
-	return pods, nil
 }
 
 func ConvertTEEType(t cloud.TEEType) model.TEEType {

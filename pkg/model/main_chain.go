@@ -60,6 +60,7 @@ func (ip *Ip) ToString() string {
 }
 
 type K8sCluster struct { // Composite
+	Id            uint64
 	Name          []byte
 	Owner         types.H160
 	Level         byte

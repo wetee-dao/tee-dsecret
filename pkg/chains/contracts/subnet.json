@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x480f8b61de963c745a27e5619275884dc03e20931dfe928f369e7f333ece59cf",
+    "hash": "0xcd613b1d36b6bca274476e484c95d4293b7cd5e7e6414202c608e354a991b129",
     "language": "ink! 6.0.0-alpha",
     "compiler": "rustc 1.85.0",
     "build_info": {
@@ -193,7 +193,26 @@
         "selector": "0xdfcf3455"
       },
       {
-        "args": [],
+        "args": [
+          {
+            "label": "page",
+            "type": {
+              "displayName": [
+                "u64"
+              ],
+              "type": 10
+            }
+          },
+          {
+            "label": "size",
+            "type": {
+              "displayName": [
+                "u64"
+              ],
+              "type": 10
+            }
+          }
+        ],
         "default": false,
         "docs": [
           " get all workers"
@@ -251,7 +270,9 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " get mint worker"
+        ],
         "label": "mint_worker",
         "mutates": false,
         "payable": false,
@@ -4262,7 +4283,7 @@
               {
                 "fields": [
                   {
-                    "type": 10
+                    "type": 90
                   }
                 ],
                 "index": 1,
@@ -4274,7 +4295,7 @@
         "params": [
           {
             "name": "T",
-            "type": 10
+            "type": 90
           }
         ],
         "path": [

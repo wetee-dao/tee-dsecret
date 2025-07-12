@@ -225,7 +225,7 @@ func (c *Subnet) QueryWorker(
 }
 
 func (c *Subnet) QueryWorkers(
-	params chain.DryRunCallParams,
+	page uint64, size uint64, params chain.DryRunCallParams,
 ) (*[]Tuple_90, *chain.DryRunReturnGas, error) {
 	v, gas, err := chain.DryRunInk[[]Tuple_90](
 		c,
@@ -235,7 +235,7 @@ func (c *Subnet) QueryWorkers(
 		params.StorageDepositLimit,
 		util.InkContractInput{
 			Selector: "0xc9dfba3b",
-			Args:     []any{},
+			Args:     []any{page, size},
 		},
 	)
 	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
@@ -246,8 +246,8 @@ func (c *Subnet) QueryWorkers(
 
 func (c *Subnet) QueryUserWorker(
 	user types.H160, params chain.DryRunCallParams,
-) (*util.Option[uint64], *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[util.Option[uint64]](
+) (*util.Option[Tuple_90], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Option[Tuple_90]](
 		c,
 		params.Origin,
 		params.PayAmount,
@@ -266,8 +266,8 @@ func (c *Subnet) QueryUserWorker(
 
 func (c *Subnet) QueryMintWorker(
 	id AccountId, params chain.DryRunCallParams,
-) (*util.Option[uint64], *chain.DryRunReturnGas, error) {
-	v, gas, err := chain.DryRunInk[util.Option[uint64]](
+) (*util.Option[Tuple_90], *chain.DryRunReturnGas, error) {
+	v, gas, err := chain.DryRunInk[util.Option[Tuple_90]](
 		c,
 		params.Origin,
 		params.PayAmount,

@@ -11,7 +11,6 @@ type PodVersion struct {
 }
 
 type Container struct { // Composite
-	Name    []byte
 	Image   []byte
 	Command Command
 	Port    []Service

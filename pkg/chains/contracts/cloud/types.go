@@ -299,7 +299,6 @@ func (ty *DiskClass) Decode(decoder scale.Decoder) (err error) {
 }
 
 type Container struct { // Composite
-	Name    []byte
 	Image   []byte
 	Command Command
 	Port    []Service
@@ -408,6 +407,8 @@ type Error struct { // Enum
 	WorkerLevelNotEnough  *bool // 3
 	RegionNotMatch        *bool // 4
 	WorkerNotOnline       *bool // 5
+	PodNotFound           *bool // 6
+	NotPodOwner           *bool // 7
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -458,6 +459,22 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.PodNotFound != nil {
+		err = encoder.PushByte(6)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.NotPodOwner != nil {
+		err = encoder.PushByte(7)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -491,6 +508,14 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.WorkerNotOnline = &t
 		return
+	case 6: // Base
+		t := true
+		ty.PodNotFound = &t
+		return
+	case 7: // Base
+		t := true
+		ty.NotPodOwner = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -519,29 +544,41 @@ func (ty *Error) Error() string {
 	if ty.WorkerNotOnline != nil {
 		return "WorkerNotOnline"
 	}
+
+	if ty.PodNotFound != nil {
+		return "PodNotFound"
+	}
+
+	if ty.NotPodOwner != nil {
+		return "NotPodOwner"
+	}
 	return "Unknown"
 }
 
-type Tuple_87 struct { // Tuple
+type Tuple_91 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Container
+	F2 []Tuple_93
 }
-type Tuple_91 struct { // Tuple
+type Tuple_93 struct { // Tuple
+	F0 uint64
+	F1 Container
+}
+type Tuple_97 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 byte
 }
-type Tuple_94 struct { // Tuple
+type Tuple_100 struct { // Tuple
 	F0 Pod
-	F1 []Container
+	F1 []Tuple_93
 	F2 uint32
 	F3 byte
 }
-type Tuple_98 struct { // Tuple
+type Tuple_104 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Container
+	F2 []Tuple_93
 	F3 uint32
 	F4 byte
 }
