@@ -2,23 +2,13 @@ package subnet
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
 )
-
-func InitSubnetContract(client *chain.ChainClient, address string) (*Subnet, error) {
-	contractAddress, err := util.HexToH160(address)
-	if err != nil {
-		return nil, err
-	}
-	return &Subnet{
-		ChainClient: client,
-		Address:     contractAddress,
-	}, nil
-}
 
 func DeploySubnetWithNew(__ink_params chain.DeployParams) (*types.H160, error) {
 	return __ink_params.Client.DeployContract(
@@ -29,6 +19,17 @@ func DeploySubnetWithNew(__ink_params chain.DeployParams) (*types.H160, error) {
 		},
 		__ink_params.Salt,
 	)
+}
+
+func InitSubnetContract(client *chain.ChainClient, address string) (*Subnet, error) {
+	contractAddress, err := util.HexToH160(address)
+	if err != nil {
+		return nil, err
+	}
+	return &Subnet{
+		ChainClient: client,
+		Address:     contractAddress,
+	}, nil
 }
 
 type Subnet struct {
@@ -47,6 +48,10 @@ func (c *Subnet) ContractAddress() types.H160 {
 func (c *Subnet) QueryBootNodes(
 	params chain.DryRunCallParams,
 ) (*util.Result[[]SecretNode, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "boot_nodes")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[[]SecretNode, Error]](
 		c,
 		params.Origin,
@@ -71,6 +76,10 @@ func (c *Subnet) QueryBootNodes(
 func (c *Subnet) DryRunSetBootNodes(
 	nodes []uint64, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "set_boot_nodes")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -139,6 +148,10 @@ func (c *Subnet) CallOfSetBootNodesTx(
 func (c *Subnet) DryRunSetRegion(
 	region_id uint32, name []byte, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "set_region")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -207,6 +220,10 @@ func (c *Subnet) CallOfSetRegionTx(
 func (c *Subnet) QueryWorker(
 	id uint64, params chain.DryRunCallParams,
 ) (*util.Option[K8sCluster], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker")
+	}
 	v, gas, err := chain.DryRunInk[util.Option[K8sCluster]](
 		c,
 		params.Origin,
@@ -227,6 +244,10 @@ func (c *Subnet) QueryWorker(
 func (c *Subnet) QueryWorkers(
 	page uint64, size uint64, params chain.DryRunCallParams,
 ) (*[]Tuple_90, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "workers")
+	}
 	v, gas, err := chain.DryRunInk[[]Tuple_90](
 		c,
 		params.Origin,
@@ -247,6 +268,10 @@ func (c *Subnet) QueryWorkers(
 func (c *Subnet) QueryUserWorker(
 	user types.H160, params chain.DryRunCallParams,
 ) (*util.Option[Tuple_90], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "user_worker")
+	}
 	v, gas, err := chain.DryRunInk[util.Option[Tuple_90]](
 		c,
 		params.Origin,
@@ -267,6 +292,10 @@ func (c *Subnet) QueryUserWorker(
 func (c *Subnet) QueryMintWorker(
 	id AccountId, params chain.DryRunCallParams,
 ) (*util.Option[Tuple_90], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "mint_worker")
+	}
 	v, gas, err := chain.DryRunInk[util.Option[Tuple_90]](
 		c,
 		params.Origin,
@@ -287,6 +316,10 @@ func (c *Subnet) QueryMintWorker(
 func (c *Subnet) DryRunWorkerRegister(
 	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, region_id uint32, params chain.DryRunCallParams,
 ) (*util.Result[uint64, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker_register")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[uint64, Error]](
 		c,
 		params.Origin,
@@ -355,6 +388,10 @@ func (c *Subnet) CallOfWorkerRegisterTx(
 func (c *Subnet) DryRunWorkerMortgage(
 	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, params chain.DryRunCallParams,
 ) (*util.Result[uint32, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker_mortgage")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[uint32, Error]](
 		c,
 		params.Origin,
@@ -423,6 +460,10 @@ func (c *Subnet) CallOfWorkerMortgageTx(
 func (c *Subnet) DryRunWorkerUnmortgage(
 	worker_id uint64, mortgage_id uint32, params chain.DryRunCallParams,
 ) (*util.Result[uint32, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker_unmortgage")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[uint32, Error]](
 		c,
 		params.Origin,
@@ -491,6 +532,10 @@ func (c *Subnet) CallOfWorkerUnmortgageTx(
 func (c *Subnet) DryRunWorkerStop(
 	id uint64, params chain.DryRunCallParams,
 ) (*util.Result[uint64, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker_stop")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[uint64, Error]](
 		c,
 		params.Origin,
@@ -559,6 +604,10 @@ func (c *Subnet) CallOfWorkerStopTx(
 func (c *Subnet) QuerySecrets(
 	params chain.DryRunCallParams,
 ) (*[]Tuple_99, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "secrets")
+	}
 	v, gas, err := chain.DryRunInk[[]Tuple_99](
 		c,
 		params.Origin,
@@ -579,6 +628,10 @@ func (c *Subnet) QuerySecrets(
 func (c *Subnet) DryRunSecretRegister(
 	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, params chain.DryRunCallParams,
 ) (*util.Result[uint64, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "secret_register")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[uint64, Error]](
 		c,
 		params.Origin,
@@ -647,6 +700,10 @@ func (c *Subnet) CallOfSecretRegisterTx(
 func (c *Subnet) DryRunSecretDeposit(
 	id uint64, deposit types.U256, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "secret_deposit")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -715,6 +772,10 @@ func (c *Subnet) CallOfSecretDepositTx(
 func (c *Subnet) DryRunSecretDelete(
 	id uint64, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "secret_delete")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -783,6 +844,10 @@ func (c *Subnet) CallOfSecretDeleteTx(
 func (c *Subnet) QueryValidators(
 	params chain.DryRunCallParams,
 ) (*[]Tuple_102, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "validators")
+	}
 	v, gas, err := chain.DryRunInk[[]Tuple_102](
 		c,
 		params.Origin,
@@ -803,6 +868,10 @@ func (c *Subnet) QueryValidators(
 func (c *Subnet) QueryGetPendingSecrets(
 	params chain.DryRunCallParams,
 ) (*[]Tuple_63, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "get_pending_secrets")
+	}
 	v, gas, err := chain.DryRunInk[[]Tuple_63](
 		c,
 		params.Origin,
@@ -823,6 +892,10 @@ func (c *Subnet) QueryGetPendingSecrets(
 func (c *Subnet) DryRunValidatorJoin(
 	id uint64, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "validator_join")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -891,6 +964,10 @@ func (c *Subnet) CallOfValidatorJoinTx(
 func (c *Subnet) DryRunValidatorDelete(
 	id uint64, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "validator_delete")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -959,6 +1036,10 @@ func (c *Subnet) CallOfValidatorDeleteTx(
 func (c *Subnet) QueryEpochInfo(
 	params chain.DryRunCallParams,
 ) (*EpochInfo, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "epoch_info")
+	}
 	v, gas, err := chain.DryRunInk[EpochInfo](
 		c,
 		params.Origin,
@@ -979,6 +1060,10 @@ func (c *Subnet) QueryEpochInfo(
 func (c *Subnet) DryRunSetEpochSolt(
 	epoch_solt uint32, params chain.DryRunCallParams,
 ) (*util.NullTuple, *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "set_epoch_solt")
+	}
 	v, gas, err := chain.DryRunInk[util.NullTuple](
 		c,
 		params.Origin,
@@ -1043,6 +1128,10 @@ func (c *Subnet) CallOfSetEpochSoltTx(
 func (c *Subnet) DryRunSetNextEpoch(
 	_node_id uint64, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "set_next_epoch")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,
@@ -1111,6 +1200,10 @@ func (c *Subnet) CallOfSetNextEpochTx(
 func (c *Subnet) QueryNextEpochValidators(
 	params chain.DryRunCallParams,
 ) (*util.Result[[]Tuple_102, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "next_epoch_validators")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[[]Tuple_102, Error]](
 		c,
 		params.Origin,
@@ -1135,6 +1228,10 @@ func (c *Subnet) QueryNextEpochValidators(
 func (c *Subnet) DryRunSetCode(
 	code_hash types.H256, params chain.DryRunCallParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "set_code")
+	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
 		params.Origin,

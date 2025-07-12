@@ -409,6 +409,7 @@ type Error struct { // Enum
 	WorkerNotOnline       *bool // 5
 	PodNotFound           *bool // 6
 	NotPodOwner           *bool // 7
+	PodStatusError        *bool // 8
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -475,6 +476,14 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.PodStatusError != nil {
+		err = encoder.PushByte(8)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -516,6 +525,10 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.NotPodOwner = &t
 		return
+	case 8: // Base
+		t := true
+		ty.PodStatusError = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -551,6 +564,10 @@ func (ty *Error) Error() string {
 
 	if ty.NotPodOwner != nil {
 		return "NotPodOwner"
+	}
+
+	if ty.PodStatusError != nil {
+		return "PodStatusError"
 	}
 	return "Unknown"
 }

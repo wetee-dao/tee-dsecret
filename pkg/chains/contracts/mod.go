@@ -24,8 +24,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0xd4b3f313be7143e117a021ef649e5324a2fd30fa"
-const cloudAddress = "0xda3d54a1f5321c873b053f164e2ced96c614788e"
+const subnetAddress = "0xcb08ca64a5d223f39796246a4b45fc8e0bd16333"
+const cloudAddress = "0x67df8871612ce8395163fc18a18431874d88aa79"
 
 func GetCloudAddress() string {
 	return cloudAddress

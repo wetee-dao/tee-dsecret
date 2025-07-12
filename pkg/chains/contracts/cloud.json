@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xa079e1502c595fd08a94be02b1fc0704ccad5bc6ff640da53526f0730afdab3f",
+    "hash": "0xc6886b382be364f771d1c2b2a59a91e2b118c540d02cc291024c02a0a23a8e85",
     "language": "ink! 6.0.0-alpha",
     "compiler": "rustc 1.85.0",
     "build_info": {
@@ -257,6 +257,34 @@
           "type": 85
         },
         "selector": "0x29879008"
+      },
+      {
+        "args": [
+          {
+            "label": "pod_id",
+            "type": {
+              "displayName": [
+                "u64"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " restart pod"
+        ],
+        "label": "restart_pod",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 80
+        },
+        "selector": "0x0b40460c"
       },
       {
         "args": [
@@ -3295,6 +3323,10 @@
               {
                 "index": 7,
                 "name": "NotPodOwner"
+              },
+              {
+                "index": 8,
+                "name": "PodStatusError"
               }
             ]
           }
