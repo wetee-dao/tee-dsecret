@@ -68,7 +68,7 @@ func (c *Contract) GetWorker(workerId uint64) (*model.K8sCluster, error) {
 }
 
 func (c *Contract) ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error {
-	return c.subnet.CallWorkerRegister(name, p2p_id, subnet.Ip(ip), port, level, region_id, chain.CallParams{
+	return c.subnet.ExecWorkerRegister(name, p2p_id, subnet.Ip(ip), port, level, region_id, chain.ExecParams{
 		Signer:    c.signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
@@ -108,15 +108,28 @@ func (c *Contract) GetPodsByIds(podIds []uint64) ([]model.Pod, error) {
 			contariners = append(contariners, contariner)
 		}
 		pods = append(pods, model.Pod{
-			PodId:      v.F0,
-			Owner:      v.F1.Owner,
-			Ptype:      model.PodType(v.F1.Ptype),
-			TeeType:    ConvertTEEType(v.F1.TeeType),
-			Containers: contariners,
-			Version:    v.F3,
-			Status:     v.F4,
+			PodId:               v.F0,
+			Owner:               v.F1.Owner,
+			Ptype:               model.PodType(v.F1.Ptype),
+			TeeType:             ConvertTEEType(v.F1.TeeType),
+			Containers:          contariners,
+			Version:             v.F3,
+			LastMintBlockNumber: v.F4,
+			Status:              v.F5,
 		})
 	}
 
 	return pods, nil
+}
+
+func (c *Contract) TxCallOfStartPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfStartPod(nodeId, hash, chain.DryRunParams{
+		Origin:    signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+}
+
+func (c *Contract) DryStartPod(nodeId uint64, hash types.H256, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunStartPod(nodeId, hash, chain.DefaultParamWithOrigin(signer))
+	return err
 }

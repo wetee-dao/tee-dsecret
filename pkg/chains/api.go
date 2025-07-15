@@ -22,7 +22,7 @@ type Chain interface {
 	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
 	GetNextEpochValidatorList() ([]*model.Validator, error)
 	SetNewEpoch(nodeId uint64) error
-	TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error)
+	TxCallOfSetNextEpoch(nodeId uint64, signer types.AccountID) (*types.Call, error)
 
 	/// query node id
 	GetMintWorker(user types.AccountID) (*model.K8sCluster, error)
@@ -32,6 +32,10 @@ type Chain interface {
 	GetPodsByIds(podIds []uint64) ([]model.Pod, error)
 	GetWorker(workerId uint64) (*model.K8sCluster, error)
 	ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error
+
+	// POD
+	TxCallOfStartPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
+	DryStartPod(nodeId uint64, hash types.H256, signer types.AccountID) error
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {

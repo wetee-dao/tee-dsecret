@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
@@ -54,6 +55,38 @@ func SetKey(namespace, key string, value []byte) error {
 	return DBINS.Set([]byte(namespace+"_"+key), val, pebble.Sync)
 }
 
+func SetJson[T any](namespace, key string, val *T) error {
+	bt, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	return SetKey(namespace, key, bt)
+}
+
+func SetCodec[T any](namespace, key string, val T) error {
+	bt, err := codec.Encode(val)
+	if err != nil {
+		return err
+	}
+
+	return SetKey(namespace, key, bt)
+}
+
+func GetCodec[T any](namespace, key string) (*T, error) {
+	bt, err := GetKey(namespace, key)
+	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return new(T), nil
+		}
+		return nil, err
+	}
+
+	val := new(T)
+	err = codec.Decode(bt, val)
+	return val, err
+}
+
 func GetKey(namespace, key string) ([]byte, error) {
 	value, _, err := DBINS.Get([]byte(comboKey(namespace, key)))
 	if err != nil {
@@ -67,7 +100,7 @@ func GetJson[T any](namespace, key string) (*T, error) {
 	v, err := GetKey(namespace, key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
-			return nil, nil
+			return new(T), nil
 		}
 		return nil, err
 	}
@@ -108,15 +141,6 @@ func GetJsonList[T any](namespace, key string) (list []*T, err error) {
 	}
 
 	return
-}
-
-func SetJson[T any](namespace, key string, val *T) error {
-	bt, err := json.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	return SetKey(namespace, key, bt)
 }
 
 func keyUpperBound(b []byte) []byte {

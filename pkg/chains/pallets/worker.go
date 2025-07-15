@@ -35,7 +35,7 @@ func (w *Worker) ClusterRegister(name string, ip []gtypes.Ip, port uint32, level
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 // 集群抵押
@@ -60,7 +60,7 @@ func (w *Worker) ClusterMortgage(id uint64, cpu uint32, mem uint32, cvm_cpu uint
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 func (w *Worker) ClusterWithdrawal(id gtypes.WorkId, val int64, untilFinalized bool) error {
@@ -74,7 +74,7 @@ func (w *Worker) ClusterWithdrawal(id gtypes.WorkId, val int64, untilFinalized b
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 func (w *Worker) ClusterUnmortgage(clusterID uint64, id uint64, untilFinalized bool) error {
@@ -88,7 +88,7 @@ func (w *Worker) ClusterUnmortgage(clusterID uint64, id uint64, untilFinalized b
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 func (w *Worker) ClusterStop(clusterID uint64, untilFinalized bool) error {
@@ -101,7 +101,7 @@ func (w *Worker) ClusterStop(clusterID uint64, untilFinalized bool) error {
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 func (w *Worker) Getk8sClusterAccounts(publey []byte) (uint64, error) {
@@ -196,7 +196,7 @@ func (w *Worker) WorkProofUpload(workId gtypes.WorkId, logHash []byte, crHash []
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized)
+	return w.Client.SignAndSubmit(w.Signer, call, untilFinalized, 0)
 }
 
 func (w *Worker) GetStage() (uint32, error) {

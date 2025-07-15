@@ -49,7 +49,7 @@ type DKG struct {
 	justifs   []*pedersen.JustificationBundle
 
 	// mainChan is the channel to receive out message
-	mainChan chan *model.Message
+	mainChain *model.PersistChan[*model.DkgMessage]
 	// PreRecerve is the channel to receive SendEncryptedSecretRequest
 	preRecerve map[string]chan any
 
@@ -98,29 +98,30 @@ func NewDKG(
 		return nil, fmt.Errorf("restore dkg: %w", err)
 	}
 
-	dkg.mainChan = make(chan *model.Message, 800)
+	dkg.mainChain, err = model.NewPersistChan[*model.DkgMessage]("dkg", 1000)
+	if err != nil {
+		return nil, fmt.Errorf("create dkg persist chan: %w", err)
+	}
+
 	return dkg, nil
 }
 
 // out dkg event Handler
-func (dkg *DKG) DkgOutHandler(data *model.Message) error {
-	dkg.mainChan <- data
+func (dkg *DKG) DkgOutHandler(data any) error {
+	dkg.mainChain.Push(data.(*model.DkgMessage))
 	return nil
 }
 
 // Start DKG service
 func (dkg *DKG) Start() error {
-	for data := range dkg.mainChan {
-		dkg.handleDkg(data)
-	}
-
-	util.LogOk("DKG", "stop")
+	util.LogOk("DKG", "Start")
+	dkg.mainChain.Start(dkg.handleDkg)
 	return nil
 }
 
 // Stop DKG
 func (dkg *DKG) Stop() {
-	close(dkg.mainChan)
+	dkg.mainChain.Stop()
 }
 
 // Get conected node number
@@ -159,7 +160,7 @@ func (d *DKG) Share() model.DistKeyShare {
 // }
 
 // Get p2p id of self node
-func (dkg *DKG) p2pId() *model.PubKey {
+func (dkg *DKG) P2PId() *model.PubKey {
 	pub := dkg.Signer.GetPublic()
 	for _, p := range dkg.Nodes {
 		if p.ValidatorId.String() == pub.String() {
@@ -177,25 +178,25 @@ func (dkg *DKG) p2pId() *model.PubKey {
 }
 
 // Send message to node
-func (dkg *DKG) sendToNode(node *model.PubKey, pid string, message *model.Message) error {
-	if node == nil {
+func (dkg *DKG) sendToNode(to *model.PubKey, pid string, message *model.DkgMessage) error {
+	if to == nil {
 		fmt.Println("sendToNode node is nil")
 		return errors.New("node is nil")
 	}
 
-	p2pId := dkg.p2pId()
+	p2pId := dkg.P2PId()
 	if p2pId == nil {
 		fmt.Println("sendToNode P2PID is nil")
 		return errors.New("P2PID is nil")
 	}
 
 	message.OrgId = p2pId.String()
-	if message.OrgId == node.String() {
-		dkg.mainChan <- message
+	if message.OrgId == to.String() {
+		dkg.mainChain.Push(message)
 		return nil
 	}
 
-	return dkg.Peer.Send(*node, pid, message)
+	return dkg.Peer.Send(*to, pid, message)
 }
 
 // Get node by string id

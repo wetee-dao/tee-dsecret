@@ -5,12 +5,21 @@ package model;
 option go_package = "";
 
 // Transaction
-message Tx {
+message TxBox {
+  bytes tee_sig = 1;
+  bytes org = 2; 
+  bytes tx = 3;
+}
+
+message Tx{
   oneof payload {
-    string test = 3;
-    int64 epoch_status = 4;
-    Epoch epoch = 1;
-    Bridge bridge = 2;
+    string test = 99;
+    EpochEnd epoch_end = 1;
+    int64 epoch_start = 2;
+    Bridge bridge = 3;
+    HubCall hub_call = 4;
+    int64 sync_tx_start  = 5;
+    int64 sync_tx_end = 6;
   }
 }
 
@@ -21,13 +30,41 @@ message SideValidator {
 }
 
 // Call from TEE to mainchain
-message Epoch {
+message EpochEnd {
   uint32 epoch = 1;
   repeated SideValidator validators = 2;
+  bytes dkg_pub = 3;
 }
 
 // Call from TEE to mainchain
 message Bridge {
   string msg_id = 1;
   bytes payload = 2;
+}
+
+// Polkadot Hub Call
+message HubCall {
+  repeated IndexCall call = 2;
+}
+
+// Call with index
+message IndexCall {
+  int64 index = 1;
+  bytes call = 2;
+}
+
+// dkg message
+message DkgMessage {
+  string org_id = 1;
+  string msg_id = 2;
+  bytes payload = 3;
+  string error = 4;
+  string type = 5;
+}
+
+// block 
+message BlockPartialSign {
+  int64 tx_index = 1;
+  bytes hub_sig = 2;
+  string org_id = 3;
 }

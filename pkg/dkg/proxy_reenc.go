@@ -27,7 +27,7 @@ func (d *DKG) SendEncryptedSecretRequest(payload []byte, msgID string, OrgId str
 
 	// 向所有节点发送加密秘密请求
 	for _, n := range d.Nodes {
-		err := d.sendToNode(&n.P2pId, "worker", &model.Message{
+		err := d.sendToNode(&n.P2pId, "worker", &model.DkgMessage{
 			Type:    "reencrypt_secret_request",
 			Payload: payload,
 		})
@@ -145,8 +145,8 @@ func (d *DKG) HandleProcessReencrypt(reqBt []byte, msgID string, OrgId string) e
 	}
 
 	// 向目标节点发送重新加密的密文份额
-	err = d.sendToNode(n, "worker", &model.Message{
-		MsgID:   msgID,
+	err = d.sendToNode(n, "worker", &model.DkgMessage{
+		MsgId:   msgID,
 		Type:    "reencrypted_secret_reply",
 		Payload: bt,
 	})

@@ -12,6 +12,13 @@ import (
 	"go.dedis.ch/kyber/v4/sign/dss"
 )
 
+func NewDssSigner(dkg *DKG) *DssSigner {
+	return &DssSigner{
+		dkg:  dkg,
+		sigs: make([]*dss.PartialSig, 0),
+	}
+}
+
 type DssSigner struct {
 	dkg  *DKG
 	sigs []*dss.PartialSig

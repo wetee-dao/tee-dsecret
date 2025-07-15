@@ -3,13 +3,14 @@ package sidechain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/version"
 
-	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
@@ -18,31 +19,44 @@ const ApplicationVersion = 1
 type SideChain struct {
 	abci.BaseApplication
 
-	dkg                 *dkg.DKG
-	State               AppState
+	dkg *dkg.DKG
+	p2p *bftbrigde.BTFReactor
+
+	txCh *model.PersistChan[*model.BlockPartialSign]
+
+	state               AppState
 	onGoingBlock        *model.Txn
 	onGoingValidators   []abci.ValidatorUpdate
 	currProposerAddress []byte
 }
 
-func NewSideChain() (*SideChain, error) {
+func NewSideChain(light bool) (*SideChain, error) {
 	state, err := loadAppState()
 	if err != nil {
 		return nil, err
 	}
 
-	return &SideChain{
-		State: state,
-	}, nil
+	c := &SideChain{
+		state: state,
+	}
+
+	if !light {
+		txCh, err := model.NewPersistChan[*model.BlockPartialSign]("back_tx", 1000)
+		if err != nil {
+			return nil, err
+		}
+		c.txCh = txCh
+	}
+
+	return c, nil
 }
 
-// Info return application information
 func (app *SideChain) Info(_ context.Context, info *abci.InfoRequest) (*abci.InfoResponse, error) {
 	return &abci.InfoResponse{
 		Version:          version.ABCIVersion,
 		AppVersion:       ApplicationVersion,
-		LastBlockHeight:  app.State.Height,
-		LastBlockAppHash: app.State.Hash(),
+		LastBlockHeight:  app.state.Height,
+		LastBlockAppHash: app.state.Hash(),
 	}, nil
 }
 
@@ -56,7 +70,7 @@ func (app *SideChain) Query(ctx context.Context, query *abci.QueryRequest) (*abc
 func (app *SideChain) InitChain(_ context.Context, req *abci.InitChainRequest) (*abci.InitChainResponse, error) {
 	util.LogWithGreen("InitChain")
 	app.initValidators(req.Validators)
-	appHash := app.State.Hash()
+	appHash := app.state.Hash()
 
 	// This parameter can also be set in the genesis file
 	req.ConsensusParams.Feature.VoteExtensionsEnableHeight.Value = 1
@@ -68,22 +82,25 @@ func (app *SideChain) CheckTx(_ context.Context, req *abci.CheckTxRequest) (*abc
 	util.LogWithGreen("START BLOCK", "--------------------------------------------------------------")
 	LogWithTime("🚀 CheckTx")
 
-	// check req.Tx
-
-	return &abci.CheckTxResponse{Code: CodeTypeOK}, nil
+	return &abci.CheckTxResponse{Code: app.checkTx(req.Tx)}, nil
 }
 
 func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PrepareProposalRequest) (*abci.PrepareProposalResponse, error) {
 	LogWithTime("🎁 PrepareProposal")
 
-	tx := app.CheckEpochFromValidator()
-
+	// Check if the current epoch is valid
+	epochTx := app.CheckEpochFromValidator()
 	finalProposal := make([][]byte, 0, len(req.Txs)+2)
-	if tx != nil {
-		finalProposal = append(finalProposal, tx)
+	if len(epochTx) > 0 {
+		finalProposal = append(finalProposal, epochTx)
 	}
-	for _, tx := range req.Txs {
-		finalProposal = append(finalProposal, tx)
+
+	epochStatus := app.GetEpochStatus()
+	// Check if it is in the epoch transition phase
+	if len(epochTx) == 0 && time.Now().Unix()-int64(epochStatus) > 120 {
+		app.PrepareTx(req.Txs, &finalProposal, true)
+	} else {
+		app.PrepareTx(req.Txs, &finalProposal, false)
 	}
 
 	return &abci.PrepareProposalResponse{Txs: finalProposal}, nil
@@ -99,7 +116,7 @@ func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessPropos
 func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRequest) (*abci.FinalizeBlockResponse, error) {
 	// Iterate over Tx in current block
 	app.onGoingBlock = model.DBINS.NewTransaction()
-	respTxs, err := app.FinalizeTx(req.Txs, app.onGoingBlock)
+	respTxs, err := app.FinalizeTx(req.Txs, app.onGoingBlock, req.Height, req.ProposerAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -118,17 +135,14 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 	// save proposer of currut block
 	app.currProposerAddress = req.ProposerAddress
 
-	app.State.Height = req.Height
+	app.state.Height = req.Height
 	response := &abci.FinalizeBlockResponse{
 		TxResults:        respTxs,
-		AppHash:          app.State.Hash(),
+		AppHash:          app.state.Hash(),
 		ValidatorUpdates: validatorUpdates,
 	}
 
 	LogWithTime("📦 Finalize Block =>", util.Green+" "+fmt.Sprint(req.Height)+" "+util.Reset)
-
-	// Send main-chain tx sig to validator for multi-sig
-
 	return response, nil
 }
 
@@ -139,16 +153,9 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 	}
 
 	app.onGoingValidators = nil
-	err := saveAppState(&app.State)
+	err := saveAppState(&app.state)
 	if err != nil {
 		return nil, err
-	}
-
-	if app.currProposerAddress != nil {
-		pub := model.PubKeyFromByte(app.currProposerAddress)
-		if pub.SS58() == chains.MainChain.GetSignerAddress() {
-			//TODO submit main chain transaction
-		}
 	}
 
 	LogWithTime("💤 Commit")

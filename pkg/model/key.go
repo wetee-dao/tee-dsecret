@@ -1,0 +1,32 @@
+package model
+
+import (
+	"fmt"
+
+	"github.com/cometbft/cometbft/p2p"
+	chain "github.com/wetee-dao/ink.go"
+)
+
+// 获取挖矿密钥
+// GetKey get mint key
+func GetP2PKey() (*chain.Signer, *PrivKey, error) {
+	// init sidechain node key
+	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
+	if err != nil {
+		fmt.Println("failed to load node key:", err)
+		return nil, nil, err
+	}
+
+	privateKey, err := PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
+	if err != nil {
+		fmt.Println("Marshal PKG_PK error:", err)
+		return nil, nil, err
+	}
+
+	kr, err := privateKey.ToSigner()
+	if err != nil {
+		fmt.Println("ToSigner error:", err)
+		return nil, nil, err
+	}
+	return kr, privateKey, nil
+}

@@ -20,7 +20,7 @@ func NewNetwork(priv *model.PrivKey, boots []string, nodes []*model.PubKey, tcp,
 		id:       id,
 		privKey:  priv.PrivateKey,
 		nodes:    nodes,
-		handlers: make(map[string]func(*model.Message) error),
+		handlers: make(map[string]func(any) error),
 		callBack: func(ty string) error {
 			fmt.Println("::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: netHook not found error")
 			return nil
@@ -37,13 +37,13 @@ type Peer struct {
 	id         string
 	privKey    ed25519.PrivateKey
 	nodes      []*model.PubKey
-	handlers   map[string]func(*model.Message) error
+	handlers   map[string]func(any) error
 	callBack   func(string) error
 	version    uint32
 	PreCommits []kyber.Point
 }
 
-func (p *Peer) Send(node model.PubKey, topic string, message *model.Message) error {
+func (p *Peer) Send(node model.PubKey, topic string, message any) error {
 	// util.LogSendmsg(">>>>>> P2P Send()", "to", node.String(), "-", node.SS58(), "| type:", topic+"."+message.Type)
 	peer := peers[node.String()]
 	if handler, ok := peer.handlers[topic]; ok {
@@ -66,13 +66,9 @@ func (p *Peer) Pub(topic string, data []byte) error {
 	panic("Pub not implement")
 }
 
-func (p *Peer) Sub(topic string, handler func(*model.Message) error) error {
+func (p *Peer) Sub(topic string, handler func(any) error) error {
 	p.handlers[topic] = handler
 	return nil
-}
-
-func (p *Peer) SetNetworkChangeBack(hook func(ty string) error) {
-	p.callBack = hook
 }
 
 func (p *Peer) Nodes() []*model.PubKey {

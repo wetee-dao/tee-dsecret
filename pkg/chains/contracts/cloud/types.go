@@ -22,13 +22,13 @@ type CallBuilder struct { // Composite
 	Addr types.H160
 }
 type PodType struct { // Enum
-	CpuService *bool // 0
-	GpuService *bool // 1
-	Script     *bool // 2
+	CPU    *bool // 0
+	GPU    *bool // 1
+	SCRIPT *bool // 2
 }
 
 func (ty PodType) Encode(encoder scale.Encoder) (err error) {
-	if ty.CpuService != nil {
+	if ty.CPU != nil {
 		err = encoder.PushByte(0)
 		if err != nil {
 			return err
@@ -36,7 +36,7 @@ func (ty PodType) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.GpuService != nil {
+	if ty.GPU != nil {
 		err = encoder.PushByte(1)
 		if err != nil {
 			return err
@@ -44,7 +44,7 @@ func (ty PodType) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.Script != nil {
+	if ty.SCRIPT != nil {
 		err = encoder.PushByte(2)
 		if err != nil {
 			return err
@@ -62,15 +62,15 @@ func (ty *PodType) Decode(decoder scale.Decoder) (err error) {
 	switch variant {
 	case 0: // Base
 		t := true
-		ty.CpuService = &t
+		ty.CPU = &t
 		return
 	case 1: // Base
 		t := true
-		ty.GpuService = &t
+		ty.GPU = &t
 		return
 	case 2: // Base
 		t := true
-		ty.Script = &t
+		ty.SCRIPT = &t
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -401,15 +401,17 @@ type CR struct { // Composite
 	Gpu  uint32
 }
 type Error struct { // Enum
-	SetCodeFailed         *bool // 0
-	MustCallByGovContract *bool // 1
-	WorkerNotFound        *bool // 2
-	WorkerLevelNotEnough  *bool // 3
-	RegionNotMatch        *bool // 4
-	WorkerNotOnline       *bool // 5
-	PodNotFound           *bool // 6
-	NotPodOwner           *bool // 7
-	PodStatusError        *bool // 8
+	SetCodeFailed          *bool // 0
+	MustCallByGovContract  *bool // 1
+	WorkerNotFound         *bool // 2
+	WorkerLevelNotEnough   *bool // 3
+	RegionNotMatch         *bool // 4
+	WorkerNotOnline        *bool // 5
+	PodNotFound            *bool // 6
+	NotPodOwner            *bool // 7
+	PodStatusError         *bool // 8
+	InvalidSideChainCaller *bool // 9
+	PodDelFailed           *bool // 10
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -484,6 +486,22 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.InvalidSideChainCaller != nil {
+		err = encoder.PushByte(9)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.PodDelFailed != nil {
+		err = encoder.PushByte(10)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -529,6 +547,14 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.PodStatusError = &t
 		return
+	case 9: // Base
+		t := true
+		ty.InvalidSideChainCaller = &t
+		return
+	case 10: // Base
+		t := true
+		ty.PodDelFailed = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -569,33 +595,116 @@ func (ty *Error) Error() string {
 	if ty.PodStatusError != nil {
 		return "PodStatusError"
 	}
+
+	if ty.InvalidSideChainCaller != nil {
+		return "InvalidSideChainCaller"
+	}
+
+	if ty.PodDelFailed != nil {
+		return "PodDelFailed"
+	}
 	return "Unknown"
 }
 
-type Tuple_91 struct { // Tuple
+type ContainerInput struct { // Composite
+	Etype     EditType
+	Container Container
+}
+type EditType struct { // Enum
+	INSERT *bool   // 0
+	UPDATE *uint64 // 1
+	REMOVE *uint64 // 2
+}
+
+func (ty EditType) Encode(encoder scale.Encoder) (err error) {
+	if ty.INSERT != nil {
+		err = encoder.PushByte(0)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.UPDATE != nil {
+		err = encoder.PushByte(1)
+		if err != nil {
+			return err
+		}
+		err = encoder.Encode(*ty.UPDATE)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.REMOVE != nil {
+		err = encoder.PushByte(2)
+		if err != nil {
+			return err
+		}
+		err = encoder.Encode(*ty.REMOVE)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("unrecognized enum")
+}
+
+func (ty *EditType) Decode(decoder scale.Decoder) (err error) {
+	variant, err := decoder.ReadOneByte()
+	if err != nil {
+		return err
+	}
+	switch variant {
+	case 0: // Base
+		t := true
+		ty.INSERT = &t
+		return
+	case 1: // Inline
+		ty.UPDATE = new(uint64)
+		err = decoder.Decode(ty.UPDATE)
+		if err != nil {
+			return err
+		}
+		return
+	case 2: // Inline
+		ty.REMOVE = new(uint64)
+		err = decoder.Decode(ty.REMOVE)
+		if err != nil {
+			return err
+		}
+		return
+	default:
+		return fmt.Errorf("unrecognized enum")
+	}
+}
+
+type Tuple_100 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_93
+	F2 []Tuple_102
 }
-type Tuple_93 struct { // Tuple
+type Tuple_102 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_97 struct { // Tuple
+type Tuple_106 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 byte
 }
-type Tuple_100 struct { // Tuple
+type Tuple_109 struct { // Tuple
 	F0 Pod
-	F1 []Tuple_93
+	F1 []Tuple_102
 	F2 uint32
 	F3 byte
 }
-type Tuple_104 struct { // Tuple
+type Tuple_113 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_93
+	F2 []Tuple_102
 	F3 uint32
-	F4 byte
+	F4 uint32
+	F5 byte
 }

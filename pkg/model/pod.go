@@ -62,9 +62,9 @@ type Pod struct {
 }
 
 type PodType struct { // Enum
-	CpuService *bool // 0
-	GpuService *bool // 1
-	Script     *bool // 2
+	CPU    *bool // 0
+	GPU    *bool // 1
+	SCRIPT *bool // 2
 }
 
 type TEEType struct { // Enum

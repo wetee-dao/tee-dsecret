@@ -5,9 +5,9 @@ import (
 )
 
 type Peer interface {
-	Send(node_id model.PubKey, pid string, message *model.Message) error
+	Send(node_id model.PubKey, pid string, message any) error
 	Pub(topic string, data []byte) error
-	Sub(topic string, handler func(*model.Message) error) error
+	Sub(topic string, handler func(any) error) error
 
 	LinkToNetwork()
 
@@ -15,7 +15,4 @@ type Peer interface {
 	// PeerID() string
 
 	Nodes() []*model.PubKey
-
-	// Epoch() uint32
-	SetNetworkChangeBack(hook func(back_type string) error)
 }

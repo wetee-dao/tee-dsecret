@@ -15,13 +15,21 @@ import (
 
 var MaxMsgSize = types.MaxBlockSizeBytes
 var topics = map[string]p2p.ChannelDescriptor{
-	"dkg": p2p.ChannelDescriptor{
-		ID:                  byte(0xFF),
+	"dkg": {
+		ID:                  255,
 		Priority:            10000,
 		SendQueueCapacity:   1000,
 		RecvBufferCapacity:  50 * 4096,
 		RecvMessageCapacity: MaxMsgSize,
-		MessageType:         &DkgMessage{},
+		MessageType:         &model.DkgMessage{},
+	},
+	"block-partial-sign": {
+		ID:                  254,
+		Priority:            10000,
+		SendQueueCapacity:   1000,
+		RecvBufferCapacity:  50 * 4096,
+		RecvMessageCapacity: MaxMsgSize,
+		MessageType:         &model.BlockPartialSign{},
 	},
 }
 
@@ -29,12 +37,12 @@ type BTFReactor struct {
 	service.BaseService
 	Switch *p2p.Switch
 
-	nodekeys   []*model.PubKey
-	dkgHandler func(*model.Message) error
-	callDkg    func(string) error
+	nodekeys                []*model.PubKey
+	dkgHandler              func(any) error
+	blockPartialSignHandler func(any) error
 }
 
-func NewBTFReactor(name string, main chains.Chain) *BTFReactor {
+func NewBTFReactor(name string) *BTFReactor {
 	r := &BTFReactor{}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
@@ -84,19 +92,33 @@ func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
 
 func (r *BTFReactor) Receive(e p2p.Envelope) {
 	switch msg := e.Message.(type) {
-	case *DkgMessage:
+	case *model.DkgMessage:
+		if r.dkgHandler == nil {
+			util.LogWithRed("P2P Receive", "dkgHandler not set")
+			return
+		}
+
 		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
-		if err == nil {
-			// util.LogWithCyan("P2P Receive From", pub.SS58(), "dkg."+msg.Type)
-			r.dkgHandler(&model.Message{
-				MsgID:   msg.MsgId,
-				Payload: msg.Payload,
-				Type:    msg.Type,
-				OrgId:   pub.String(),
-			})
-		} else {
+		if err != nil {
 			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
 		}
+
+		msg.OrgId = pub.String()
+		r.dkgHandler(msg)
+		return
+	case *model.BlockPartialSign:
+		if r.blockPartialSignHandler == nil {
+			util.LogWithRed("P2P Receive", "blockPartialSignHandler not set")
+			return
+		}
+
+		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
+		if err != nil {
+			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
+		}
+
+		msg.OrgId = pub.String()
+		r.blockPartialSignHandler(msg)
 	default:
 		util.LogWithRed("P2P Receive", "Receive error", "msg", msg)
 	}

@@ -1,13 +1,11 @@
-package util
+package model
 
 import (
 	"fmt"
 	"math/big"
-
-	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func GetUrlFromIp(ip model.Ip) string {
+func GetUrlFromIp(ip Ip) string {
 	url := ""
 	if !ip.Domain.IsNone() {
 		url = "/dns4/" + string(ip.Domain.V)

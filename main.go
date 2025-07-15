@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
 	"github.com/wetee-dao/tee-dsecret/graph"
 	chain "github.com/wetee-dao/tee-dsecret/pkg/chains"
@@ -35,14 +34,9 @@ func main() {
 	defer db.Close()
 
 	// init sidechain node key
-	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
+	_, p2pKey, err := model.GetP2PKey()
 	if err != nil {
 		fmt.Println("failed to load node key:", err)
-		os.Exit(1)
-	}
-	p2pKey, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
-	if err != nil {
-		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
 	}
 
@@ -61,14 +55,14 @@ func main() {
 	}
 
 	// Link to polkadot
-	mainChain, err := chain.ConnectMainChain(chainAddr, nodePriv)
+	_, err = chain.ConnectMainChain(chainAddr, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
 	}
 
 	// Init node
-	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, mainChain, func() {
+	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
 		util.LogWithYellow("Main Chain", chainAddr)
 		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
 		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
@@ -102,7 +96,7 @@ func main() {
 	sideChain.SetDKG(dkgIns)
 
 	// 启动 graphql 服务器
-	go graph.StartServer(dkgIns, node, sideChain, gqlPort)
+	go graph.StartServer(dkgIns, sideChain, gqlPort)
 
 	// wait for stop signal
 	sigCh := make(chan os.Signal, 1)

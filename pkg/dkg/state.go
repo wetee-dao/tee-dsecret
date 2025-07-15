@@ -45,8 +45,10 @@ func (dkg *DKG) reState() error {
 	}
 
 	to := dkg
-	to.status = from.status
 
+	to.Threshold = from.Threshold
+	to.Epoch = from.Epoch
+	to.status = from.status
 	to.Nodes = from.Nodes
 	to.DkgPubKey = from.DkgPubKey
 	to.DkgKeyShare = from.DkgKeyShare
@@ -60,15 +62,12 @@ func (dkg *DKG) reState() error {
 }
 
 func (dkg *DKG) saveState() error {
-	to := DKGStore{
-
-		Threshold: dkg.Threshold,
-		Epoch:     dkg.Epoch,
-		status:    dkg.status,
-	}
-
+	to := DKGStore{}
 	from := dkg
 
+	to.Threshold = from.Threshold
+	to.Epoch = from.Epoch
+	to.status = from.status
 	to.Nodes = from.Nodes
 	to.DkgPubKey = from.DkgPubKey
 	to.DkgKeyShare = from.DkgKeyShare

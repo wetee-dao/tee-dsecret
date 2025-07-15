@@ -63,7 +63,7 @@ func main() {
 		panic(err)
 	}
 
-	err = client.SignAndSubmit(signer, call, true)
+	err = client.SignAndSubmit(signer, call, true, 0)
 	if err != nil {
 		panic(err)
 	}

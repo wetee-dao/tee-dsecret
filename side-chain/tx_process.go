@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	abcicli "github.com/cometbft/cometbft/abci/client"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
@@ -13,16 +12,25 @@ import (
 // Process tx
 func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessProposalStatus {
 	for _, txbt := range txs {
+		txbox := new(model.TxBox)
+		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
+		if err != nil {
+			return abci.PROCESS_PROPOSAL_STATUS_REJECT
+		}
+
 		tx := new(model.Tx)
-		err := protoio.ReadMessage(bytes.NewBuffer(txbt), tx)
+		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
 		if err != nil {
 			return abci.PROCESS_PROPOSAL_STATUS_REJECT
 		}
 
 		switch tx.Payload.(type) {
-		case *model.Tx_EpochStatus:
+		case *model.Tx_EpochStart:
+		case *model.Tx_EpochEnd:
+		case *model.Tx_SyncTxStart:
+		case *model.Tx_SyncTxEnd:
 			break
-		case *model.Tx_Epoch:
+		case *model.Tx_HubCall:
 			break
 		case *model.Tx_Bridge:
 			break
@@ -34,17 +42,4 @@ func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessPropos
 	}
 
 	return abci.PROCESS_PROPOSAL_STATUS_ACCEPT
-}
-
-// Submit tx to sidechain
-func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
-	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), SideChainNode.NodeInfo().ID())
-}
-
-// Get tx bytes
-func GetTxBytes(tx *model.Tx) []byte {
-	buf := new(bytes.Buffer)
-	abci.WriteMessage(tx, buf)
-
-	return buf.Bytes()
 }

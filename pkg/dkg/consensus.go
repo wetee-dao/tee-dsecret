@@ -61,7 +61,7 @@ func (dkg *DKG) TryEpochConsensus(
 	dkg.consensusFailBack = fail
 
 	bt, _ := json.Marshal(msg)
-	dkg.DkgOutHandler(&model.Message{
+	dkg.DkgOutHandler(&model.DkgMessage{
 		Type:    "consensus",
 		Payload: bt,
 	})

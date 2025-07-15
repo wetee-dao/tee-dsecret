@@ -29,7 +29,7 @@ func (c *Chain) RegisterNode(signer *chain.Signer, vid []byte, pid []byte) error
 		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
 	}
 
-	return c.SignAndSubmit(signer, call, true)
+	return c.SignAndSubmit(signer, call, true, 0)
 }
 
 // GetNodes 函数用于获取节点列表，包括 Secret 节点和 Worker 节点，以及转换为自定义的 Node 类型

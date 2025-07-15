@@ -24,8 +24,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0xcb08ca64a5d223f39796246a4b45fc8e0bd16333"
-const cloudAddress = "0x67df8871612ce8395163fc18a18431874d88aa79"
+const subnetAddress = "0xe0f0db6f6c2ca8b6718294a3af1084c3c28ebe51"
+const cloudAddress = "0xcaa712fdc2fa52448998b60d3c4b9b924a4e556f"
 
 func GetCloudAddress() string {
 	return cloudAddress
@@ -70,7 +70,7 @@ func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 			return nil, err
 		}
 
-		err = client.SignAndSubmit(p, call, true)
+		err = client.SignAndSubmit(p, call, true, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -172,25 +172,20 @@ func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error
 		return 0, 0, 0, 0, types.H160{}, err
 	}
 
-	address := types.H160{}
-	if !d.SideChainPub.IsNone() {
-		address = d.SideChainPub.V
-	}
-
-	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, address, nil
+	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, d.SideChainPub, nil
 }
 
 // go to new epoch
 func (c *Contract) SetNewEpoch(nodeId uint64) error {
-	return c.subnet.CallSetNextEpoch(nodeId, chain.CallParams{
+	return c.subnet.ExecSetNextEpoch(nodeId, chain.ExecParams{
 		Signer:    c.signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
 
-func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64, signer chain.SignerType) (*types.Call, error) {
-	return c.subnet.CallOfSetNextEpochTx(nodeId, chain.CallParams{
-		Signer:    signer,
+func (c *Contract) TxCallOfSetNextEpoch(nodeId uint64, signer types.AccountID) (*types.Call, error) {
+	return c.subnet.CallOfSetNextEpoch(nodeId, chain.DryRunParams{
+		Origin:    signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }

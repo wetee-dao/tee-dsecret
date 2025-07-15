@@ -172,13 +172,13 @@ func TestDssSubmitTx(t *testing.T) {
 		Epoch:      1,
 	}, func(signer *DssSigner, nodeId uint64) {
 		util.LogWithBlue("CONSENSUS SUCCESS", nodeId)
-		call, err := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer)
+		call, err := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer.AccountID())
 		if err != nil {
 			panic(err)
 		}
 
 		client := chains.MainChain.GetClient()
-		err = client.SignAndSubmit(signer, *call, false)
+		err = client.SignAndSubmit(signer, *call, false, 0)
 		fmt.Println(err)
 
 		for _, dkg := range dkgs {

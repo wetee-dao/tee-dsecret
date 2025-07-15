@@ -21,9 +21,8 @@ var sideChain *sidechain.SideChain
 
 // 启动GraphQL服务器
 // StartServer starts the GraphQL server.
-func StartServer(d *dkg.DKG, node *nm.Node, sideChain *sidechain.SideChain, port int) {
+func StartServer(d *dkg.DKG, sideChain *sidechain.SideChain, port int) {
 	dkgIns = d
-	sideChainNode = node
 
 	// 创建路由
 	router := chi.NewRouter()

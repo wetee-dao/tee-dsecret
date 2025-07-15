@@ -47,13 +47,19 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		}
 
 		return GetTxBytes(&model.Tx{
-			Payload: &model.Tx_Epoch{
-				Epoch: &model.Epoch{
+			Payload: &model.Tx_EpochEnd{
+				EpochEnd: &model.EpochEnd{
 					Epoch:      epoch,
 					Validators: sideValidators,
+					DkgPub:     app.dkg.DkgPubKey.PublicKey,
 				},
 			},
 		})
+	}
+
+	// Check if sync tx is submiting
+	if app.SyncTxIsGoing() {
+		return nil
 	}
 
 	// Query local epoch
@@ -75,8 +81,8 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 			}, app.newEpochSucceded, app.newEpochFail)
 			if err == nil {
 				return GetTxBytes(&model.Tx{
-					Payload: &model.Tx_EpochStatus{
-						EpochStatus: time.Now().Unix(), // start epoch, stop submit main chain tx
+					Payload: &model.Tx_EpochStart{
+						EpochStart: time.Now().Unix(), // start epoch, stop submit main chain tx
 					},
 				})
 			}
@@ -96,10 +102,10 @@ func (app *SideChain) newEpochSucceded(signer *dkg.DssSigner, nodeId uint64) {
 	}
 
 	// submit new epoch to main chain
-	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer)
+	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer.AccountID())
 
 	client := chains.MainChain.GetClient()
-	err := client.SignAndSubmit(signer, *call, false)
+	err := client.SignAndSubmit(signer, *call, false, 0)
 	if err != nil {
 		util.LogWithRed("NewEpoch client.SignAndSubmit", err.Error())
 	}
@@ -140,7 +146,7 @@ func (app *SideChain) GetEpoch() uint32 {
 }
 
 // SetEpoch set new epoch
-func (app *SideChain) SetEpoch(epoch *model.Epoch, txn *model.Txn) error {
+func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 	// Save new epoch to DKG
 	if app.dkg != nil {
 		app.dkg.ToNewEpoch()
@@ -151,13 +157,16 @@ func (app *SideChain) SetEpoch(epoch *model.Epoch, txn *model.Txn) error {
 	binary.Write(bytesBuffer, binary.BigEndian, epoch.Epoch)
 	txn.SetKey("G", "epoch", bytesBuffer.Bytes())
 
+	// Save DKG pub key
+	txn.SetKey("G", "dkg_pub_key", epoch.DkgPub)
+
 	// Delete old epoch validators
 	err := txn.DeletekeysByPrefix([]byte("G_validator"))
 	if err != nil {
 		return err
 	}
 
-	// save new epoch validators
+	// Save new epoch validators
 	for i, v := range epoch.Validators {
 		if err = model.TxnSetProtoMessage(txn, []byte("G_validator"+fmt.Sprint(i)), v); err != nil {
 			return err
@@ -203,7 +212,7 @@ func (app *SideChain) initValidators(vs []abci.ValidatorUpdate) error {
 }
 
 // Calc validator updates
-func (app *SideChain) calcValidatorUpdates(epoch *model.Epoch) {
+func (app *SideChain) calcValidatorUpdates(epoch *model.EpochEnd) {
 	oldValidators, _, _ := app.GetValidators()
 	newValidators := epoch.Validators
 

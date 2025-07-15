@@ -12,7 +12,7 @@ import (
 // HandleDkg 处理不同的DKG消息类型
 // msg: 被处理的消息对象
 // 返回：可能的错误
-func (dkg *DKG) handleDkg(msg *model.Message) error {
+func (dkg *DKG) handleDkg(msg *model.DkgMessage) error {
 	// 根据消息类型执行相应的处理逻辑
 	switch msg.Type {
 	case "consensus":
@@ -25,7 +25,7 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 		}
 		return err
 	case "consensus_to_newpoch":
-		err := dkg.SubmitToNepoch(msg.OrgId, msg.Payload)
+		err := dkg.RevPartialSig(msg.OrgId, msg.Payload)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<< ERROR", "SideKeyRebuild:", err)
 		}
@@ -59,7 +59,7 @@ func (dkg *DKG) handleDkg(msg *model.Message) error {
 
 // HandleWorker 处理来自worker的消息
 // msg: 待处理的消息
-func (dkg *DKG) handleWorker(msg *model.Message) error {
+func (dkg *DKG) handleWorker(msg *model.DkgMessage) error {
 	// TODO
 	// 检查链的元数据
 	// err := chain.MainChain.CheckMetadata()
@@ -74,8 +74,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 	/// -------------------- Proof -----------------------
 	case "upload_cluster_proof":
 		// 处理上传集群证明的消息
-		hash, err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
-		if msg.OrgId != "" && msg.MsgID != "" {
+		hash, err := dkg.HandleUploadClusterProof(msg.Payload, msg.MsgId, msg.OrgId)
+		if msg.OrgId != "" && msg.MsgId != "" {
 			// 获取发送方节点
 			n := dkg.getNode(msg.OrgId)
 			if n == nil {
@@ -88,8 +88,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 				errStr = err.Error()
 			}
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(n, "worker", &model.Message{
-				MsgID:   msg.MsgID,
+			if err := dkg.sendToNode(n, "worker", &model.DkgMessage{
+				MsgId:   msg.MsgId,
 				Type:    "upload_cluster_proof_reply",
 				Payload: hash,
 				Error:   errStr,
@@ -101,7 +101,7 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 		return err
 	case "sign_cluster_proof":
 		// 处理签名集群证明的消息
-		err := dkg.HandleSignClusterProof(msg.Payload, msg.MsgID, msg.OrgId)
+		err := dkg.HandleSignClusterProof(msg.Payload, msg.MsgId, msg.OrgId)
 		if err != nil {
 			// 记录签名集群证明时的错误
 			util.LogError("WORKER", "HandleSignClusterProof err: ", err)
@@ -109,7 +109,7 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 		return err
 	case "sign_cluster_proof_reply":
 		// 处理签名集群证明回复的消息
-		err := dkg.HandleSignClusterProofReply(msg.Payload, msg.MsgID, msg.OrgId)
+		err := dkg.HandleSignClusterProofReply(msg.Payload, msg.MsgId, msg.OrgId)
 		if err != nil {
 			// 记录签名集群证明回复时的错误
 			util.LogError("WORKER", "HandleSignClusterProofReply err: ", err)
@@ -118,8 +118,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 	/// -------------------- Reencrypt -----------------------
 	case "reencrypt_secret_remote_request":
 		// 发送加密的密钥请求
-		key, err := dkg.SendEncryptedSecretRequest(msg.Payload, msg.MsgID, msg.OrgId)
-		if msg.OrgId != "" && msg.MsgID != "" {
+		key, err := dkg.SendEncryptedSecretRequest(msg.Payload, msg.MsgId, msg.OrgId)
+		if msg.OrgId != "" && msg.MsgId != "" {
 			// 获取发送方节点
 			n := dkg.getNode(msg.OrgId)
 			if n == nil {
@@ -138,8 +138,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(n, "worker", &model.Message{
-				MsgID:   msg.MsgID,
+			if err := dkg.sendToNode(n, "worker", &model.DkgMessage{
+				MsgId:   msg.MsgId,
 				Type:    "reencrypt_secret_remote_reply",
 				Payload: keyBt,
 				Error:   errStr,
@@ -151,7 +151,7 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 		return err
 	case "reencrypt_secret_request":
 		// 处理重新加密密钥请求的消息
-		err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgID, msg.OrgId)
+		err := dkg.HandleProcessReencrypt(msg.Payload, msg.MsgId, msg.OrgId)
 		if err != nil {
 			// 记录处理重新加密密钥请求时的错误
 			util.LogError("secret", "HandleReencryptSecretRequest err: ", err)
@@ -159,7 +159,7 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 		return err
 	case "reencrypted_secret_reply":
 		// 处理重新加密的密钥回复的消息
-		err := dkg.HandleReencryptedShare(msg.Payload, msg.MsgID, msg.OrgId)
+		err := dkg.HandleReencryptedShare(msg.Payload, msg.MsgId, msg.OrgId)
 		if err != nil {
 			// 记录处理重新加密的密钥回复时的错误
 			util.LogError("secret", "HandleReencryptSecretRequest err: ", err)
@@ -168,8 +168,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 	/// -------------------- Work Launch -----------------------
 	case "work_launch_request":
 		// 处理工作启动请求的消息
-		key, err := dkg.HandleWorkLaunchRequest(msg.Payload, msg.MsgID, msg.OrgId)
-		if msg.OrgId != "" && msg.MsgID != "" {
+		key, err := dkg.HandleWorkLaunchRequest(msg.Payload, msg.MsgId, msg.OrgId)
+		if msg.OrgId != "" && msg.MsgId != "" {
 			// 获取发送方节点
 			n := dkg.getNode(msg.OrgId)
 			if n == nil {
@@ -188,8 +188,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(n, "worker", &model.Message{
-				MsgID:   msg.MsgID,
+			if err := dkg.sendToNode(n, "worker", &model.DkgMessage{
+				MsgId:   msg.MsgId,
 				Type:    "work_launch_reply",
 				Payload: keyBt,
 				Error:   errStr,
@@ -207,7 +207,8 @@ func (dkg *DKG) handleWorker(msg *model.Message) error {
 
 // Handle pub msg data save
 func (r *DKG) handleSecretSave() {
-	r.Peer.Sub("secret", func(msg *model.Message) error {
+	r.Peer.Sub("secret", func(msgWrap any) error {
+		msg := msgWrap.(*model.DkgMessage)
 		// 解析消息
 		var datas []model.Kvs
 		err := json.Unmarshal(msg.Payload, &datas)
