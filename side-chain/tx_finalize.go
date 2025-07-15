@@ -41,9 +41,9 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			break
 		case *model.Tx_SyncTxStart:
 			txIndex = p.SyncTxStart
-			app.SyncTxStart(p.SyncTxStart)
+			SyncStep2(p.SyncTxStart)
 		case *model.Tx_SyncTxEnd:
-			app.SyncTxEnd(p.SyncTxEnd)
+			SyncEnd(p.SyncTxEnd)
 		case *model.Tx_HubCall:
 			hubCalls = append(hubCalls, p.HubCall)
 		case *model.Tx_Test:

@@ -117,9 +117,7 @@ func PubKeyFromPoint(point kyber.Point) (*PubKey, error) {
 		return nil, fmt.Errorf("marshal point: %w", err)
 	}
 
-	var pk ed25519.PublicKey
-	pk = buf
-
+	var pk ed25519.PublicKey = buf
 	return &PubKey{
 		PublicKey: pk,
 		suite:     suites.MustFind("Ed25519"),

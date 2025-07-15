@@ -9,10 +9,6 @@ type Peer interface {
 	Pub(topic string, data []byte) error
 	Sub(topic string, handler func(any) error) error
 
-	LinkToNetwork()
-
-	// Stop() error
-	// PeerID() string
-
-	Nodes() []*model.PubKey
+	AvailableNodes() []*model.PubKey
+	AllNodes() []*model.PubKey
 }

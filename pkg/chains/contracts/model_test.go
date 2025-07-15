@@ -56,7 +56,7 @@ func TestSetSubnetSolt(t *testing.T) {
 		panic(err)
 	}
 
-	subnetIns.ExecSetEpochSolt(2000, chain.ExecParams{
+	subnetIns.ExecSetEpochSolt(100, chain.ExecParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})

@@ -125,9 +125,9 @@ func (dkg *DKG) Stop() {
 }
 
 // Get conected node number
-func (dkg *DKG) connectLen() int {
-	var len int
-	peers := dkg.Peer.Nodes()
+func (dkg *DKG) AvailableNodeLen() int {
+	var len int = 1
+	peers := dkg.Peer.AvailableNodes()
 	for _, p := range peers {
 		for _, node := range dkg.Nodes {
 			if p.String() == node.P2pId.String() {
@@ -201,7 +201,7 @@ func (dkg *DKG) sendToNode(to *model.PubKey, pid string, message *model.DkgMessa
 
 // Get node by string id
 func (dkg *DKG) getNode(nodeId string) *model.PubKey {
-	nodes := dkg.Peer.Nodes()
+	nodes := dkg.Peer.AvailableNodes()
 	for _, node := range nodes {
 		if node.String() == nodeId {
 			return node

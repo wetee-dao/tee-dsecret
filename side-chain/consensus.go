@@ -100,6 +100,7 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 	if len(epochTx) == 0 && time.Now().Unix()-int64(epochStatus) > 120 {
 		app.PrepareTx(req.Txs, &finalProposal, true)
 	} else {
+		util.LogWithYellow("PrepareProposal", "Epoch is running, please wait...")
 		app.PrepareTx(req.Txs, &finalProposal, false)
 	}
 

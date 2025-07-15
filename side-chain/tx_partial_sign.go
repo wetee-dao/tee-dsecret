@@ -95,16 +95,12 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 		return err
 	}
 
-	if len(sigs) < s.dkg.Threshold {
-		util.LogWithGray("HandlePartialSign", "sigs", len(sigs), "threshold", s.dkg.Threshold)
+	if len(sigs) < s.dkg.Threshold+1 || len(sigs) > s.dkg.Threshold+1 {
+		util.LogWithGray("HandlePartialSign", "sigs =>", len(sigs), " threshold(+1) =>", s.dkg.Threshold+1)
 		return nil
 	}
 
-	if len(sigs) != s.dkg.Threshold {
-		util.LogWithGray("HandlePartialSign sigs => ", len(sigs), ">", s.dkg.Threshold)
-		return nil
-	}
-
+	// get dss shares sigs
 	shares := make([][]byte, 0, len(sigs))
 	for _, sig := range sigs {
 		shares = append(shares, sig.HubSig)

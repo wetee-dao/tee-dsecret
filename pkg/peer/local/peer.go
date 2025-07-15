@@ -54,10 +54,6 @@ func (p *Peer) Send(node model.PubKey, topic string, message any) error {
 	return nil
 }
 
-func (p *Peer) LinkToNetwork() {
-
-}
-
 func (p *Peer) PeerID() string {
 	return p.id
 }
@@ -71,7 +67,11 @@ func (p *Peer) Sub(topic string, handler func(any) error) error {
 	return nil
 }
 
-func (p *Peer) Nodes() []*model.PubKey {
+func (p *Peer) AvailableNodes() []*model.PubKey {
+	return p.nodes
+}
+
+func (p *Peer) AllNodes() []*model.PubKey {
 	return p.nodes
 }
 

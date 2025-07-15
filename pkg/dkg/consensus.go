@@ -20,16 +20,31 @@ func (dkg *DKG) TryEpochConsensus(
 	callback func(*DssSigner, uint64),
 	fail func(error),
 ) error {
+	// check consensus is busy
 	if dkg.ConsensusIsbusy() {
 		util.LogError("DKG Consensus", "in consensus")
 		return errors.New("in consensus")
 	}
 
+	// check old validators length
+	if dkg.AvailableNodeLen() <= dkg.Threshold {
+		util.LogError("DKG Consensus", "validator node exapect >", dkg.Threshold, ", got:", dkg.AvailableNodeLen())
+		return fmt.Errorf("old validators count <= dkg.Threshold")
+	}
+
+	// check new nodes validators length
+	if dkg.NewValidatorNodeLen(msg.Validators) <= len(msg.Validators)*3/4 {
+		util.LogError("DKG Consensus", "exapect new validator count:", len(msg.Validators)*3/4, ", got:", dkg.NewValidatorNodeLen(msg.Validators))
+		return fmt.Errorf("new validators count < len(Validators)*3/4")
+	}
+
+	// check local node is in validators, only validator node can start consensus
 	if dkg.DkgKeyShare == nil && msg.Epoch > StartEpoch {
 		util.LogError("DKG Consensus", "msg.Epoch", msg.Epoch, "| Node is not old validator, cannot start consensus")
 		return errors.New("node is not old validator, cannot start consensus")
 	}
 
+	// init consensus msg
 	if dkg.DkgKeyShare != nil {
 		msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.CommitsWrap)
 		msg.ConsensusNodeNum = len(dkg.Nodes)
@@ -48,15 +63,17 @@ func (dkg *DKG) TryEpochConsensus(
 		}
 	}
 
+	// check local node is in new validators
 	if validator == nil {
 		util.LogError("DKG Consensus", "Currunt Node is not in new validators")
 		return errors.New("DKG Consensus Currunt Node is not in new validators")
 	}
 
+	// set sponsor
 	msg.Sponsor = validator
 	msg.EpochTime = time.Now().Unix()
 
-	// Must set nil
+	// set callback
 	dkg.consensusSuccessBack = callback
 	dkg.consensusFailBack = fail
 
@@ -135,14 +152,8 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 		return fmt.Errorf("failed to initialize DKG protocol: %w", err)
 	}
 
-	// 等待节点连接
-	if dkg.connectLen() < len(dkg.Nodes)-1 {
-		util.LogError("DKG Consensus", "exapect node count:", len(dkg.Nodes)-1, ", got:", dkg.connectLen())
-		dkg.finishDkgConsensusStep(false, "dkg.connectLen()+1 < len(dkg.Nodes)")
-		return fmt.Errorf("waiting for nodes to connect")
-	}
-
 	// 获取当前节点的协议
+	// get deal of current node
 	deal, err := dkg.DistKeyGenerator.Deals()
 	if err != nil {
 		dkg.finishDkgConsensusStep(false, "dkg.DistKeyGenerator.Deals")
@@ -150,6 +161,7 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 	}
 
 	// 开启节点共识
+	// send deal to all nodes
 	for _, node := range dkg.Nodes {
 		newMsg := util.DeepCopy(msg)
 		newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
@@ -159,22 +171,6 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 			fmt.Println("Send error:", err)
 		}
 	}
-
-	// for {
-	// 	if dkg.DkgKeyShare.PriShare != nil {
-	// 		break
-	// 	}
-	// 	time.Sleep(time.Second)
-	// }
-
-	// dkg.deals = map[string]*model.DealBundle{}
-	// dkg.responses = map[string]*pedersen.ResponseBundle{}
-	// dkg.justifs = []*pedersen.JustificationBundle{}
-
-	// if dkg.log != nil {
-	// 	dkg.log.Info("DKG uccessfully init <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-	// }
-
 	return nil
 }
 
@@ -357,4 +353,17 @@ func (dkg *DKG) setConsensusBusy() {
 
 func (dkg *DKG) setConsensusFree() {
 	dkg.lastConsensusTime = 0
+}
+
+func (dkg *DKG) NewValidatorNodeLen(nodes []*model.Validator) int {
+	var len int = 1
+	peers := dkg.Peer.AvailableNodes()
+	for _, p := range peers {
+		for _, node := range nodes {
+			if p.String() == node.P2pId.String() {
+				len = len + 1
+			}
+		}
+	}
+	return len
 }

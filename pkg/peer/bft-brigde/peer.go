@@ -18,6 +18,12 @@ func (p *BTFReactor) Send(node model.PubKey, topic string, message any) error {
 		sendData.Message = message.(*model.BlockPartialSign)
 	}
 
+	if node.SideChainNodeID() == p.Switch.NodeInfo().ID() {
+		sendData.Src = LocalPeer{id: node.SideChainNodeID()}
+		p.Receive(sendData)
+		return nil
+	}
+
 	peers := p.Switch.Peers()
 	peers.ForEach(func(p p2p.Peer) {
 		if node.SideChainNodeID() == p.ID() {
@@ -54,11 +60,8 @@ func (p *BTFReactor) Sub(topic string, handler func(any) error) error {
 	return nil
 }
 
-func (p *BTFReactor) PeerID() string {
-	return ""
-}
-
-func (p *BTFReactor) Nodes() []*model.PubKey {
+// Get all available nodes
+func (p *BTFReactor) AvailableNodes() []*model.PubKey {
 	peers := p.Switch.Peers()
 	nodes := make([]*model.PubKey, 0, peers.Size())
 	for _, n := range p.nodekeys {
@@ -72,10 +75,7 @@ func (p *BTFReactor) Nodes() []*model.PubKey {
 	return nodes
 }
 
-func (p *BTFReactor) Nodekeys() []*model.PubKey {
+// Get all nodes
+func (p *BTFReactor) AllNodes() []*model.PubKey {
 	return p.nodekeys
-}
-
-func (p *BTFReactor) LinkToNetwork() {
-
 }

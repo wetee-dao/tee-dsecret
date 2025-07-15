@@ -15,7 +15,7 @@ import (
 
 var MaxMsgSize = types.MaxBlockSizeBytes
 var topics = map[string]p2p.ChannelDescriptor{
-	"dkg": {
+	"dkg": { // dkg msg
 		ID:                  255,
 		Priority:            10000,
 		SendQueueCapacity:   1000,
@@ -23,7 +23,7 @@ var topics = map[string]p2p.ChannelDescriptor{
 		RecvMessageCapacity: MaxMsgSize,
 		MessageType:         &model.DkgMessage{},
 	},
-	"block-partial-sign": {
+	"block-partial-sign": { // block partial sign msg
 		ID:                  254,
 		Priority:            10000,
 		SendQueueCapacity:   1000,
@@ -56,7 +56,6 @@ func (r *BTFReactor) OnStart() error {
 	util.LogWithYellow("Local Address ", address.String())
 	r.PrintPeers("P2P OnStart")
 
-	// 启动协程、初始化资源
 	return nil
 }
 

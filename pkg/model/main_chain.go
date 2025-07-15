@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/wetee-dao/ink.go/util"
 )
@@ -26,7 +25,7 @@ func (p *P2PAddr) SideChainUrl() string {
 // Ip
 type Ip struct {
 	Ipv4   util.Option[uint32]
-	Ipv6   util.Option[stypes.U128]
+	Ipv6   util.Option[types.U128]
 	Domain util.Option[[]byte]
 }
 
@@ -59,7 +58,7 @@ func (ip *Ip) ToString() string {
 	return url
 }
 
-type K8sCluster struct { // Composite
+type K8sCluster struct {
 	Id            uint64
 	Name          []byte
 	Owner         types.H160

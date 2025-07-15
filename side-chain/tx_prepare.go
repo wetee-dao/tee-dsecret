@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
@@ -48,9 +49,16 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, addMainChainTx bo
 	}
 
 	if len(hubtx) > 0 {
-		tx, err := s.TrySyncTxStart()
+		tx, err := SyncStep1()
 		if err != nil {
-			util.LogWithRed("TryTxStart err:", err)
+			util.LogWithRed("PrepareTx", "TryTxStart err:", err)
+			time.Sleep(time.Second)
+			return
+		}
+
+		if s.dkg.AvailableNodeLen() < s.dkg.Threshold+1 {
+			time.Sleep(time.Second)
+			util.LogWithRed("PrepareTx", "exapect validator node:", s.dkg.Threshold+1, ", got:", s.dkg.AvailableNodeLen())
 			return
 		}
 

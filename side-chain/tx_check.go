@@ -20,7 +20,7 @@ func (app *SideChain) checkTx(txbt []byte) uint32 {
 		return CodeInvalidNode
 	}
 
-	keys := app.p2p.Nodekeys()
+	keys := app.p2p.AllNodes()
 	isIn := false
 	for _, key := range keys {
 		if bytes.Equal(tx.Org, key.Byte()) {
