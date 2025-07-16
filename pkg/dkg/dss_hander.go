@@ -21,7 +21,7 @@ func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
 	if skipPartialSign {
 		msg := model.NewEpochMsg{}
 		bt, _ := json.Marshal(msg)
-		dkg.sendToNode(model.SendToNode(&dkg.NewEpochSponsor.P2pId), "dkg", &model.DkgMessage{
+		dkg.sendToNode(model.SendToNode(&dkg.NewEpochSponsor.P2pId), &model.DkgMessage{
 			Type:    "consensus_to_newpoch",
 			Payload: bt,
 		})
@@ -76,7 +76,7 @@ func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
 		PartialSig: sig,
 	}
 	bt, _ := json.Marshal(msg)
-	dkg.sendToNode(model.SendToNode(&dkg.NewEpochSponsor.P2pId), "dkg", &model.DkgMessage{
+	dkg.sendToNode(model.SendToNode(&dkg.NewEpochSponsor.P2pId), &model.DkgMessage{
 		Type:    "consensus_to_newpoch",
 		Payload: bt,
 	})

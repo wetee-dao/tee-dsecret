@@ -65,7 +65,7 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 		return
 	}
 
-	err = s.p2p.Send(model.SendToNode(proposer), "block-partial-sign", psig)
+	err = s.p2p.Send(model.SendToNode(proposer), psig)
 	if err != nil {
 		util.LogWithRed("sendPartialSign", "Send error", err)
 	}

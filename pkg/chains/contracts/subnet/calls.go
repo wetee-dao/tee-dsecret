@@ -112,14 +112,13 @@ func (c *Subnet) ExecSetBootNodes(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xe6b90091",
 			Args:     []any{nodes},
 		},
+		__ink_params,
 	)
 }
 
@@ -181,14 +180,13 @@ func (c *Subnet) ExecSetRegion(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xb6993f90",
 			Args:     []any{region_id, name},
 		},
+		__ink_params,
 	)
 }
 
@@ -346,14 +344,13 @@ func (c *Subnet) ExecWorkerRegister(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xb90fc981",
 			Args:     []any{name, p2p_id, ip, port, level, region_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -415,14 +412,13 @@ func (c *Subnet) ExecWorkerMortgage(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xf70c3369",
 			Args:     []any{id, cpu, mem, cvm_cpu, cvm_mem, disk, gpu, deposit},
 		},
+		__ink_params,
 	)
 }
 
@@ -484,14 +480,13 @@ func (c *Subnet) ExecWorkerUnmortgage(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x6d25dbe9",
 			Args:     []any{worker_id, mortgage_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -553,14 +548,13 @@ func (c *Subnet) ExecWorkerStart(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x6efe8ecf",
 			Args:     []any{id},
 		},
+		__ink_params,
 	)
 }
 
@@ -622,14 +616,13 @@ func (c *Subnet) ExecWorkerStop(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xeab3ba14",
 			Args:     []any{id},
 		},
+		__ink_params,
 	)
 }
 
@@ -715,14 +708,13 @@ func (c *Subnet) ExecSecretRegister(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x55719146",
 			Args:     []any{name, validator_id, p2p_id, ip, port},
 		},
+		__ink_params,
 	)
 }
 
@@ -784,14 +776,13 @@ func (c *Subnet) ExecSecretDeposit(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x4d815cac",
 			Args:     []any{id, deposit},
 		},
+		__ink_params,
 	)
 }
 
@@ -853,14 +844,13 @@ func (c *Subnet) ExecSecretDelete(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x016716ab",
 			Args:     []any{id},
 		},
+		__ink_params,
 	)
 }
 
@@ -970,14 +960,13 @@ func (c *Subnet) ExecValidatorJoin(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x3c10643c",
 			Args:     []any{id},
 		},
+		__ink_params,
 	)
 }
 
@@ -1039,14 +1028,13 @@ func (c *Subnet) ExecValidatorDelete(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xdbac71a8",
 			Args:     []any{id},
 		},
+		__ink_params,
 	)
 }
 
@@ -1128,14 +1116,13 @@ func (c *Subnet) ExecSetEpochSolt(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x6f527ac8",
 			Args:     []any{epoch_solt},
 		},
+		__ink_params,
 	)
 }
 
@@ -1197,14 +1184,13 @@ func (c *Subnet) ExecSetNextEpoch(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xfc3bf295",
 			Args:     []any{_node_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -1294,14 +1280,13 @@ func (c *Subnet) ExecSetCode(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x694fb50f",
 			Args:     []any{code_hash},
 		},
+		__ink_params,
 	)
 }
 

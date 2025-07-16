@@ -7,22 +7,22 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func (p *BTFReactor) Send(node *model.To, topic string, message any) error {
+func (p *BTFReactor) Send(node *model.To, message any) error {
 	sendData := p2p.Envelope{}
 
 	// set sender id
 	sendData.Src = LocalPeer{id: p.Switch.NodeInfo().ID()}
-	switch topic {
-	case "dkg":
+	switch msg := message.(type) {
+	case *model.DkgMessage:
 		sendData.ChannelID = topics["dkg"].ID
-		msg := message.(*model.DkgMessage)
 		msg.To = node
 		sendData.Message = msg
-	case "block-partial-sign":
+	case *model.BlockPartialSign:
 		sendData.ChannelID = topics["block-partial-sign"].ID
-		msg := message.(*model.BlockPartialSign)
 		msg.To = node
 		sendData.Message = msg
+	default:
+		return errors.New("unknown message type")
 	}
 
 	p.Receive(sendData)

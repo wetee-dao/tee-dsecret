@@ -3,6 +3,7 @@ package local
 import (
 	"crypto/ed25519"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -44,7 +45,17 @@ type Peer struct {
 	PreCommits []kyber.Point
 }
 
-func (p *Peer) Send(to *model.To, topic string, message any) error {
+func (p *Peer) Send(to *model.To, message any) error {
+	var topic string
+	switch message.(type) {
+	case *model.DkgMessage:
+		topic = "dkg"
+	case *model.BlockPartialSign:
+		topic = "block-partial-sign"
+	default:
+		return errors.New("unknown message type")
+	}
+
 	// util.LogSendmsg(">>>>>> P2P Send()", "to", node.String(), "-", node.SS58(), "| type:", topic+"."+message.Type)
 	switch to.Payload.(type) {
 	case *model.To_Node:

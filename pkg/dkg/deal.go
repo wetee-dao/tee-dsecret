@@ -32,7 +32,7 @@ func (dkg *DKG) sendDealMessage(node *model.To, message *model.ConsensusMsg) err
 	}
 
 	// 通过Peer发送序列化后的消息到目标节点
-	return dkg.sendToNode(node, "dkg", &model.DkgMessage{
+	return dkg.sendToNode(node, &model.DkgMessage{
 		Type:    "deal",
 		Payload: bt,
 	})
@@ -101,7 +101,7 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	bt, _ := json.Marshal(resp)
 
 	// 发送 deal resp 到所有参与节点
-	err = dkg.sendToNode(model.SendToNodes(dkg.NewNetIds()), "dkg", &model.DkgMessage{
+	err = dkg.sendToNode(model.SendToNodes(dkg.NewNetIds()), &model.DkgMessage{
 		Type:    "deal_resp",
 		Payload: bt,
 	})

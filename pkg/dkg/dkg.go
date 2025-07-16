@@ -177,7 +177,7 @@ func (dkg *DKG) P2PId() *model.PubKey {
 }
 
 // Send message to node
-func (dkg *DKG) sendToNode(to *model.To, pid string, message *model.DkgMessage) error {
+func (dkg *DKG) sendToNode(to *model.To, message *model.DkgMessage) error {
 	if to == nil {
 		fmt.Println("sendToNode node is nil")
 		return errors.New("node is nil")
@@ -195,7 +195,7 @@ func (dkg *DKG) sendToNode(to *model.To, pid string, message *model.DkgMessage) 
 	// 	return nil
 	// }
 
-	return dkg.Peer.Send(to, pid, message)
+	return dkg.Peer.Send(to, message)
 }
 
 // Get node by string id

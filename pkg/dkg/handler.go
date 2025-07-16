@@ -88,7 +88,7 @@ func (dkg *DKG) handleWorker(msg *model.DkgMessage) error {
 				errStr = err.Error()
 			}
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(model.SendToNode(n), "worker", &model.DkgMessage{
+			if err := dkg.sendToNode(model.SendToNode(n), &model.DkgMessage{
 				MsgId:   msg.MsgId,
 				Type:    "upload_cluster_proof_reply",
 				Payload: hash,
@@ -138,7 +138,7 @@ func (dkg *DKG) handleWorker(msg *model.DkgMessage) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(model.SendToNode(n), "worker", &model.DkgMessage{
+			if err := dkg.sendToNode(model.SendToNode(n), &model.DkgMessage{
 				MsgId:   msg.MsgId,
 				Type:    "reencrypt_secret_remote_reply",
 				Payload: keyBt,
@@ -188,7 +188,7 @@ func (dkg *DKG) handleWorker(msg *model.DkgMessage) error {
 			}
 
 			// 发送回复消息给节点
-			if err := dkg.sendToNode(model.SendToNode(n), "worker", &model.DkgMessage{
+			if err := dkg.sendToNode(model.SendToNode(n), &model.DkgMessage{
 				MsgId:   msg.MsgId,
 				Type:    "work_launch_reply",
 				Payload: keyBt,

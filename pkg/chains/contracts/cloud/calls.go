@@ -84,14 +84,13 @@ func (c *Cloud) ExecSetPodContract(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xeebfb380",
 			Args:     []any{pod_contract},
 		},
+		__ink_params,
 	)
 }
 
@@ -177,14 +176,13 @@ func (c *Cloud) ExecCreatePod(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x080c3dfd",
 			Args:     []any{name, pod_type, tee_type, containers, region_id, level, worker_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -246,14 +244,13 @@ func (c *Cloud) ExecStartPod(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0xc9f85a2d",
 			Args:     []any{pod_id, hash},
 		},
+		__ink_params,
 	)
 }
 
@@ -315,14 +312,13 @@ func (c *Cloud) ExecStopPod(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x29879008",
 			Args:     []any{pod_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -384,14 +380,13 @@ func (c *Cloud) ExecRestartPod(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x0b40460c",
 			Args:     []any{pod_id},
 		},
+		__ink_params,
 	)
 }
 
@@ -453,14 +448,13 @@ func (c *Cloud) ExecEditContainer(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x50e8c63b",
 			Args:     []any{pod_id, containers},
 		},
+		__ink_params,
 	)
 }
 
@@ -738,14 +732,13 @@ func (c *Cloud) ExecSetCode(
 	}
 	return chain.CallInk(
 		c,
-		__ink_params.Signer,
-		__ink_params.PayAmount,
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
 			Selector: "0x694fb50f",
 			Args:     []any{code_hash},
 		},
+		__ink_params,
 	)
 }
 
