@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	p2peer "github.com/wetee-dao/tee-dsecret/pkg/peer"
+	p2peer "github.com/wetee-dao/tee-dsecret/pkg/network"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	pedersen "go.dedis.ch/kyber/v4/share/dkg/pedersen"
 	"go.dedis.ch/kyber/v4/suites"
@@ -155,7 +155,6 @@ func (d *DKG) Share() model.DistKeyShare {
 // 			return &p.ValidatorId
 // 		}
 // 	}
-
 // 	return nil
 // }
 
@@ -178,7 +177,7 @@ func (dkg *DKG) P2PId() *model.PubKey {
 }
 
 // Send message to node
-func (dkg *DKG) sendToNode(to *model.PubKey, pid string, message *model.DkgMessage) error {
+func (dkg *DKG) sendToNode(to *model.To, pid string, message *model.DkgMessage) error {
 	if to == nil {
 		fmt.Println("sendToNode node is nil")
 		return errors.New("node is nil")
@@ -190,13 +189,13 @@ func (dkg *DKG) sendToNode(to *model.PubKey, pid string, message *model.DkgMessa
 		return errors.New("P2PID is nil")
 	}
 
-	message.OrgId = p2pId.String()
-	if message.OrgId == to.String() {
-		dkg.mainChain.Push(message)
-		return nil
-	}
+	message.From = p2pId.String()
+	// if message.From == to.String() {
+	// 	dkg.mainChain.Push(message)
+	// 	return nil
+	// }
 
-	return dkg.Peer.Send(*to, pid, message)
+	return dkg.Peer.Send(to, pid, message)
 }
 
 // Get node by string id
@@ -211,6 +210,7 @@ func (dkg *DKG) getNode(nodeId string) *model.PubKey {
 	return nil
 }
 
+// epoch to nonce
 func epochToNonce(v uint32) []byte {
 	var nonce [pedersen.NonceLength]byte
 	var epoch = fmt.Append(nil, v)

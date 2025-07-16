@@ -162,15 +162,14 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 
 	// 开启节点共识
 	// send deal to all nodes
-	for _, node := range dkg.Nodes {
-		newMsg := util.DeepCopy(msg)
-		newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
-		newMsg.ShareCommits = model.KyberPoints{}
-		err = dkg.sendDealMessage(&node.P2pId, newMsg)
-		if err != nil {
-			fmt.Println("Send error:", err)
-		}
+	newMsg := util.DeepCopy(msg)
+	newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
+	newMsg.ShareCommits = model.KyberPoints{}
+	err = dkg.sendDealMessage(model.SendToNodes(dkg.OldAndNetIds()), newMsg)
+	if err != nil {
+		fmt.Println("Send error:", err)
 	}
+
 	return nil
 }
 
@@ -256,14 +255,11 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	}
 
 	// 开启节点共识
-	for _, node := range dkg.NewNodes {
-		newMsg := util.DeepCopy(msg)
-		newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
-
-		err = dkg.sendDealMessage(&node.P2pId, newMsg)
-		if err != nil {
-			fmt.Println("Send error:", err)
-		}
+	newMsg := util.DeepCopy(msg)
+	newMsg.DealBundle = &model.DealBundle{DealBundle: deal}
+	err = dkg.sendDealMessage(model.SendToNodes(dkg.NewNetIds()), newMsg)
+	if err != nil {
+		fmt.Println("Send error:", err)
 	}
 
 	return nil
@@ -366,4 +362,50 @@ func (dkg *DKG) NewValidatorNodeLen(nodes []*model.Validator) int {
 		}
 	}
 	return len
+}
+
+func (dkg *DKG) OldAndNetIds() []*model.PubKey {
+	news := make([]*model.PubKey, 0)
+	olds := make([]*model.PubKey, 0)
+	for _, node := range dkg.NewNodes {
+		news = append(news, &node.P2pId)
+	}
+	for _, node := range dkg.Nodes {
+		olds = append(olds, &node.P2pId)
+	}
+
+	return MergePubKey(news, olds)
+}
+
+func (dkg *DKG) NewNetIds() []*model.PubKey {
+	news := make([]*model.PubKey, 0)
+	for _, node := range dkg.NewNodes {
+		news = append(news, &node.P2pId)
+	}
+	return news
+}
+
+func (dkg *DKG) NetIds() []*model.PubKey {
+	olds := make([]*model.PubKey, 0)
+	for _, node := range dkg.Nodes {
+		olds = append(olds, &node.P2pId)
+	}
+	return olds
+}
+
+func MergePubKey(slices ...[]*model.PubKey) []*model.PubKey {
+	seen := make(map[string]bool)
+	var result []*model.PubKey
+
+	for _, slice := range slices {
+		for _, val := range slice {
+			key := val.String()
+			if !seen[key] {
+				seen[key] = true
+				result = append(result, val)
+			}
+		}
+	}
+
+	return result
 }

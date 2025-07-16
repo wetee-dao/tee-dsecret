@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/pkg/peer/local"
+	"github.com/wetee-dao/tee-dsecret/pkg/network/local"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 

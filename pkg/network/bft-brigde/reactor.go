@@ -37,6 +37,8 @@ type BTFReactor struct {
 	service.BaseService
 	Switch *p2p.Switch
 
+	id                      *model.PubKey
+	validators              []*model.PubKey
 	nodekeys                []*model.PubKey
 	dkgHandler              func(any) error
 	blockPartialSignHandler func(any) error
@@ -92,6 +94,10 @@ func (r *BTFReactor) RemovePeer(p2p.Peer, any) {
 func (r *BTFReactor) Receive(e p2p.Envelope) {
 	switch msg := e.Message.(type) {
 	case *model.DkgMessage:
+		if !msg.To.Check(r.id) {
+			return
+		}
+
 		if r.dkgHandler == nil {
 			util.LogWithRed("P2P Receive", "dkgHandler not set")
 			return
@@ -102,10 +108,14 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
 		}
 
-		msg.OrgId = pub.String()
+		msg.From = pub.String()
 		r.dkgHandler(msg)
 		return
 	case *model.BlockPartialSign:
+		if !msg.To.Check(r.id) {
+			return
+		}
+
 		if r.blockPartialSignHandler == nil {
 			util.LogWithRed("P2P Receive", "blockPartialSignHandler not set")
 			return
@@ -116,7 +126,7 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
 		}
 
-		msg.OrgId = pub.String()
+		msg.From = pub.String()
 		r.blockPartialSignHandler(msg)
 	default:
 		util.LogWithRed("P2P Receive", "Receive error", "msg", msg)
@@ -141,12 +151,27 @@ func (r *BTFReactor) PrintPeers(event string) {
 	if chains.MainChain == nil {
 		return
 	}
-	_, pubkeys, err := chains.MainChain.GetNodes()
-	if err == nil {
-		r.nodekeys = pubkeys
-	} else {
+
+	// get from main chain
+	validatorWrap, pubkeys, err := chains.MainChain.GetNodes()
+	if err != nil {
 		util.LogWithRed(event, "GetNodes", err.Error())
 	}
+
+	// save self nodekey
+	for _, v := range pubkeys {
+		if v.SideChainNodeID() == r.Switch.NodeInfo().ID() {
+			r.id = v
+		}
+	}
+
+	// save all nodekeys and validators
+	r.nodekeys = pubkeys
+	validators := make([]*model.PubKey, len(validatorWrap))
+	for i, v := range validatorWrap {
+		validators[i] = &v.P2pId
+	}
+	r.validators = validators
 
 	outbound, inbound, dialing := r.Switch.NumPeers()
 	util.LogWithYellow(event, "Peers outbound=>", outbound, "inbound=>", inbound, "dialing=>", dialing, " || nodekeys=>", len(r.nodekeys))

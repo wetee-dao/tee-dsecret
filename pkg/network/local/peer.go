@@ -2,6 +2,7 @@ package local
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -43,14 +44,36 @@ type Peer struct {
 	PreCommits []kyber.Point
 }
 
-func (p *Peer) Send(node model.PubKey, topic string, message any) error {
+func (p *Peer) Send(to *model.To, topic string, message any) error {
 	// util.LogSendmsg(">>>>>> P2P Send()", "to", node.String(), "-", node.SS58(), "| type:", topic+"."+message.Type)
-	peer := peers[node.String()]
-	if handler, ok := peer.handlers[topic]; ok {
-		go handler(message)
-	} else {
-		fmt.Println("handler not found for topic: ", topic, "node", node)
+	switch to.Payload.(type) {
+	case *model.To_Node:
+		peer := peers[hex.EncodeToString(to.GetNode())]
+		if handler, ok := peer.handlers[topic]; ok {
+			go handler(message)
+		} else {
+			fmt.Println("handler not found for topic: ", topic, "node", to)
+		}
+	case *model.To_Nodes:
+		for _, node := range p.nodes {
+			peer := peers[node.String()]
+			if handler, ok := peer.handlers[topic]; ok {
+				go handler(message)
+			} else {
+				fmt.Println("handler not found for topic: ", topic, "node", node)
+			}
+		}
+	case *model.To_Broadcast:
+		for _, node := range p.nodes {
+			peer := peers[node.String()]
+			if handler, ok := peer.handlers[topic]; ok {
+				go handler(message)
+			} else {
+				fmt.Println("handler not found for topic: ", topic, "node", node)
+			}
+		}
 	}
+
 	return nil
 }
 

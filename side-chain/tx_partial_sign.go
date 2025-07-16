@@ -54,7 +54,7 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 	}
 
 	psig := &model.BlockPartialSign{
-		OrgId:   s.dkg.P2PId().String(),
+		From:    s.dkg.P2PId().String(),
 		HubSig:  sig,
 		TxIndex: tx_index,
 	}
@@ -65,7 +65,7 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 		return
 	}
 
-	err = s.p2p.Send(*proposer, "block-partial-sign", psig)
+	err = s.p2p.Send(model.SendToNode(proposer), "block-partial-sign", psig)
 	if err != nil {
 		util.LogWithRed("sendPartialSign", "Send error", err)
 	}
@@ -83,7 +83,7 @@ func (s *SideChain) revPartialSign(msgBox any) error {
 
 // handle block partial sign message
 func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
-	err := s.SavePartialSig(msg.OrgId, msg)
+	err := s.SavePartialSig(msg.From, msg)
 	if err != nil {
 		util.LogWithRed("HandlePartialSign", "SaveSig error", err)
 		return err

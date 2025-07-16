@@ -10,7 +10,7 @@ import (
 
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
+	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/network/bft-brigde"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
@@ -100,7 +100,6 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 	if len(epochTx) == 0 && time.Now().Unix()-int64(epochStatus) > 120 {
 		app.PrepareTx(req.Txs, &finalProposal, true)
 	} else {
-		util.LogWithYellow("PrepareProposal", "Epoch is running, please wait...")
 		app.PrepareTx(req.Txs, &finalProposal, false)
 	}
 

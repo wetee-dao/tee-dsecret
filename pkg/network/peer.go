@@ -5,8 +5,8 @@ import (
 )
 
 type Peer interface {
-	Send(node_id model.PubKey, pid string, message any) error
-	Pub(topic string, data []byte) error
+	Send(to *model.To, pid string, message any) error
+	// Pub(topic string, data []byte) error
 	Sub(topic string, handler func(any) error) error
 
 	AvailableNodes() []*model.PubKey

@@ -40,7 +40,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 	errNum := 0
 	for _, node := range dkg.Nodes {
 		// 向节点发送消息
-		err := dkg.sendToNode(&node.P2pId, "worker", &model.DkgMessage{
+		err := dkg.sendToNode(model.SendToNode(&node.P2pId), "worker", &model.DkgMessage{
 			MsgId:   msgID,
 			Type:    "sign_cluster_proof",
 			Payload: data,
@@ -167,7 +167,7 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 	}
 
 	// 回传到事务结点
-	if err := dkg.sendToNode(n, "worker", &model.DkgMessage{
+	if err := dkg.sendToNode(model.SendToNode(n), "worker", &model.DkgMessage{
 		MsgId:   msgID,
 		Type:    "sign_cluster_proof_reply",
 		Payload: sig,

@@ -18,7 +18,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
+	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/network/bft-brigde"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
@@ -96,7 +96,6 @@ func InitSideChain(
 	P2PKey = p2pKey.GetPublic()
 
 	// add boot nodes
-
 	seeds := []string{}
 	for _, boot := range boots {
 		if util.ToSideChainNodeID(boot.Id[:]) == nodeKey.ID() {

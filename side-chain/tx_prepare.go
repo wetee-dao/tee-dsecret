@@ -52,13 +52,13 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, addMainChainTx bo
 		tx, err := SyncStep1()
 		if err != nil {
 			util.LogWithRed("PrepareTx", "TryTxStart err:", err)
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 			return
 		}
 
 		if s.dkg.AvailableNodeLen() < s.dkg.Threshold+1 {
-			time.Sleep(time.Second)
 			util.LogWithRed("PrepareTx", "exapect validator node:", s.dkg.Threshold+1, ", got:", s.dkg.AvailableNodeLen())
+			time.Sleep(time.Second * 2)
 			return
 		}
 

@@ -24,7 +24,7 @@ import (
 //
 // 返回值:
 // - error: 如果转换、序列化或发送过程中发生错误，则返回相应的错误
-func (dkg *DKG) sendDealMessage(node *model.PubKey, message *model.ConsensusMsg) error {
+func (dkg *DKG) sendDealMessage(node *model.To, message *model.ConsensusMsg) error {
 	// 将协议消息序列化为JSON字节切片
 	bt, err := json.Marshal(message)
 	if err != nil {
@@ -101,15 +101,12 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	bt, _ := json.Marshal(resp)
 
 	// 发送 deal resp 到所有参与节点
-	for _, node := range dkg.NewNodes {
-		// 向节点发送交易响应
-		err = dkg.sendToNode(&node.P2pId, "dkg", &model.DkgMessage{
-			Type:    "deal_resp",
-			Payload: bt,
-		})
-		if err != nil {
-			util.LogError("DEAL", "Send deal_resp error", err)
-		}
+	err = dkg.sendToNode(model.SendToNodes(dkg.NewNetIds()), "dkg", &model.DkgMessage{
+		Type:    "deal_resp",
+		Payload: bt,
+	})
+	if err != nil {
+		util.LogError("DEAL", "Send deal_resp error", err)
 	}
 
 	return nil
