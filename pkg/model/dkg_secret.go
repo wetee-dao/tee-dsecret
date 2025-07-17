@@ -37,17 +37,22 @@ type DistKeyShare struct {
 	PriShareWrap PriShare `json:"PriShare"`
 }
 
+// DistKeyShare
 func (d DistKeyShare) PriShare() *share.PriShare {
 	return d.PriShareWrap.PriShare
 }
+
+// DistKeyShare
 func (d DistKeyShare) Commitments() []kyber.Point {
 	return d.CommitsWrap.Public
 }
 
+// PriShare
 type PriShare struct {
 	*share.PriShare
 }
 
+// Custom JSON serialization
 func (d PriShare) MarshalJSON() ([]byte, error) {
 	sbuf, err := d.V.MarshalBinary()
 	if err != nil {
@@ -63,6 +68,7 @@ func (d PriShare) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// Custom JSON deserialization
 func (d *PriShare) UnmarshalJSON(bt []byte) error {
 	jsonData := struct {
 		I uint32

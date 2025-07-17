@@ -85,18 +85,18 @@ func (s *SideChain) revPartialSign(msgBox any) error {
 func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 	err := s.SavePartialSig(msg.From, msg)
 	if err != nil {
-		util.LogWithRed("HandlePartialSign", "SaveSig error", err)
+		util.LogWithRed("PartialSign", "SaveSig error", err)
 		return err
 	}
 
 	sigs, err := s.SigListOfTx(msg.TxIndex)
 	if err != nil {
-		util.LogWithRed("HandlePartialSign", "GetSigList error", err)
+		util.LogWithRed("PartialSign", "GetSigList error", err)
 		return err
 	}
 
 	if len(sigs) < s.dkg.Threshold+1 || len(sigs) > s.dkg.Threshold+1 {
-		util.LogWithGray("HandlePartialSign", "sigs =>", len(sigs), " threshold(+1) =>", s.dkg.Threshold+1)
+		util.LogWithGray("PartialSign", "sigs =>", len(sigs), " threshold(+1) =>", s.dkg.Threshold+1)
 		return nil
 	}
 

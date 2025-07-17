@@ -7,10 +7,8 @@ import (
 	chain "github.com/wetee-dao/ink.go"
 )
 
-// 获取挖矿密钥
-// GetKey get mint key
+// GetKey get p2p key
 func GetP2PKey() (*chain.Signer, *PrivKey, error) {
-	// init sidechain node key
 	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
 	if err != nil {
 		fmt.Println("failed to load node key:", err)

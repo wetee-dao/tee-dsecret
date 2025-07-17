@@ -10,7 +10,6 @@ import (
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
@@ -26,7 +25,7 @@ func (r *queryResolver) Secret(ctx context.Context, hash string) (*model.SecretE
 // TeeReport is the resolver for the tee_report field.
 func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, error) {
 	/// 获取报告
-	param, report, err := util.GetReport(hash)
+	param, report, err := model.GetReport(hash)
 	if err != nil {
 		return "", gqlerror.Errorf("GetReport:" + err.Error())
 	}

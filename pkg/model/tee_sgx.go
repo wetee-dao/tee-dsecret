@@ -1,4 +1,4 @@
-package util
+package model
 
 import (
 	"bytes"
@@ -13,14 +13,14 @@ import (
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
 
-	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
-func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {
+func IssueReport(pk *chain.Signer, data []byte) (*TeeParam, error) {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer
-	buf.Write(Int64ToBytes(timestamp))
+	buf.Write(util.Int64ToBytes(timestamp))
 	buf.Write(pk.PublicKey)
 	if len(data) > 0 {
 		buf.Write(data)
@@ -35,7 +35,7 @@ func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {
 		return nil, err
 	}
 
-	return &model.TeeParam{
+	return &TeeParam{
 		Time:    timestamp,
 		Address: pk.SS58Address(42),
 		Report:  report,
@@ -43,10 +43,10 @@ func IssueReport(pk *chain.Signer, data []byte) (*model.TeeParam, error) {
 	}, nil
 }
 
-func VerifyReport(workerReport *model.TeeParam) (*model.TeeReport, error) {
+func VerifyReport(workerReport *TeeParam) (*TeeReport, error) {
 	// TODO SEV/TDX not support
 	if workerReport.TeeType != 0 {
-		return &model.TeeReport{
+		return &TeeReport{
 			CodeSignature: []byte{},
 			CodeSigner:    []byte{},
 			CodeProductID: []byte{},
@@ -74,7 +74,7 @@ func VerifyReport(workerReport *model.TeeParam) (*model.TeeReport, error) {
 	}
 
 	var buf bytes.Buffer
-	buf.Write(Int64ToBytes(timestamp))
+	buf.Write(util.Int64ToBytes(timestamp))
 	buf.Write(signer)
 	if len(msgBytes) > 0 {
 		buf.Write(msgBytes)
@@ -90,7 +90,7 @@ func VerifyReport(workerReport *model.TeeParam) (*model.TeeReport, error) {
 	// 	return nil, errors.New("debug mode is not allowed")
 	// }
 
-	return &model.TeeReport{
+	return &TeeReport{
 		TeeType:       workerReport.TeeType,
 		CodeSigner:    report.SignerID,
 		CodeSignature: report.UniqueID,

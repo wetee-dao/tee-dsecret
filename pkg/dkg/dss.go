@@ -12,6 +12,7 @@ import (
 	"go.dedis.ch/kyber/v4/sign/dss"
 )
 
+// create dss signer from dkg
 func NewDssSigner(dkg *DKG) *DssSigner {
 	return &DssSigner{
 		dkg:  dkg,
@@ -19,11 +20,13 @@ func NewDssSigner(dkg *DKG) *DssSigner {
 	}
 }
 
+// signer for dss
 type DssSigner struct {
 	dkg  *DKG
 	sigs []*dss.PartialSig
 }
 
+// set shares for dss
 func (d *DssSigner) SetSigs(btsigs [][]byte) {
 	sigs := make([]*dss.PartialSig, 0, len(btsigs))
 	for _, bt := range btsigs {
@@ -42,6 +45,7 @@ func (d *DssSigner) SetSigs(btsigs [][]byte) {
 	d.sigs = sigs
 }
 
+// get ed25519 public key
 func (d *DssSigner) Public() []byte {
 	if d.dkg.DkgPubKey != nil {
 		return d.dkg.DkgPubKey.Byte()
@@ -56,6 +60,7 @@ func (d *DssSigner) AccountID() types.AccountID {
 	return d.dkg.NewDkgPubKey.AccountID()
 }
 
+// sign msg aggd share
 func (d *DssSigner) Sign(msg []byte) ([]byte, error) {
 	pubs, long, random, threshold := d.PubList()
 	dss, err := dss.NewDSS(
@@ -83,6 +88,7 @@ func (d *DssSigner) Sign(msg []byte) ([]byte, error) {
 	return dss.Signature()
 }
 
+// partial sign msg
 func (d *DssSigner) PartialSign(msg []byte) ([]byte, error) {
 	pubs, long, random, threshold := d.PubList()
 	dss, err := dss.NewDSS(
@@ -112,6 +118,7 @@ func (d *DssSigner) PartialSign(msg []byte) ([]byte, error) {
 	return json.Marshal(sigWrap)
 }
 
+// pub list
 func (d *DssSigner) PubList() ([]kyber.Point, *model.DistKeyShare, *model.DistKeyShare, int) {
 	pubs := make([]kyber.Point, 0, len(d.dkg.Nodes))
 	if len(d.dkg.NewNodes) > 0 {
@@ -127,10 +134,12 @@ func (d *DssSigner) PubList() ([]kyber.Point, *model.DistKeyShare, *model.DistKe
 	return pubs, d.dkg.DkgKeyShare, d.dkg.DkgKeyShare, d.dkg.Threshold
 }
 
+// verify sig
 func (d *DssSigner) Verify(msg []byte, signature []byte) bool {
 	return ed25519.Verify(d.dkg.DkgPubKey.Ed25519PublicKey(), msg, signature)
 }
 
+// return ed25519 type
 func (d *DssSigner) SignType() uint8 {
 	return 1
 }

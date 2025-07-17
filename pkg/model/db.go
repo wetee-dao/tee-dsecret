@@ -10,6 +10,7 @@ import (
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 var DBINS *DB
@@ -47,12 +48,12 @@ func Get(key string) ([]byte, error) {
 }
 
 func SetKey(namespace, key string, value []byte) error {
-	val, err := SealWithProductKey(value, nil)
+	val, err := util.SealWithProductKey(value, nil)
 	if err != nil {
 		return err
 	}
 
-	return DBINS.Set([]byte(namespace+"_"+key), val, pebble.Sync)
+	return DBINS.Set([]byte(comboKey(namespace, key)), val, pebble.Sync)
 }
 
 func SetJson[T any](namespace, key string, val *T) error {
@@ -93,7 +94,7 @@ func GetKey(namespace, key string) ([]byte, error) {
 		return nil, err
 	}
 
-	return Unseal(value, nil)
+	return util.Unseal(value, nil)
 }
 
 func GetJson[T any](namespace, key string) (*T, error) {
@@ -128,7 +129,7 @@ func GetJsonList[T any](namespace, key string) (list []*T, err error) {
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
-		value, err := Unseal(v, nil)
+		value, err := util.Unseal(v, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +169,7 @@ func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
-		value, err := Unseal(v, nil)
+		value, err := util.Unseal(v, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +194,7 @@ func GetProtoMessage[T any](namespace, key string) (*T, error) {
 		return nil, nil
 	}
 
-	value, err := Unseal(v, nil)
+	value, err := util.Unseal(v, nil)
 	if err != nil {
 		return nil, err
 	}
