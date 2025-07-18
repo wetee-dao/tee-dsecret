@@ -33,7 +33,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 
 	// 上锁，创建一个接收消息的管道，并解锁
 	dkg.mu.Lock()
-	dkg.preRecerve[msgID] = make(chan interface{})
+	dkg.preRecerve[msgID] = make(chan any)
 	dkg.mu.Unlock()
 
 	// 请求节点验证签名

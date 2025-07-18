@@ -1,9 +1,6 @@
 package dkg
 
 import (
-	"errors"
-
-	"github.com/vedhavyas/go-subkey/v2"
 	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -11,10 +8,7 @@ import (
 // VerifyWorker 函数验证工人报告并返回签名者或错误
 func (d *DKG) VerifyWorker(reportData *model.TeeParam) ([]byte, error) {
 	// 解码地址
-	_, signer, err := subkey.SS58Decode(reportData.Address)
-	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
-	}
+	signer := reportData.Address
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)
@@ -43,10 +37,7 @@ func (d *DKG) VerifyWorker(reportData *model.TeeParam) ([]byte, error) {
 // VerifyWorker 函数验证工人报告并返回签名者或错误
 func (d *DKG) VerifyDsecret(reportData *model.TeeParam) ([]byte, error) {
 	// 解码地址
-	_, signer, err := subkey.SS58Decode(reportData.Address)
-	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
-	}
+	signer := reportData.Address
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)
@@ -75,10 +66,7 @@ func (d *DKG) VerifyDsecret(reportData *model.TeeParam) ([]byte, error) {
 // VerifyWorker 函数验证工人报告并返回签名者或错误
 func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *model.TeeParam) ([]byte, error) {
 	// 解码地址
-	_, signer, err := subkey.SS58Decode(reportData.Address)
-	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
-	}
+	signer := reportData.Address
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)

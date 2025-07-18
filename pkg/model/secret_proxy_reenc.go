@@ -35,3 +35,21 @@ type ReencryptedSecretShareReply struct {
 	// 密钥碎片
 	Share share.PubShare
 }
+
+// ReencryptSecret 函数处理重新加密的结果
+type ReencryptSecret struct {
+	// 密文解码数据，需配合私钥使用
+	XncCmt []byte `json:"xnc_cmt,omitempty"`
+	// 密文
+	EncScrt [][]byte `json:"enc_scrt,omitempty"`
+}
+
+// LaunchRequest 函数处理启动请求
+type LaunchRequest struct {
+	// libos tee report
+	Libos *TeeParam
+	// cluster tee report
+	Cluster *TeeParam
+	// worker tee report
+	WorkID string
+}

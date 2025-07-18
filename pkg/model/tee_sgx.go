@@ -9,7 +9,6 @@ import (
 	"github.com/edgelesssys/ego/attestation"
 	"github.com/edgelesssys/ego/attestation/tcbstatus"
 	"github.com/edgelesssys/ego/enclave"
-	"github.com/vedhavyas/go-subkey/v2"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
 
@@ -37,15 +36,15 @@ func IssueReport(pk *chain.Signer, data []byte) (*TeeParam, error) {
 
 	return &TeeParam{
 		Time:    timestamp,
-		Address: pk.SS58Address(42),
+		Address: pk.PublicKey,
 		Report:  report,
 		Data:    data,
 	}, nil
 }
 
-func VerifyReport(workerReport *TeeParam) (*TeeReport, error) {
+func VerifyReport(reportData *TeeParam) (*TeeReport, error) {
 	// TODO SEV/TDX not support
-	if workerReport.TeeType != 0 {
+	if reportData.TeeType != 0 {
 		return &TeeReport{
 			CodeSignature: []byte{},
 			CodeSigner:    []byte{},
@@ -53,13 +52,10 @@ func VerifyReport(workerReport *TeeParam) (*TeeReport, error) {
 		}, nil
 	}
 
-	var reportBytes, msgBytes, timestamp = workerReport.Report, workerReport.Data, workerReport.Time
+	var reportBytes, msgBytes, timestamp = reportData.Report, reportData.Data, reportData.Time
 
 	// decode address
-	_, signer, err := subkey.SS58Decode(workerReport.Address)
-	if err != nil {
-		return nil, errors.New("SS58 decode: " + err.Error())
-	}
+	signer := reportData.Address
 
 	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
@@ -91,7 +87,7 @@ func VerifyReport(workerReport *TeeParam) (*TeeReport, error) {
 	// }
 
 	return &TeeReport{
-		TeeType:       workerReport.TeeType,
+		TeeType:       reportData.TeeType,
 		CodeSigner:    report.SignerID,
 		CodeSignature: report.UniqueID,
 		CodeProductID: report.ProductID,
