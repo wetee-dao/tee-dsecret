@@ -46,8 +46,6 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			SyncEnd(p.SyncTxEnd)
 		case *model.Tx_HubCall:
 			hubCalls = append(hubCalls, p.HubCall)
-		case *model.Tx_Test:
-			break
 		default:
 			return nil, errors.New("invalid tx type")
 		}

@@ -1,7 +1,6 @@
 package dkg
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,12 +8,8 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	uuid "github.com/satori/go.uuid"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/dsecret"
 	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"golang.org/x/crypto/blake2b"
-
-	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 // HandleUploadClusterProof 函数处理上传集群证明的逻辑
@@ -203,105 +198,6 @@ func (dkg *DKG) HandleSignClusterProofReply(data []byte, msgID string, OrgId str
 		},
 	}
 
-	return nil
-}
-
-// SendEncryptedSecretRequest sends a request to reencrypt a secret
-// and waits for responses from all nodes.
-func (d *DKG) HandleWorkLaunchRequest(payload []byte, msgID string, OrgId string) (*model.ReencryptSecret, error) {
-	// 解析请求
-	req := &model.LaunchRequest{}
-	err := json.Unmarshal(payload, req)
-	if err != nil {
-		return nil, errors.New("HandleWorkLaunchRequest unmarshal reencrypt secret request: " + err.Error())
-	}
-
-	// 校验 worker
-	_, err = d.VerifyWorker(req.Cluster)
-	if err != nil {
-		return nil, errors.New("HandleWorkLaunchRequest verify worker: " + err.Error())
-	}
-
-	// 校验 libos
-	wid := util.GetWorkTypeFromWorkId(req.WorkID)
-	deployer, err := d.VerifyWorkLibos(wid, req.Libos)
-	if err != nil {
-		return nil, errors.New("HandleWorkLaunchRequest verify worker: " + err.Error())
-	}
-
-	// 提交 work 启动的参数到区块链
-	err = d.SubmitLaunchWork(deployer, req)
-	if err != nil {
-		return nil, errors.New("MakeWorkLaunchCall submit: " + err.Error())
-	}
-
-	// TODO
-	// // 获取 secret
-	// id, isSome, err := chain.GetSecretEnv(chain.MainChain.ChainClient, wid)
-	// if err != nil {
-	// 	return nil, errors.New("get secret env: " + err.Error())
-	// }
-
-	// // 如无 secret env 则直接返回
-	// if id == nil || !isSome {
-	// 	return &types.ReencryptSecret{}, nil
-	// }
-
-	// deployerPub, err := types.PublicKeyFromLibp2pBytes(deployer)
-	// if err != nil {
-	// 	return nil, errors.New("deployer public key from libp2p bytes: " + err.Error())
-	// }
-	// reencryptReq := &types.ReencryptSecretRequest{
-	// 	RdrPk:    deployerPub,
-	// 	SecretId: string(id),
-	// }
-
-	// rbt, _ := json.Marshal(reencryptReq)
-	// return d.SendEncryptedSecretRequest(rbt, msgID, OrgId)
-	return &model.ReencryptSecret{}, nil
-}
-
-func (d *DKG) SubmitLaunchWork(deployer []byte, req *model.LaunchRequest) error {
-	wid := util.GetWorkTypeFromWorkId(req.WorkID)
-
-	// 上传最新的应用deploy key
-	// 获取部署帐户
-	var deployKey [32]byte
-	copy(deployKey[:], deployer)
-
-	reportData, _ := json.Marshal(req.Libos)
-	report := blake2b.Sum256(reportData)
-
-	// TODO 暂时全部设置为true
-	hasReport := true
-	if len(report) > 0 {
-		hasReport = true
-	}
-
-	runtimeCall := dsecret.MakeWorkLaunchCall(
-		wid,
-		gtypes.OptionTByteSlice{
-			IsNone:       !hasReport,
-			IsSome:       hasReport,
-			AsSomeField0: report[:],
-		},
-		deployKey,
-	)
-	signer, _ := d.Signer.ToSigner()
-
-	// 保存 report 到所有节点
-	go d.SetData([]model.Kvs{
-		{K: hex.EncodeToString(report[:]), V: reportData},
-	})
-
-	call, err := (runtimeCall).AsCall()
-	if err != nil {
-		return errors.New("(runtimeCall).AsCall() error: " + err.Error())
-	}
-
-	fmt.Println(signer, call)
-	// TODO
-	// return chain.MainChain.SignAndSubmit(signer, call, false)
 	return nil
 }
 

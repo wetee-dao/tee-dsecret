@@ -8,9 +8,10 @@ import (
 )
 
 type PodVersion struct {
-	PodId   uint64
-	Version uint32
-	Status  uint8
+	PodId    uint64
+	Version  uint32
+	LastMint uint32
+	Status   uint8
 }
 
 type Container struct { // Composite
@@ -54,6 +55,7 @@ type Command struct { // Enum
 
 type Pod struct {
 	PodId               uint64
+	Meta                []byte
 	Containers          []Container
 	Owner               types.H160
 	Ptype               PodType
@@ -61,7 +63,8 @@ type Pod struct {
 	Version             uint32
 	Status              uint8
 	LastMintBlockNumber uint32
-	Meta                []byte
+	SkipUtil            uint32
+	DeploySkipUtil      uint32
 }
 
 type PodType struct { // Enum

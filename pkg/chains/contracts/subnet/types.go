@@ -8,8 +8,7 @@ import (
 	"github.com/wetee-dao/ink.go/util"
 )
 
-type AccountId = [32]byte // Composite
-type K8sCluster struct {  // Composite
+type K8sCluster struct { // Composite
 	Name          []byte
 	Owner         types.H160
 	Level         byte
@@ -17,7 +16,7 @@ type K8sCluster struct {  // Composite
 	StartBlock    uint32
 	StopBlock     util.Option[uint32]
 	TerminalBlock util.Option[uint32]
-	P2pId         AccountId
+	P2pId         util.AccountId
 	Ip            Ip
 	Port          uint32
 	Status        byte
@@ -30,8 +29,8 @@ type Ip struct { // Composite
 type SecretNode struct { // Composite
 	Name          []byte
 	Owner         types.H160
-	ValidatorId   AccountId
-	P2pId         AccountId
+	ValidatorId   util.AccountId
+	P2pId         util.AccountId
 	StartBlock    uint32
 	TerminalBlock util.Option[uint32]
 	Ip            Ip

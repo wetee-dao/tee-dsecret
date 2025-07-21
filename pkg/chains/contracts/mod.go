@@ -24,8 +24,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0x63ddde64b90510d193ea8c9b478ffac4b53969c5"
-const cloudAddress = "0x796b087156f9af50c7a73f7d64988b9a34e542aa"
+const subnetAddress = "0xbce63af2f4b6ed7d594d28342af4352b6556f6e3"
+const cloudAddress = "0xe55c7bd2ea28e6b263f20518218657972c1555ca"
 
 func GetCloudAddress() string {
 	return cloudAddress
@@ -206,6 +206,18 @@ func (c *Contract) GetNextEpochValidatorList() ([]*model.Validator, error) {
 	}
 
 	return validators, nil
+}
+
+func (c *Contract) GetMintInterval() (uint32, error) {
+	v, _, err := c.cloud.QueryMintInterval(chain.DryRunParams{
+		Origin:    c.signer.AccountID(),
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+	if err != nil {
+		return 100000000, err
+	}
+
+	return *v, nil
 }
 
 func ConvertTEEType(t cloud.TEEType) model.TEEType {

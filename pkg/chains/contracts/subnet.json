@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x01778e47782b2e938133ce2b8def10505a458b15b7160282bc8ce42e500e50ca",
+    "hash": "0xfdebc36ee4eed0a07ce2233205c1a09d261e7290b8b9b0dce61820fe00413d78",
     "language": "ink! 6.0.0-alpha",
     "compiler": "rustc 1.85.0",
     "build_info": {
@@ -153,7 +153,9 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " add or update region"
+        ],
         "label": "set_region",
         "mutates": true,
         "payable": false,
@@ -179,7 +181,9 @@
           }
         ],
         "default": false,
-        "docs": [],
+        "docs": [
+          " worker info"
+        ],
         "label": "worker",
         "mutates": false,
         "payable": false,

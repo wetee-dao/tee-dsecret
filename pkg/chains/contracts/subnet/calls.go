@@ -282,7 +282,7 @@ func (c *Subnet) QueryUserWorker(
 }
 
 func (c *Subnet) QueryMintWorker(
-	id AccountId, __ink_params chain.DryRunParams,
+	id util.AccountId, __ink_params chain.DryRunParams,
 ) (*util.Option[Tuple_89], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
@@ -306,7 +306,7 @@ func (c *Subnet) QueryMintWorker(
 }
 
 func (c *Subnet) DryRunWorkerRegister(
-	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.DryRunParams,
+	name []byte, p2p_id util.AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.DryRunParams,
 ) (*util.Result[uint64, Error], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
@@ -334,7 +334,7 @@ func (c *Subnet) DryRunWorkerRegister(
 }
 
 func (c *Subnet) ExecWorkerRegister(
-	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.ExecParams,
+	name []byte, p2p_id util.AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.ExecParams,
 ) error {
 	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
 	_param.PayAmount = __ink_params.PayAmount
@@ -355,7 +355,7 @@ func (c *Subnet) ExecWorkerRegister(
 }
 
 func (c *Subnet) CallOfWorkerRegister(
-	name []byte, p2p_id AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.DryRunParams,
+	name []byte, p2p_id util.AccountId, ip Ip, port uint32, level byte, region_id uint32, __ink_params chain.DryRunParams,
 ) (*types.Call, error) {
 	_, gas, err := c.DryRunWorkerRegister(name, p2p_id, ip, port, level, region_id, __ink_params)
 	if err != nil {
@@ -670,7 +670,7 @@ func (c *Subnet) QuerySecrets(
 }
 
 func (c *Subnet) DryRunSecretRegister(
-	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, __ink_params chain.DryRunParams,
+	name []byte, validator_id util.AccountId, p2p_id util.AccountId, ip Ip, port uint32, __ink_params chain.DryRunParams,
 ) (*util.Result[uint64, Error], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
@@ -698,7 +698,7 @@ func (c *Subnet) DryRunSecretRegister(
 }
 
 func (c *Subnet) ExecSecretRegister(
-	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, __ink_params chain.ExecParams,
+	name []byte, validator_id util.AccountId, p2p_id util.AccountId, ip Ip, port uint32, __ink_params chain.ExecParams,
 ) error {
 	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
 	_param.PayAmount = __ink_params.PayAmount
@@ -719,7 +719,7 @@ func (c *Subnet) ExecSecretRegister(
 }
 
 func (c *Subnet) CallOfSecretRegister(
-	name []byte, validator_id AccountId, p2p_id AccountId, ip Ip, port uint32, __ink_params chain.DryRunParams,
+	name []byte, validator_id util.AccountId, p2p_id util.AccountId, ip Ip, port uint32, __ink_params chain.DryRunParams,
 ) (*types.Call, error) {
 	_, gas, err := c.DryRunSecretRegister(name, validator_id, p2p_id, ip, port, __ink_params)
 	if err != nil {

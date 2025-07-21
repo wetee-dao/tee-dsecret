@@ -18,6 +18,10 @@ const (
 	CodeInvalidNode         uint32 = 5
 )
 
+const (
+	GLOABL_STATE = "G"
+)
+
 func LogWithTime(a ...any) {
 	dim := "\033[2m"
 	reset := "\033[0m"

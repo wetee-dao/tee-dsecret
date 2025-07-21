@@ -41,8 +41,6 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, addMainChainTx bo
 			if addMainChainTx {
 				hubtx = append(hubtx, txbt)
 			}
-		case *model.Tx_Test:
-			*finaltx = append(*finaltx, txbt)
 		default:
 			break
 		}

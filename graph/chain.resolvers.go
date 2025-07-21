@@ -6,24 +6,10 @@ package graph
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
-
-// AddTx is the resolver for the add_tx field.
-func (r *mutationResolver) AddTx(ctx context.Context, text string) (bool, error) {
-	sidechain.SubmitTx(&model.Tx{
-		Payload: &model.Tx_Test{
-			Test: text + fmt.Sprint(time.Now().Unix()),
-		},
-	})
-
-	return true, nil
-}
 
 // Validators is the resolver for the validators field.
 func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
@@ -39,3 +25,8 @@ func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
 	}
 	return list, nil
 }
+
+// Query returns QueryResolver implementation.
+func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+
+type queryResolver struct{ *Resolver }

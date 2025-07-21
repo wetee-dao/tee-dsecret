@@ -13,7 +13,7 @@ import (
 
 // Submit sync tx to polkadot hub
 func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
-	call, err := model.GetCodec[types.Call]("G", "tx_index"+fmt.Sprint(txIndex))
+	call, err := model.GetCodec[types.Call](GLOABL_STATE, "tx_index"+fmt.Sprint(txIndex))
 	if err != nil || call == nil {
 		util.LogWithRed("Sync to polkadot hub", "error: call not found call data")
 		return errors.New("sync to polkadot hub error: call not found call data")
@@ -53,7 +53,7 @@ type AsyncBatchState struct {
 
 // check sync is running
 func IsSyncRuning() bool {
-	tx, err := model.GetJson[AsyncBatchState]("G", SyncTxIndexKey)
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
 	if err != nil {
 		return true
 	}
@@ -70,7 +70,7 @@ func IsSyncRuning() bool {
 
 // sync transaction step1
 func SyncStep1() ([]byte, error) {
-	tx, err := model.GetJson[AsyncBatchState]("G", SyncTxIndexKey)
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func SyncStep1() ([]byte, error) {
 
 // sync transaction step2
 func SyncStep2(i int64) error {
-	tx, err := model.GetJson[AsyncBatchState]("G", SyncTxIndexKey)
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
 	if err != nil {
 		return err
 	}
@@ -105,12 +105,12 @@ func SyncStep2(i int64) error {
 
 	tx.Going = i
 	tx.Done = i - 1
-	return model.SetJson("G", SyncTxIndexKey, tx)
+	return model.SetJson(GLOABL_STATE, SyncTxIndexKey, tx)
 }
 
 // sync transaction step3
 func SyncEnd(i int64) error {
-	tx, err := model.GetJson[AsyncBatchState]("G", SyncTxIndexKey)
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
 	if err != nil {
 		return err
 	}
@@ -120,5 +120,5 @@ func SyncEnd(i int64) error {
 	}
 
 	tx.Done = tx.Going
-	return model.SetJson("G", SyncTxIndexKey, tx)
+	return model.SetJson(GLOABL_STATE, SyncTxIndexKey, tx)
 }

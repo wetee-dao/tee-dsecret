@@ -43,13 +43,3 @@ type ReencryptSecret struct {
 	// 密文
 	EncScrt [][]byte `json:"enc_scrt,omitempty"`
 }
-
-// LaunchRequest 函数处理启动请求
-type LaunchRequest struct {
-	// libos tee report
-	Libos *TeeParam
-	// cluster tee report
-	Cluster *TeeParam
-	// worker tee report
-	WorkID string
-}

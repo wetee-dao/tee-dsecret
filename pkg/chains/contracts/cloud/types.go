@@ -409,9 +409,11 @@ type Error struct { // Enum
 	WorkerNotOnline        *bool // 5
 	PodNotFound            *bool // 6
 	NotPodOwner            *bool // 7
-	PodStatusError         *bool // 8
-	InvalidSideChainCaller *bool // 9
-	DelFailed              *bool // 10
+	PodKeyNotExist         *bool // 8
+	PodStatusError         *bool // 9
+	InvalidSideChainCaller *bool // 10
+	DelFailed              *bool // 11
+	MintIntervalError      *bool // 12
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -479,7 +481,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.PodStatusError != nil {
+	if ty.PodKeyNotExist != nil {
 		err = encoder.PushByte(8)
 		if err != nil {
 			return err
@@ -487,7 +489,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.InvalidSideChainCaller != nil {
+	if ty.PodStatusError != nil {
 		err = encoder.PushByte(9)
 		if err != nil {
 			return err
@@ -495,8 +497,24 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.DelFailed != nil {
+	if ty.InvalidSideChainCaller != nil {
 		err = encoder.PushByte(10)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.DelFailed != nil {
+		err = encoder.PushByte(11)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.MintIntervalError != nil {
+		err = encoder.PushByte(12)
 		if err != nil {
 			return err
 		}
@@ -545,15 +563,23 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		return
 	case 8: // Base
 		t := true
-		ty.PodStatusError = &t
+		ty.PodKeyNotExist = &t
 		return
 	case 9: // Base
 		t := true
-		ty.InvalidSideChainCaller = &t
+		ty.PodStatusError = &t
 		return
 	case 10: // Base
 		t := true
+		ty.InvalidSideChainCaller = &t
+		return
+	case 11: // Base
+		t := true
 		ty.DelFailed = &t
+		return
+	case 12: // Base
+		t := true
+		ty.MintIntervalError = &t
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -592,6 +618,10 @@ func (ty *Error) Error() string {
 		return "NotPodOwner"
 	}
 
+	if ty.PodKeyNotExist != nil {
+		return "PodKeyNotExist"
+	}
+
 	if ty.PodStatusError != nil {
 		return "PodStatusError"
 	}
@@ -602,6 +632,10 @@ func (ty *Error) Error() string {
 
 	if ty.DelFailed != nil {
 		return "DelFailed"
+	}
+
+	if ty.MintIntervalError != nil {
+		return "MintIntervalError"
 	}
 	return "Unknown"
 }
@@ -680,30 +714,31 @@ func (ty *EditType) Decode(decoder scale.Decoder) (err error) {
 	}
 }
 
-type Tuple_96 struct { // Tuple
+type Tuple_102 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_98
+	F2 []Tuple_104
 }
-type Tuple_98 struct { // Tuple
+type Tuple_104 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_102 struct { // Tuple
+type Tuple_107 struct { // Tuple
 	F0 uint64
 	F1 uint32
-	F2 byte
-}
-type Tuple_105 struct { // Tuple
-	F0 Pod
-	F1 []Tuple_98
 	F2 uint32
 	F3 byte
 }
-type Tuple_109 struct { // Tuple
+type Tuple_110 struct { // Tuple
+	F0 Pod
+	F1 []Tuple_104
+	F2 uint32
+	F3 byte
+}
+type Tuple_114 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_98
+	F2 []Tuple_104
 	F3 uint32
 	F4 uint32
 	F5 byte

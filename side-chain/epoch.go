@@ -119,7 +119,7 @@ func (app *SideChain) newEpochFail(err error) {
 
 // Callback when DKG consensus success
 func (app *SideChain) GetEpochStatus() int64 {
-	bt, err := model.GetKey("G", "epoch_status")
+	bt, err := model.GetKey(GLOABL_STATE, "epoch_status")
 	if err != nil {
 		return 0
 	}
@@ -129,12 +129,12 @@ func (app *SideChain) GetEpochStatus() int64 {
 
 // SetEpochStatus last epoch timestamp
 func (app *SideChain) SetEpochStatus(status int64) error {
-	return model.SetKey("G", "epoch_status", util.Int64ToBytes(status))
+	return model.SetKey(GLOABL_STATE, "epoch_status", util.Int64ToBytes(status))
 }
 
 // GetEpoch get last epoch
 func (app *SideChain) GetEpoch() uint32 {
-	bt, err := model.GetKey("G", "epoch")
+	bt, err := model.GetKey(GLOABL_STATE, "epoch")
 	if err != nil {
 		return 0
 	}
@@ -156,10 +156,10 @@ func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 	// Save new epoch to DB
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, epoch.Epoch)
-	txn.SetKey("G", "epoch", bytesBuffer.Bytes())
+	txn.SetKey(GLOABL_STATE, "epoch", bytesBuffer.Bytes())
 
 	// Save DKG pub key
-	txn.SetKey("G", "dkg_pub_key", epoch.DkgPub)
+	txn.SetKey(GLOABL_STATE, "dkg_pub_key", epoch.DkgPub)
 
 	// Delete old epoch validators
 	err := txn.DeletekeysByPrefix([]byte("G_validator"))
@@ -180,7 +180,7 @@ func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 // Get validators form local db
 func (app *SideChain) GetValidators() ([]*model.SideValidator, map[string]*model.PubKey, error) {
 	var err error
-	list, err := model.GetProtoMessageList[model.SideValidator]("G", "validator")
+	list, _, err := model.GetProtoMessageList[model.SideValidator](GLOABL_STATE, "validator")
 	if err != nil {
 		return nil, nil, err
 	}

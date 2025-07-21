@@ -4,6 +4,7 @@ import (
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
+	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -34,8 +35,9 @@ type Chain interface {
 	ResigerCluster(name []byte, p2p_id [32]byte, ip model.Ip, port uint32, level byte, region_id uint32) error
 
 	// POD
-	TxCallOfStartPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
-	DryStartPod(nodeId uint64, hash types.H256, signer types.AccountID) error
+	GetMintInterval() (uint32, error)
+	TxCallOfStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) (*types.Call, error)
+	DryStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) error
 }
 
 func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {

@@ -1,6 +1,7 @@
 package contracts
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -60,4 +61,35 @@ func TestSetSubnetSolt(t *testing.T) {
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
+}
+
+func TestCloudUpdate(t *testing.T) {
+	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	cloudIns, err := cloud.InitCloudContract(client, cloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	hexCode := "6130d41d7731a84ff3f7b348806b21e72d1a3aab242481c7824c5d2bbe1d7d66"
+	bt, _ := hex.DecodeString(hexCode)
+	code := types.NewH256(bt)
+	err = cloudIns.ExecSetCode(code, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+
+	if err != nil {
+		util.LogWithPurple("ExecSetCode", err)
+	}
 }

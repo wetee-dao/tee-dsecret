@@ -59,7 +59,7 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 		TxIndex: tx_index,
 	}
 
-	err = model.SetCodec("G", "tx_index"+fmt.Sprint(tx_index), *call)
+	err = model.SetCodec(GLOABL_STATE, "tx_index"+fmt.Sprint(tx_index), *call)
 	if err != nil {
 		util.LogWithRed("sendPartialSign", "SetKey error", err)
 		return
@@ -89,7 +89,7 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 		return err
 	}
 
-	sigs, err := s.SigListOfTx(msg.TxIndex)
+	sigs, err := s.SigsOfTx(msg.TxIndex)
 	if err != nil {
 		util.LogWithRed("PartialSign", "GetSigList error", err)
 		return err
@@ -118,11 +118,11 @@ const PartialSigPrefix = "partial_sig_"
 
 func (s *SideChain) SavePartialSig(user_id string, msg *model.BlockPartialSign) error {
 	bt, _ := msg.Marshal()
-	return model.SetKey("G", PartialSigPrefix+fmt.Sprint(msg.TxIndex)+"_"+user_id, bt)
+	return model.SetKey(GLOABL_STATE, PartialSigPrefix+fmt.Sprint(msg.TxIndex)+"_"+user_id, bt)
 }
 
-func (s *SideChain) SigListOfTx(txIndex int64) ([]*model.BlockPartialSign, error) {
-	bts, err := model.GetList("G", PartialSigPrefix+fmt.Sprint(txIndex)+"_", 1, 10000)
+func (s *SideChain) SigsOfTx(txIndex int64) ([]*model.BlockPartialSign, error) {
+	bts, err := model.GetList(GLOABL_STATE, PartialSigPrefix+fmt.Sprint(txIndex)+"_", 1, 10000)
 	if err != nil {
 		return nil, err
 	}

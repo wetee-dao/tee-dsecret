@@ -165,40 +165,6 @@ func (dkg *DKG) handleWorker(msg *model.DkgMessage) error {
 			util.LogError("secret", "HandleReencryptSecretRequest err: ", err)
 		}
 		return err
-	/// -------------------- Work Launch -----------------------
-	case "work_launch_request":
-		// 处理工作启动请求的消息
-		key, err := dkg.HandleWorkLaunchRequest(msg.Payload, msg.MsgId, msg.From)
-		if msg.From != "" && msg.MsgId != "" {
-			// 获取发送方节点
-			n := dkg.getNode(msg.From)
-			if n == nil {
-				// 如果节点不存在，返回错误
-				return fmt.Errorf("node not found: %s", msg.From)
-			}
-
-			errStr := ""
-			keyBt := []byte{}
-			if err != nil {
-				// 如果有错误，记录错误信息
-				errStr = err.Error()
-			} else {
-				// 将密钥转换为字节
-				keyBt, _ = json.Marshal(key)
-			}
-
-			// 发送回复消息给节点
-			if err := dkg.sendToNode(model.SendToNode(n), &model.DkgMessage{
-				MsgId:   msg.MsgId,
-				Type:    "work_launch_reply",
-				Payload: keyBt,
-				Error:   errStr,
-			}); err != nil {
-				// 发送消息失败，返回错误
-				return errors.New("send to node: " + err.Error())
-			}
-		}
-		return err
 	default:
 		// 默认情况下不执行任何操作，返回nil
 		return nil

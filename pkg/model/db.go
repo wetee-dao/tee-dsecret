@@ -101,13 +101,13 @@ func GetJson[T any](namespace, key string) (*T, error) {
 	v, err := GetKey(namespace, key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
-			return new(T), nil
+			return nil, nil
 		}
 		return nil, err
 	}
 
 	if len(v) == 0 {
-		return new(T), nil
+		return nil, nil
 	}
 
 	val := new(T)
@@ -156,23 +156,26 @@ func keyUpperBound(b []byte) []byte {
 	return nil
 }
 
-func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
+func GetProtoMessageList[T any](namespace, key string) (list []*T, keys [][]byte, err error) {
 	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
 		UpperBound: keyUpperBound(rkey),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer iter.Close()
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
+		k := iter.Key()
 		value, err := util.Unseal(v, nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+
+		keys = append(keys, k)
 
 		val := new(T)
 		err = protoio.ReadMessage(bytes.NewBuffer(value), val)

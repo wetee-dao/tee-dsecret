@@ -34,8 +34,6 @@ func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessPropos
 			break
 		case *model.Tx_Bridge:
 			break
-		case *model.Tx_Test:
-			break
 		default:
 			fmt.Println("Payload is not set")
 		}
