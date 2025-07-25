@@ -1,9 +1,9 @@
 package contracts
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestCloud(t *testing.T) {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func TestCloud(t *testing.T) {
 }
 
 func TestSetSubnetSolt(t *testing.T) {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +64,7 @@ func TestSetSubnetSolt(t *testing.T) {
 }
 
 func TestCloudUpdate(t *testing.T) {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -75,16 +75,26 @@ func TestCloudUpdate(t *testing.T) {
 		panic(err)
 	}
 
+	/// init pod
+	cloudData, err := os.ReadFile("../../../hack/contract_cache/cloud.polkavm")
+	if err != nil {
+		util.LogWithPurple("read file error", err)
+		panic(err)
+	}
+
+	code, err := client.UploadInkCode(cloudData, &pk)
+	if err != nil {
+		util.LogWithPurple("UploadInkCode", err)
+		panic(err)
+	}
+
 	cloudIns, err := cloud.InitCloudContract(client, cloudAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		panic(err)
 	}
 
-	hexCode := "6130d41d7731a84ff3f7b348806b21e72d1a3aab242481c7824c5d2bbe1d7d66"
-	bt, _ := hex.DecodeString(hexCode)
-	code := types.NewH256(bt)
-	err = cloudIns.ExecSetCode(code, chain.ExecParams{
+	err = cloudIns.ExecSetCode(*code, chain.ExecParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
@@ -92,4 +102,94 @@ func TestCloudUpdate(t *testing.T) {
 	if err != nil {
 		util.LogWithPurple("ExecSetCode", err)
 	}
+}
+
+func TestSubnetUpdate(t *testing.T) {
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	/// init pod
+	netData, err := os.ReadFile("../../../hack/contract_cache/subnet.polkavm")
+	if err != nil {
+		util.LogWithPurple("read file error", err)
+		panic(err)
+	}
+
+	netCode, err := client.UploadInkCode(netData, &pk)
+	if err != nil {
+		util.LogWithPurple("UploadInkCode", err)
+		panic(err)
+	}
+
+	fmt.Println("cloudAddress: ", cloudAddress)
+
+	subnetIns, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	err = subnetIns.ExecSetCode(*netCode, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+
+	if err != nil {
+		util.LogWithPurple("subnet ExecSetCode", err)
+	}
+}
+
+func TestWorkerUpdate(t *testing.T) {
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	subnetIns, err := subnet.InitSubnetContract(client, subnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		panic(err)
+	}
+
+	err = subnetIns.ExecSecretUpdate(0, []byte("v0"), subnet.Ip{
+		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv6:   util.NewNone[types.U128](),
+		Domain: util.NewNone[[]byte](),
+	}, 31000, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+	fmt.Println(err)
+
+	subnetIns.ExecSecretUpdate(1, []byte("v1"), subnet.Ip{
+		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv6:   util.NewNone[types.U128](),
+		Domain: util.NewNone[[]byte](),
+	}, 41000, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+
+	subnetIns.ExecSecretUpdate(2, []byte("v2"), subnet.Ip{
+		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv6:   util.NewNone[types.U128](),
+		Domain: util.NewNone[[]byte](),
+	}, 51000, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
 }

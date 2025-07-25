@@ -9,7 +9,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
-func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, addMainChainTx bool) {
+func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, addMainChainTx bool) {
 	hubtx := make([][]byte, 0, 50)
 	for _, txbt := range txs {
 		txbox := new(model.TxBox)
@@ -62,5 +62,6 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, addMainChainTx bo
 
 		*finaltx = append(*finaltx, tx)
 		*finaltx = append(*finaltx, hubtx...)
+		s.DeleteSigOfTx(height)
 	}
 }

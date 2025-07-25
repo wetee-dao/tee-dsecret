@@ -31,8 +31,8 @@ func GetCloudAddress() string {
 	return cloudAddress
 }
 
-func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
-	client, err := chain.ClientInit(url, false)
+func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
+	client, err := chain.InitClient(url, false)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func NewContract(url string, pk *model.PrivKey) (*Contract, error) {
 	h160 := pk.GetPublic().H160()
 
 	// check account is mapaccount in revive
-	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api().RPC.State, h160)
 	if err != nil {
 		util.LogWithPurple("GetOriginalAccountLatest", err)
 		return nil, err

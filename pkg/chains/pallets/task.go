@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Chain) GetTaskAccount(id uint64) ([]byte, error) {
-	res, ok, err := task.GetTaskIdAccountsLatest(c.Api.RPC.State, id)
+	res, ok, err := task.GetTaskIdAccountsLatest(c.Api().RPC.State, id)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +19,7 @@ func (c *Chain) GetTaskAccount(id uint64) ([]byte, error) {
 }
 
 func (c *Chain) GetTaskVersionLatest(id uint64) (uint64, error) {
-	res, ok, err := task.GetTaskVersionLatest(c.Api.RPC.State, id)
+	res, ok, err := task.GetTaskVersionLatest(c.Api().RPC.State, id)
 	if err != nil {
 		return 0, err
 	}
@@ -37,7 +37,7 @@ func (c *Chain) GetTask(publey []byte, id uint64) (*types.TeeTask, error) {
 	var mss [32]byte
 	copy(mss[:], publey)
 
-	res, ok, err := task.GetTEETasksLatest(c.Api.RPC.State, mss, id)
+	res, ok, err := task.GetTEETasksLatest(c.Api().RPC.State, mss, id)
 	if err != nil {
 		return nil, err
 	}
@@ -48,5 +48,5 @@ func (c *Chain) GetTask(publey []byte, id uint64) (*types.TeeTask, error) {
 }
 
 func (c *Chain) GetTaskSecretEnv(id uint64) ([]byte, bool, error) {
-	return task.GetSecretEnvsLatest(c.Api.RPC.State, id)
+	return task.GetSecretEnvsLatest(c.Api().RPC.State, id)
 }

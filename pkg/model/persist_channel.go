@@ -40,7 +40,6 @@ func (c *PersistChan[T]) load() error {
 
 	list := make([]T, 0)
 	json.Unmarshal(bt, &list)
-	fmt.Println("PersistChan", "load", c.key, "len", len(list))
 	for _, v := range list {
 		c.Push(v)
 	}
@@ -79,7 +78,6 @@ func (c *PersistChan[T]) Start(handler func(T) error) {
 		// 	c.Push(data)
 		// }
 	}
-	fmt.Println("PersistChan", "stop")
 }
 
 func (c *PersistChan[T]) Stop() {

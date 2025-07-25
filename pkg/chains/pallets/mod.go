@@ -21,8 +21,8 @@ type Chain struct {
 	signer *chain.Signer
 }
 
-func NewContract(url string, pk *model.PrivKey) (*Chain, error) {
-	client, err := chain.ClientInit(url, true)
+func NewContract(url []string, pk *model.PrivKey) (*Chain, error) {
+	client, err := chain.InitClient(url, true)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +86,13 @@ func (c *Chain) GetWorkCodeSignature(client *chain.ChainClient, workID gtypes.Wo
 	// 判断工作类型是否为 APP
 	if workID.Wtype.IsAPP {
 		// 调用 weteeapp 获取代码签名的最新数据
-		return app.GetCodeSignatureLatest(client.Api.RPC.State, workID.Id)
+		return app.GetCodeSignatureLatest(client.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsTASK {
 		// 调用 weteetask 获取代码签名的最新数据
-		return task.GetCodeSignatureLatest(client.Api.RPC.State, workID.Id)
+		return task.GetCodeSignatureLatest(client.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsGPU {
 		// 调用 weteegpu 获取代码签名的最新数据
-		return gpu.GetCodeSignatureLatest(client.Api.RPC.State, workID.Id)
+		return gpu.GetCodeSignatureLatest(client.Api().RPC.State, workID.Id)
 	}
 
 	// 如果工作类型未知，返回错误信息
@@ -103,12 +103,12 @@ func (c *Chain) GetWorkCodeSignature(client *chain.ChainClient, workID gtypes.Wo
 // Get CodeSignature/SIgner
 func (c *Chain) GetDsecretCode(client *chain.ChainClient) ([]byte, []byte, error) {
 	// 检查节点代码是否和 wetee 上要求的版本一致
-	codeSignature, err := dsecret.GetCodeSignatureLatest(client.Api.RPC.State)
+	codeSignature, err := dsecret.GetCodeSignatureLatest(client.Api().RPC.State)
 	if err != nil {
 		fmt.Println("Get code signature error:", err)
 		return nil, nil, err
 	}
-	codeSigner, err := dsecret.GetCodeSignerLatest(client.Api.RPC.State)
+	codeSigner, err := dsecret.GetCodeSignerLatest(client.Api().RPC.State)
 	if err != nil {
 		fmt.Println("Get code signer error:", err)
 		return nil, nil, err
@@ -120,7 +120,7 @@ func (c *Chain) GetDsecretCode(client *chain.ChainClient) ([]byte, []byte, error
 // GetWorkerCode 函数用于获取 weteeworker 的代码签名和签名者
 func (c *Chain) GetWorkerCode(client *chain.ChainClient) ([]byte, []byte, error) {
 	// 获取 weteeworker 的最新代码签名
-	codeSignature, err := worker.GetCodeSignatureLatest(client.Api.RPC.State)
+	codeSignature, err := worker.GetCodeSignatureLatest(client.Api().RPC.State)
 	// 处理获取代码签名过程中的错误
 	if err != nil {
 		fmt.Println("Get code signature error:", err)
@@ -128,7 +128,7 @@ func (c *Chain) GetWorkerCode(client *chain.ChainClient) ([]byte, []byte, error)
 	}
 
 	// 获取 weteeworker 的最新代码签名者
-	codeSigner, err := worker.GetCodeSignerLatest(client.Api.RPC.State)
+	codeSigner, err := worker.GetCodeSignerLatest(client.Api().RPC.State)
 	// 处理获取代码签名者过程中的错误
 	if err != nil {
 		fmt.Println("Get code signer error:", err)
@@ -162,13 +162,13 @@ func (c *Chain) GetWorkSignature(workID gtypes.WorkId) ([]byte, error) {
 	// 判断工作类型是否为 APP
 	if workID.Wtype.IsAPP {
 		// 调用 weteeapp 获取代码签名的最新数据
-		return app.GetCodeSignatureLatest(c.Api.RPC.State, workID.Id)
+		return app.GetCodeSignatureLatest(c.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsTASK {
 		// 调用 weteetask 获取代码签名的最新数据
-		return task.GetCodeSignatureLatest(c.Api.RPC.State, workID.Id)
+		return task.GetCodeSignatureLatest(c.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsGPU {
 		// 调用 weteegpu 获取代码签名的最新数据
-		return gpu.GetCodeSignatureLatest(c.Api.RPC.State, workID.Id)
+		return gpu.GetCodeSignatureLatest(c.Api().RPC.State, workID.Id)
 	}
 
 	// 如果工作类型未知，返回错误信息
@@ -180,13 +180,13 @@ func (c *Chain) GetWorkCodeSigner(workID gtypes.WorkId) ([]byte, error) {
 	// 判断工作类型是否为 APP
 	if workID.Wtype.IsAPP {
 		// 调用 weteeapp 获取代码签名者的最新数据
-		return app.GetCodeSignerLatest(c.Api.RPC.State, workID.Id)
+		return app.GetCodeSignerLatest(c.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsTASK {
 		// 调用 weteetask 获取代码签名者的最新数据
-		return task.GetCodeSignerLatest(c.Api.RPC.State, workID.Id)
+		return task.GetCodeSignerLatest(c.Api().RPC.State, workID.Id)
 	} else if workID.Wtype.IsGPU {
 		// 调用 weteegpu 获取代码签名者的最新数据
-		return gpu.GetCodeSignerLatest(c.Api.RPC.State, workID.Id)
+		return gpu.GetCodeSignerLatest(c.Api().RPC.State, workID.Id)
 	}
 
 	// 如果工作类型未知，返回错误信息

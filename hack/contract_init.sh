@@ -37,7 +37,6 @@ cp ./contract_cache/pod.json ../pkg/chains/contracts/
 cd $DIR/../pkg/chains/contracts/
 go-ink-gen -json cloud.json
 go-ink-gen -json subnet.json
-go-ink-gen -json pod.json
 
 cd $DIR
 

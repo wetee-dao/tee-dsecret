@@ -20,7 +20,7 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 	}
 
 	// Aggregate signature
-	util.LogWithGray("Sync to polkadot hub", "sync with sigs => ", len(sigs))
+	util.LogWithGray("Sync to polkadot hub", "sync sigs = ", len(sigs))
 	signer := dkg.NewDssSigner(s.dkg)
 	signer.SetSigs(sigs)
 
@@ -29,8 +29,10 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 	err = client.SignAndSubmit(signer, *call, false, 0)
 	if err != nil {
 		util.LogWithRed("Sync to polkadot hub", "error => ", err.Error())
+		fmt.Println("                    ", " SS58 => ", s.dkg.DkgPubKey.SS58())
+		fmt.Println("                    ", " SYNC at batch tx ", txIndex)
 	} else {
-		util.LogWithGreen("Sync to polkadot hub", "success => ", fmt.Sprint(txIndex))
+		util.LogWithGreen("Sync to polkadot hub", "success at batch tx ", fmt.Sprint(txIndex))
 	}
 
 	// stop sync transaction

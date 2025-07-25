@@ -154,6 +154,10 @@ func TxnSetProtoMessage[T proto.Message](txn *Txn, key []byte, value T) error {
 	return txn.Set(key, buf.Bytes())
 }
 
+func (txn *Txn) Rollback() error {
+	return txn.in.Close()
+}
+
 func (txn *Txn) Commit() error {
 	return txn.in.Commit(pebble.Sync)
 }

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}

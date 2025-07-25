@@ -122,7 +122,7 @@ func (c *Chain) GetBootPeers() ([]model.P2PAddr, error) {
 	}
 
 	var isSome bool
-	isSome, err = c.Api.RPC.State.GetStorageLatest(key, &peers)
+	isSome, err = c.Api().RPC.State.GetStorageLatest(key, &peers)
 	if err != nil {
 		return nil, err
 	}
@@ -138,12 +138,12 @@ func (c *Chain) GetBootPeers() ([]model.P2PAddr, error) {
 }
 
 func (c *Chain) GetEpoch() (uint32, uint32, uint32, error) {
-	epoch, err := dsecret.GetEpochLatest(c.Api.RPC.State)
+	epoch, err := dsecret.GetEpochLatest(c.Api().RPC.State)
 	if err != nil {
 		return 0, 0, 0, err
 	}
 
-	lastEpochBlock, err := dsecret.GetLastEpochBlockLatest(c.Api.RPC.State)
+	lastEpochBlock, err := dsecret.GetLastEpochBlockLatest(c.Api().RPC.State)
 	if err != nil {
 		return 0, 0, 0, err
 	}

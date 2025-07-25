@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -33,6 +33,7 @@ func main() {
 		panic(err)
 	}
 
+	/// upload pod code
 	podCode, err := client.UploadInkCode(podData, &pk)
 	if err != nil {
 		util.LogWithPurple("UploadInkCode", err)

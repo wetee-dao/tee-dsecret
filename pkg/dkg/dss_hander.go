@@ -36,7 +36,7 @@ func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
 	client := chains.MainChain.GetClient()
 
 	h160 := dkg.NewDkgPubKey.H160()
-	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api().RPC.State, h160)
 	if err != nil {
 		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "GetOriginalAccountLatest error:"+err.Error())
 		return
@@ -120,7 +120,7 @@ func (dkg *DKG) RevPartialSig(OrgId string, data []byte) error {
 	// check key is has been mapped
 	client := chains.MainChain.GetClient()
 	h160 := dkg.NewDkgPubKey.H160()
-	_, isSome, err := revive.GetOriginalAccountLatest(client.Api.RPC.State, h160)
+	_, isSome, err := revive.GetOriginalAccountLatest(client.Api().RPC.State, h160)
 	if err != nil {
 		dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor GetOriginalAccountLatest error:" + err.Error()))
 		return errors.New("SendNewEpochPartialSigToSponsor error:" + err.Error())

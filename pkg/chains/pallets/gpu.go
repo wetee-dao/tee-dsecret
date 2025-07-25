@@ -15,7 +15,7 @@ func (c *Chain) GetGpuApp(publey []byte, id uint64) (*types.GpuApp, error) {
 	var mss [32]byte
 	copy(mss[:], publey)
 
-	res, ok, err := gpu.GetGPUAppsLatest(c.Api.RPC.State, mss, id)
+	res, ok, err := gpu.GetGPUAppsLatest(c.Api().RPC.State, mss, id)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (c *Chain) GetGpuApp(publey []byte, id uint64) (*types.GpuApp, error) {
 }
 
 func (c *Chain) GetGpuAccount(id uint64) ([]byte, error) {
-	res, ok, err := gpu.GetAppIdAccountsLatest(c.Api.RPC.State, id)
+	res, ok, err := gpu.GetAppIdAccountsLatest(c.Api().RPC.State, id)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *Chain) GetGpuAccount(id uint64) ([]byte, error) {
 }
 
 func (c *Chain) GetGpuVersionLatest(id uint64) (uint64, error) {
-	res, ok, err := gpu.GetAppVersionLatest(c.Api.RPC.State, id)
+	res, ok, err := gpu.GetAppVersionLatest(c.Api().RPC.State, id)
 	if err != nil {
 		return 0, err
 	}
@@ -48,5 +48,5 @@ func (c *Chain) GetGpuVersionLatest(id uint64) (uint64, error) {
 }
 
 func (c *Chain) GetGpuSecretEnv(id uint64) ([]byte, bool, error) {
-	return gpu.GetSecretEnvsLatest(c.Api.RPC.State, id)
+	return gpu.GetSecretEnvsLatest(c.Api().RPC.State, id)
 }

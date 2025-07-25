@@ -156,7 +156,7 @@ func keyUpperBound(b []byte) []byte {
 	return nil
 }
 
-func GetProtoMessageList[T any](namespace, key string) (list []*T, keys [][]byte, err error) {
+func GetProtoMessageList[T any](namespace, key string) ([]*T, [][]byte, error) {
 	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
@@ -167,15 +167,15 @@ func GetProtoMessageList[T any](namespace, key string) (list []*T, keys [][]byte
 	}
 	defer iter.Close()
 
+	keys := make([][]byte, 0, 100)
+	list := make([]*T, 0, 100)
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
-		k := iter.Key()
+		keys = append(keys, *util.DeepCopy(iter.Key()))
 		value, err := util.Unseal(v, nil)
 		if err != nil {
 			return nil, nil, err
 		}
-
-		keys = append(keys, k)
 
 		val := new(T)
 		err = protoio.ReadMessage(bytes.NewBuffer(value), val)
@@ -184,7 +184,7 @@ func GetProtoMessageList[T any](namespace, key string) (list []*T, keys [][]byte
 		}
 	}
 
-	return
+	return list, keys, nil
 }
 
 func GetProtoMessage[T any](namespace, key string) (*T, error) {
@@ -218,6 +218,10 @@ func SetProtoMessage[T proto.Message](namespace, key string, value T) error {
 
 func DeleteKey(namespace, key string) error {
 	return DBINS.Delete([]byte(comboKey(namespace, key)), pebble.Sync)
+}
+
+func DeleteByteKey(key []byte) error {
+	return DBINS.Delete(key, pebble.Sync)
 }
 
 func DeletekeysByPrefix(namespace, key string) error {

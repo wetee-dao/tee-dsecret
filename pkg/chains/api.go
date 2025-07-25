@@ -40,7 +40,7 @@ type Chain interface {
 	DryStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) error
 }
 
-func ConnectMainChain(url string, pk *model.PrivKey) (Chain, error) {
+func ConnectMainChain(url []string, pk *model.PrivKey) (Chain, error) {
 	var err error
 
 	MainChain, err = contracts.NewContract(url, pk)

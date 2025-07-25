@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/cometbft/cometbft/privval"
@@ -21,7 +22,7 @@ var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:994
 func main() {
 	// 获取环境变量
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
-	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
+	chainAddr := strings.Split(util.GetEnv("CHAIN_ADDR", DefaultChainUrl), ",")
 	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
 	// password := util.GetEnv("PASSWORD", "")
 
@@ -91,6 +92,10 @@ func main() {
 	}
 	go dkgIns.Start()
 	defer dkgIns.Stop()
+
+	if dkgIns.DkgPubKey != nil {
+		util.LogWithYellow("DKG PubKey", dkgIns.DkgPubKey.SS58())
+	}
 
 	// Set DKG to sideChain
 	sideChain.SetDKG(dkgIns)

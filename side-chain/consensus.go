@@ -98,9 +98,9 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 	epochStatus := app.GetEpochStatus()
 	// Check if it is in the epoch transition phase
 	if len(epochTx) == 0 && time.Now().Unix()-int64(epochStatus) > 120 {
-		app.PrepareTx(req.Txs, &finalProposal, true)
+		app.PrepareTx(req.Txs, &finalProposal, req.Height, true)
 	} else {
-		app.PrepareTx(req.Txs, &finalProposal, false)
+		app.PrepareTx(req.Txs, &finalProposal, req.Height, false)
 	}
 
 	return &abci.PrepareProposalResponse{Txs: finalProposal}, nil

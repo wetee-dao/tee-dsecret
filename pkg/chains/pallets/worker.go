@@ -112,7 +112,7 @@ func (w *Worker) Getk8sClusterAccounts(publey []byte) (uint64, error) {
 	var mss [32]byte
 	copy(mss[:], publey)
 
-	res, ok, err := worker.GetK8sClusterAccountsLatest(w.Client.Api.RPC.State, mss)
+	res, ok, err := worker.GetK8sClusterAccountsLatest(w.Client.Api().RPC.State, mss)
 	if err != nil {
 		return 0, err
 	}
@@ -200,11 +200,11 @@ func (w *Worker) WorkProofUpload(workId gtypes.WorkId, logHash []byte, crHash []
 }
 
 func (w *Worker) GetStage() (uint32, error) {
-	return worker.GetStageLatest(w.Client.Api.RPC.State)
+	return worker.GetStageLatest(w.Client.Api().RPC.State)
 }
 
 func (w *Worker) GetWorkContract(workId gtypes.WorkId, id uint64) (*gtypes.ContractState, error) {
-	res, ok, err := worker.GetWorkContractStateLatest(w.Client.Api.RPC.State, workId, id)
+	res, ok, err := worker.GetWorkContractStateLatest(w.Client.Api().RPC.State, workId, id)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ type ContractStateWrap struct {
 }
 
 func (w *Worker) GetCluster(clusterID uint64) (*gtypes.K8sCluster, error) {
-	c, ok, err := worker.GetK8sClustersLatest(w.Client.Api.RPC.State, clusterID)
+	c, ok, err := worker.GetK8sClustersLatest(w.Client.Api().RPC.State, clusterID)
 	if err != nil {
 		return nil, err
 	}

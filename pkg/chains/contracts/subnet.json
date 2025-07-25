@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0xfdebc36ee4eed0a07ce2233205c1a09d261e7290b8b9b0dce61820fe00413d78",
+    "hash": "0xde93f4eb983e9c701bd7da1e950a08bde1f4c5d2f68f335a57c9aa576bf89792",
     "language": "ink! 6.0.0-alpha",
     "compiler": "rustc 1.85.0",
     "build_info": {
@@ -374,6 +374,59 @@
             }
           },
           {
+            "label": "name",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 3
+            }
+          },
+          {
+            "label": "ip",
+            "type": {
+              "displayName": [
+                "Ip"
+              ],
+              "type": 17
+            }
+          },
+          {
+            "label": "port",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "worker_update",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 83
+        },
+        "selector": "0x79bdb96f"
+      },
+      {
+        "args": [
+          {
+            "label": "id",
+            "type": {
+              "displayName": [
+                "NodeID"
+              ],
+              "type": 10
+            }
+          },
+          {
             "label": "cpu",
             "type": {
               "displayName": [
@@ -627,6 +680,59 @@
           "type": 92
         },
         "selector": "0x55719146"
+      },
+      {
+        "args": [
+          {
+            "label": "id",
+            "type": {
+              "displayName": [
+                "NodeID"
+              ],
+              "type": 10
+            }
+          },
+          {
+            "label": "name",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 3
+            }
+          },
+          {
+            "label": "ip",
+            "type": {
+              "displayName": [
+                "Ip"
+              ],
+              "type": 17
+            }
+          },
+          {
+            "label": "port",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "secret_update",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 83
+        },
+        "selector": "0x032511ea"
       },
       {
         "args": [

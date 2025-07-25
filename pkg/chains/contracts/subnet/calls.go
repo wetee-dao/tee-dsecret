@@ -373,6 +373,74 @@ func (c *Subnet) CallOfWorkerRegister(
 	)
 }
 
+func (c *Subnet) DryRunWorkerUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.DryRunParams,
+) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "worker_update")
+	}
+	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
+		c,
+		__ink_params.Origin,
+		__ink_params.PayAmount,
+		__ink_params.GasLimit,
+		__ink_params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0x79bdb96f",
+			Args:     []any{id, name, ip, port},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	if v != nil && v.IsErr {
+		return nil, nil, errors.New("Contract Reverted: " + v.E.Error())
+	}
+
+	return v, gas, nil
+}
+
+func (c *Subnet) ExecWorkerUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.ExecParams,
+) error {
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
+	_, gas, err := c.DryRunWorkerUpdate(id, name, ip, port, _param)
+	if err != nil {
+		return err
+	}
+	return chain.CallInk(
+		c,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x79bdb96f",
+			Args:     []any{id, name, ip, port},
+		},
+		__ink_params,
+	)
+}
+
+func (c *Subnet) CallOfWorkerUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.DryRunParams,
+) (*types.Call, error) {
+	_, gas, err := c.DryRunWorkerUpdate(id, name, ip, port, __ink_params)
+	if err != nil {
+		return nil, err
+	}
+	return chain.CallOfTransaction(
+		c,
+		__ink_params.PayAmount,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x79bdb96f",
+			Args:     []any{id, name, ip, port},
+		},
+	)
+}
+
 func (c *Subnet) DryRunWorkerMortgage(
 	id uint64, cpu uint32, mem uint32, cvm_cpu uint32, cvm_mem uint32, disk uint32, gpu uint32, deposit types.U256, __ink_params chain.DryRunParams,
 ) (*util.Result[uint32, Error], *chain.DryRunReturnGas, error) {
@@ -733,6 +801,74 @@ func (c *Subnet) CallOfSecretRegister(
 		util.InkContractInput{
 			Selector: "0x55719146",
 			Args:     []any{name, validator_id, p2p_id, ip, port},
+		},
+	)
+}
+
+func (c *Subnet) DryRunSecretUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.DryRunParams,
+) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "secret_update")
+	}
+	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
+		c,
+		__ink_params.Origin,
+		__ink_params.PayAmount,
+		__ink_params.GasLimit,
+		__ink_params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0x032511ea",
+			Args:     []any{id, name, ip, port},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	if v != nil && v.IsErr {
+		return nil, nil, errors.New("Contract Reverted: " + v.E.Error())
+	}
+
+	return v, gas, nil
+}
+
+func (c *Subnet) ExecSecretUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.ExecParams,
+) error {
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
+	_, gas, err := c.DryRunSecretUpdate(id, name, ip, port, _param)
+	if err != nil {
+		return err
+	}
+	return chain.CallInk(
+		c,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x032511ea",
+			Args:     []any{id, name, ip, port},
+		},
+		__ink_params,
+	)
+}
+
+func (c *Subnet) CallOfSecretUpdate(
+	id uint64, name []byte, ip Ip, port uint32, __ink_params chain.DryRunParams,
+) (*types.Call, error) {
+	_, gas, err := c.DryRunSecretUpdate(id, name, ip, port, __ink_params)
+	if err != nil {
+		return nil, err
+	}
+	return chain.CallOfTransaction(
+		c,
+		__ink_params.PayAmount,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x032511ea",
+			Args:     []any{id, name, ip, port},
 		},
 	)
 }

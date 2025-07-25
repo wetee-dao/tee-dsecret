@@ -127,7 +127,7 @@ func TestDssSubmitTx(t *testing.T) {
 	}
 
 	// Link to polkadot
-	_, err = chains.ConnectMainChain("ws://127.0.0.1:9944", nodePriv)
+	_, err = chains.ConnectMainChain([]string{"ws://127.0.0.1:9944"}, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		t.Fatal(err)
