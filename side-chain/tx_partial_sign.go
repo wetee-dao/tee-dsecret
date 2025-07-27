@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/pkg/errors"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
@@ -28,7 +27,7 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 	}
 
 	// Initialize a slice to hold all index calls extracted from the hub calls.
-	indexCalls := make([]*model.IndexCall, 0, len(hubs))
+	teeCalls := make([]*model.TeeCall, 0, len(hubs))
 	// Iterate through each hub call and extract the index calls.
 	for _, hub := range hubs {
 		// Check if the hub call is nil. If so, log an error and skip to the next iteration.
@@ -36,22 +35,24 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 			util.LogWithRed("sendPartialSign", "hub is nil")
 			continue
 		}
-		indexCalls = append(indexCalls, hub.Call...)
+		teeCalls = append(teeCalls, hub.Call...)
 	}
 
 	// Sort the index calls by their index in ascending order.
-	sort.Slice(indexCalls, func(i, j int) bool {
-		return indexCalls[i].Index < indexCalls[j].Index
+	sort.Slice(teeCalls, func(i, j int) bool {
+		return teeCalls[i].Time < teeCalls[j].Time
 	})
 
 	// Initialize a slice to hold the decoded types.Call objects.
-	calls := make([]types.Call, 0, len(indexCalls))
+	calls := make([]types.Call, 0, len(teeCalls))
 	// Iterate through each index call and decode it into a types.Call object.
-	for _, bt := range indexCalls {
-		c := new(types.Call)
+	for _, c := range teeCalls {
+		call, err := TEECallToHubCall(c, s.dkg.DkgPubKey.AccountID())
+		if err != nil {
+			return errors.Wrap(err, "TEECallToHubCall error")
+		}
 		// Decode the byte slice of the index call into the types.Call object.
-		codec.Decode(bt.Call, c)
-		calls = append(calls, *c)
+		calls = append(calls, *call)
 	}
 
 	// Get the client for the main chain.

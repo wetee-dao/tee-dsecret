@@ -22,7 +22,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// Transaction
+// transaction
 type TxBox struct {
 	TeeSig               []byte   `protobuf:"bytes,1,opt,name=tee_sig,json=teeSig,proto3" json:"tee_sig,omitempty"`
 	Org                  []byte   `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
@@ -86,6 +86,7 @@ func (m *TxBox) GetTx() []byte {
 	return nil
 }
 
+// side chain transaction
 type Tx struct {
 	// Types that are valid to be assigned to Payload:
 	//
@@ -227,7 +228,7 @@ func (*Tx) XXX_OneofWrappers() []interface{} {
 	}
 }
 
-// SideValidator
+// side validator
 type SideValidator struct {
 	Pubkey               []byte   `protobuf:"bytes,1,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
 	Power                int64    `protobuf:"varint,2,opt,name=power,proto3" json:"power,omitempty"`
@@ -405,10 +406,10 @@ func (m *Bridge) GetPayload() []byte {
 
 // Polkadot Hub Call
 type HubCall struct {
-	Call                 []*IndexCall `protobuf:"bytes,2,rep,name=call,proto3" json:"call,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Call                 []*TeeCall `protobuf:"bytes,2,rep,name=call,proto3" json:"call,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
 func (m *HubCall) Reset()         { *m = HubCall{} }
@@ -444,70 +445,14 @@ func (m *HubCall) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_HubCall proto.InternalMessageInfo
 
-func (m *HubCall) GetCall() []*IndexCall {
+func (m *HubCall) GetCall() []*TeeCall {
 	if m != nil {
 		return m.Call
 	}
 	return nil
 }
 
-// Call with index
-type IndexCall struct {
-	Index                int64    `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Call                 []byte   `protobuf:"bytes,2,opt,name=call,proto3" json:"call,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *IndexCall) Reset()         { *m = IndexCall{} }
-func (m *IndexCall) String() string { return proto.CompactTextString(m) }
-func (*IndexCall) ProtoMessage()    {}
-func (*IndexCall) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{6}
-}
-func (m *IndexCall) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *IndexCall) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_IndexCall.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *IndexCall) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IndexCall.Merge(m, src)
-}
-func (m *IndexCall) XXX_Size() int {
-	return m.Size()
-}
-func (m *IndexCall) XXX_DiscardUnknown() {
-	xxx_messageInfo_IndexCall.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_IndexCall proto.InternalMessageInfo
-
-func (m *IndexCall) GetIndex() int64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
-}
-
-func (m *IndexCall) GetCall() []byte {
-	if m != nil {
-		return m.Call
-	}
-	return nil
-}
-
-// dkg message
+// DKG message
 type DkgMessage struct {
 	From                 string   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
 	To                   *To      `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
@@ -524,7 +469,7 @@ func (m *DkgMessage) Reset()         { *m = DkgMessage{} }
 func (m *DkgMessage) String() string { return proto.CompactTextString(m) }
 func (*DkgMessage) ProtoMessage()    {}
 func (*DkgMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{7}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{6}
 }
 func (m *DkgMessage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -595,7 +540,7 @@ func (m *DkgMessage) GetType() string {
 	return ""
 }
 
-// block
+// block partial sign
 type BlockPartialSign struct {
 	From                 string   `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
 	To                   *To      `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
@@ -610,7 +555,7 @@ func (m *BlockPartialSign) Reset()         { *m = BlockPartialSign{} }
 func (m *BlockPartialSign) String() string { return proto.CompactTextString(m) }
 func (*BlockPartialSign) ProtoMessage()    {}
 func (*BlockPartialSign) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{8}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{7}
 }
 func (m *BlockPartialSign) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -667,6 +612,7 @@ func (m *BlockPartialSign) GetHubSig() []byte {
 	return nil
 }
 
+// p2p msg send to
 type To struct {
 	// Types that are valid to be assigned to Payload:
 	//
@@ -683,7 +629,7 @@ func (m *To) Reset()         { *m = To{} }
 func (m *To) String() string { return proto.CompactTextString(m) }
 func (*To) ProtoMessage()    {}
 func (*To) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{9}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{8}
 }
 func (m *To) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -769,6 +715,7 @@ func (*To) XXX_OneofWrappers() []interface{} {
 	}
 }
 
+// multi node
 type Nodes struct {
 	L                    [][]byte `protobuf:"bytes,2,rep,name=l,proto3" json:"l,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -780,7 +727,7 @@ func (m *Nodes) Reset()         { *m = Nodes{} }
 func (m *Nodes) String() string { return proto.CompactTextString(m) }
 func (*Nodes) ProtoMessage()    {}
 func (*Nodes) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{10}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{9}
 }
 func (m *Nodes) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -816,6 +763,441 @@ func (m *Nodes) GetL() [][]byte {
 	return nil
 }
 
+// TEE call
+type TeeCall struct {
+	Caller  []byte `protobuf:"bytes,1,opt,name=caller,proto3" json:"caller,omitempty"`
+	Time    int64  `protobuf:"varint,2,opt,name=time,proto3" json:"time,omitempty"`
+	TeeType uint32 `protobuf:"varint,3,opt,name=tee_type,json=teeType,proto3" json:"tee_type,omitempty"`
+	Report  []byte `protobuf:"bytes,4,opt,name=report,proto3" json:"report,omitempty"`
+	// Types that are valid to be assigned to Tx:
+	//
+	//	*TeeCall_PodStart
+	//	*TeeCall_PodMint
+	//	*TeeCall_BridgeCall
+	//	*TeeCall_Text
+	Tx                   isTeeCall_Tx `protobuf_oneof:"tx"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
+}
+
+func (m *TeeCall) Reset()         { *m = TeeCall{} }
+func (m *TeeCall) String() string { return proto.CompactTextString(m) }
+func (*TeeCall) ProtoMessage()    {}
+func (*TeeCall) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{10}
+}
+func (m *TeeCall) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TeeCall) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TeeCall.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TeeCall) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TeeCall.Merge(m, src)
+}
+func (m *TeeCall) XXX_Size() int {
+	return m.Size()
+}
+func (m *TeeCall) XXX_DiscardUnknown() {
+	xxx_messageInfo_TeeCall.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TeeCall proto.InternalMessageInfo
+
+type isTeeCall_Tx interface {
+	isTeeCall_Tx()
+	MarshalTo([]byte) (int, error)
+	Size() int
+}
+
+type TeeCall_PodStart struct {
+	PodStart *PodStart `protobuf:"bytes,5,opt,name=pod_start,json=podStart,proto3,oneof" json:"pod_start,omitempty"`
+}
+type TeeCall_PodMint struct {
+	PodMint *PodMint `protobuf:"bytes,6,opt,name=pod_mint,json=podMint,proto3,oneof" json:"pod_mint,omitempty"`
+}
+type TeeCall_BridgeCall struct {
+	BridgeCall *BridgeCall `protobuf:"bytes,7,opt,name=bridge_call,json=bridgeCall,proto3,oneof" json:"bridge_call,omitempty"`
+}
+type TeeCall_Text struct {
+	Text []byte `protobuf:"bytes,8,opt,name=text,proto3,oneof" json:"text,omitempty"`
+}
+
+func (*TeeCall_PodStart) isTeeCall_Tx()   {}
+func (*TeeCall_PodMint) isTeeCall_Tx()    {}
+func (*TeeCall_BridgeCall) isTeeCall_Tx() {}
+func (*TeeCall_Text) isTeeCall_Tx()       {}
+
+func (m *TeeCall) GetTx() isTeeCall_Tx {
+	if m != nil {
+		return m.Tx
+	}
+	return nil
+}
+
+func (m *TeeCall) GetCaller() []byte {
+	if m != nil {
+		return m.Caller
+	}
+	return nil
+}
+
+func (m *TeeCall) GetTime() int64 {
+	if m != nil {
+		return m.Time
+	}
+	return 0
+}
+
+func (m *TeeCall) GetTeeType() uint32 {
+	if m != nil {
+		return m.TeeType
+	}
+	return 0
+}
+
+func (m *TeeCall) GetReport() []byte {
+	if m != nil {
+		return m.Report
+	}
+	return nil
+}
+
+func (m *TeeCall) GetPodStart() *PodStart {
+	if x, ok := m.GetTx().(*TeeCall_PodStart); ok {
+		return x.PodStart
+	}
+	return nil
+}
+
+func (m *TeeCall) GetPodMint() *PodMint {
+	if x, ok := m.GetTx().(*TeeCall_PodMint); ok {
+		return x.PodMint
+	}
+	return nil
+}
+
+func (m *TeeCall) GetBridgeCall() *BridgeCall {
+	if x, ok := m.GetTx().(*TeeCall_BridgeCall); ok {
+		return x.BridgeCall
+	}
+	return nil
+}
+
+func (m *TeeCall) GetText() []byte {
+	if x, ok := m.GetTx().(*TeeCall_Text); ok {
+		return x.Text
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*TeeCall) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*TeeCall_PodStart)(nil),
+		(*TeeCall_PodMint)(nil),
+		(*TeeCall_BridgeCall)(nil),
+		(*TeeCall_Text)(nil),
+	}
+}
+
+// polkadot hub pod mint call
+type PodStart struct {
+	Id                   uint64   `protobuf:"varint,1,opt,name=Id,proto3" json:"Id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PodStart) Reset()         { *m = PodStart{} }
+func (m *PodStart) String() string { return proto.CompactTextString(m) }
+func (*PodStart) ProtoMessage()    {}
+func (*PodStart) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{11}
+}
+func (m *PodStart) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PodStart) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PodStart.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PodStart) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PodStart.Merge(m, src)
+}
+func (m *PodStart) XXX_Size() int {
+	return m.Size()
+}
+func (m *PodStart) XXX_DiscardUnknown() {
+	xxx_messageInfo_PodStart.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PodStart proto.InternalMessageInfo
+
+func (m *PodStart) GetId() uint64 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
+
+// polkadot hub pod mint call
+type PodMint struct {
+	Id                   uint64   `protobuf:"varint,1,opt,name=Id,proto3" json:"Id,omitempty"`
+	ReportHash           []byte   `protobuf:"bytes,3,opt,name=reportHash,proto3" json:"reportHash,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PodMint) Reset()         { *m = PodMint{} }
+func (m *PodMint) String() string { return proto.CompactTextString(m) }
+func (*PodMint) ProtoMessage()    {}
+func (*PodMint) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{12}
+}
+func (m *PodMint) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PodMint) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PodMint.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PodMint) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PodMint.Merge(m, src)
+}
+func (m *PodMint) XXX_Size() int {
+	return m.Size()
+}
+func (m *PodMint) XXX_DiscardUnknown() {
+	xxx_messageInfo_PodMint.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PodMint proto.InternalMessageInfo
+
+func (m *PodMint) GetId() uint64 {
+	if m != nil {
+		return m.Id
+	}
+	return 0
+}
+
+func (m *PodMint) GetReportHash() []byte {
+	if m != nil {
+		return m.ReportHash
+	}
+	return nil
+}
+
+// polkadot hub pod mint call
+type BridgeCall struct {
+	Time                 int64    `protobuf:"varint,1,opt,name=time,proto3" json:"time,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BridgeCall) Reset()         { *m = BridgeCall{} }
+func (m *BridgeCall) String() string { return proto.CompactTextString(m) }
+func (*BridgeCall) ProtoMessage()    {}
+func (*BridgeCall) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{13}
+}
+func (m *BridgeCall) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *BridgeCall) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_BridgeCall.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *BridgeCall) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BridgeCall.Merge(m, src)
+}
+func (m *BridgeCall) XXX_Size() int {
+	return m.Size()
+}
+func (m *BridgeCall) XXX_DiscardUnknown() {
+	xxx_messageInfo_BridgeCall.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BridgeCall proto.InternalMessageInfo
+
+func (m *BridgeCall) GetTime() int64 {
+	if m != nil {
+		return m.Time
+	}
+	return 0
+}
+
+// TEE report verify result
+type TeeVerifyResult struct {
+	TeeType              uint32   `protobuf:"varint,1,opt,name=tee_type,json=teeType,proto3" json:"tee_type,omitempty"`
+	CodeSigner           []byte   `protobuf:"bytes,2,opt,name=code_signer,json=codeSigner,proto3" json:"code_signer,omitempty"`
+	CodeSignature        []byte   `protobuf:"bytes,3,opt,name=code_signature,json=codeSignature,proto3" json:"code_signature,omitempty"`
+	CodeProductId        []byte   `protobuf:"bytes,4,opt,name=code_product_id,json=codeProductId,proto3" json:"code_product_id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TeeVerifyResult) Reset()         { *m = TeeVerifyResult{} }
+func (m *TeeVerifyResult) String() string { return proto.CompactTextString(m) }
+func (*TeeVerifyResult) ProtoMessage()    {}
+func (*TeeVerifyResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{14}
+}
+func (m *TeeVerifyResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TeeVerifyResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TeeVerifyResult.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TeeVerifyResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TeeVerifyResult.Merge(m, src)
+}
+func (m *TeeVerifyResult) XXX_Size() int {
+	return m.Size()
+}
+func (m *TeeVerifyResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_TeeVerifyResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TeeVerifyResult proto.InternalMessageInfo
+
+func (m *TeeVerifyResult) GetTeeType() uint32 {
+	if m != nil {
+		return m.TeeType
+	}
+	return 0
+}
+
+func (m *TeeVerifyResult) GetCodeSigner() []byte {
+	if m != nil {
+		return m.CodeSigner
+	}
+	return nil
+}
+
+func (m *TeeVerifyResult) GetCodeSignature() []byte {
+	if m != nil {
+		return m.CodeSignature
+	}
+	return nil
+}
+
+func (m *TeeVerifyResult) GetCodeProductId() []byte {
+	if m != nil {
+		return m.CodeProductId
+	}
+	return nil
+}
+
+type TeeTrigger struct {
+	Tee                  *TeeCall `protobuf:"bytes,1,opt,name=tee,proto3" json:"tee,omitempty"`
+	ClusterId            uint64   `protobuf:"varint,2,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
+	Callids              []uint64 `protobuf:"varint,3,rep,packed,name=callids,proto3" json:"callids,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *TeeTrigger) Reset()         { *m = TeeTrigger{} }
+func (m *TeeTrigger) String() string { return proto.CompactTextString(m) }
+func (*TeeTrigger) ProtoMessage()    {}
+func (*TeeTrigger) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{15}
+}
+func (m *TeeTrigger) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TeeTrigger) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TeeTrigger.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TeeTrigger) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TeeTrigger.Merge(m, src)
+}
+func (m *TeeTrigger) XXX_Size() int {
+	return m.Size()
+}
+func (m *TeeTrigger) XXX_DiscardUnknown() {
+	xxx_messageInfo_TeeTrigger.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TeeTrigger proto.InternalMessageInfo
+
+func (m *TeeTrigger) GetTee() *TeeCall {
+	if m != nil {
+		return m.Tee
+	}
+	return nil
+}
+
+func (m *TeeTrigger) GetClusterId() uint64 {
+	if m != nil {
+		return m.ClusterId
+	}
+	return 0
+}
+
+func (m *TeeTrigger) GetCallids() []uint64 {
+	if m != nil {
+		return m.Callids
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*TxBox)(nil), "model.TxBox")
 	proto.RegisterType((*Tx)(nil), "model.Tx")
@@ -823,56 +1205,78 @@ func init() {
 	proto.RegisterType((*EpochEnd)(nil), "model.EpochEnd")
 	proto.RegisterType((*Bridge)(nil), "model.Bridge")
 	proto.RegisterType((*HubCall)(nil), "model.HubCall")
-	proto.RegisterType((*IndexCall)(nil), "model.IndexCall")
 	proto.RegisterType((*DkgMessage)(nil), "model.DkgMessage")
 	proto.RegisterType((*BlockPartialSign)(nil), "model.BlockPartialSign")
 	proto.RegisterType((*To)(nil), "model.To")
 	proto.RegisterType((*Nodes)(nil), "model.Nodes")
+	proto.RegisterType((*TeeCall)(nil), "model.TeeCall")
+	proto.RegisterType((*PodStart)(nil), "model.PodStart")
+	proto.RegisterType((*PodMint)(nil), "model.PodMint")
+	proto.RegisterType((*BridgeCall)(nil), "model.BridgeCall")
+	proto.RegisterType((*TeeVerifyResult)(nil), "model.TeeVerifyResult")
+	proto.RegisterType((*TeeTrigger)(nil), "model.TeeTrigger")
 }
 
 func init() { proto.RegisterFile("tx.proto", fileDescriptor_0fd2153dc07d3b5c) }
 
 var fileDescriptor_0fd2153dc07d3b5c = []byte{
-	// 624 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xc1, 0x6e, 0xd3, 0x4c,
-	0x10, 0x8e, 0xed, 0xd8, 0x89, 0xc7, 0x49, 0xff, 0x6a, 0xd5, 0xfe, 0xa4, 0x97, 0xa8, 0x58, 0x95,
-	0xa8, 0x84, 0x14, 0xa4, 0x00, 0x07, 0x0e, 0x5c, 0x02, 0x95, 0xdc, 0x03, 0xa8, 0xda, 0x44, 0x1c,
-	0xb8, 0x58, 0x76, 0x76, 0x71, 0xac, 0x38, 0x5e, 0xcb, 0x5e, 0x83, 0x73, 0xe3, 0x29, 0x78, 0x26,
-	0x8e, 0x3c, 0x02, 0xea, 0x93, 0xa0, 0x9d, 0xdd, 0x44, 0xed, 0x81, 0x03, 0xb7, 0x99, 0x6f, 0x67,
-	0xf7, 0x9b, 0xef, 0x9b, 0xb1, 0x61, 0x28, 0xbb, 0x59, 0x55, 0x0b, 0x29, 0x88, 0xbb, 0x13, 0x8c,
-	0x17, 0xe1, 0x02, 0xdc, 0x55, 0xb7, 0x10, 0x1d, 0x79, 0x02, 0x03, 0xc9, 0x79, 0xdc, 0xe4, 0xd9,
-	0xc4, 0xba, 0xb4, 0xae, 0x47, 0xd4, 0x93, 0x9c, 0x2f, 0xf3, 0x8c, 0x9c, 0x82, 0x23, 0xea, 0x6c,
-	0x62, 0x23, 0xa8, 0x42, 0x72, 0x02, 0xb6, 0xec, 0x26, 0x0e, 0x02, 0xb6, 0xec, 0xc2, 0xef, 0x36,
-	0xd8, 0xab, 0x8e, 0xcc, 0xc0, 0xe7, 0x95, 0x58, 0x6f, 0x62, 0x5e, 0x32, 0x7c, 0x23, 0x98, 0xff,
-	0x37, 0x43, 0x96, 0xd9, 0x8d, 0xc2, 0x6f, 0x4a, 0x16, 0xf5, 0xe8, 0x90, 0x9b, 0x98, 0x3c, 0x85,
-	0x40, 0xd7, 0x37, 0x32, 0xa9, 0x25, 0x12, 0x38, 0x51, 0x8f, 0x02, 0x82, 0x4b, 0x85, 0x91, 0x67,
-	0xe0, 0xa5, 0x75, 0xce, 0x32, 0x8e, 0x6c, 0xc1, 0x7c, 0x6c, 0xde, 0x5b, 0x20, 0x18, 0xf5, 0xa8,
-	0x39, 0x26, 0xcf, 0x61, 0xb8, 0x69, 0xd3, 0x78, 0x9d, 0x14, 0xc5, 0xa4, 0x8f, 0xa5, 0x27, 0xa6,
-	0x34, 0x6a, 0xd3, 0x77, 0x49, 0x51, 0x44, 0x3d, 0x3a, 0xd8, 0xe8, 0x90, 0x5c, 0xc1, 0xb8, 0xd9,
-	0x97, 0xeb, 0x58, 0x76, 0x86, 0xda, 0x35, 0xd4, 0x81, 0x82, 0x57, 0x9d, 0xe6, 0xbe, 0x84, 0xe0,
-	0x50, 0xa5, 0x04, 0x79, 0xa6, 0xc6, 0xd7, 0x35, 0x37, 0x25, 0x5b, 0xf8, 0x30, 0xa8, 0x92, 0x7d,
-	0x21, 0x12, 0x16, 0xbe, 0x85, 0xf1, 0x32, 0x67, 0xfc, 0x53, 0x52, 0xe4, 0x2c, 0x91, 0xa2, 0x26,
-	0xff, 0x83, 0x57, 0xb5, 0xe9, 0x96, 0xef, 0x0f, 0x6e, 0xea, 0x8c, 0x9c, 0x81, 0x5b, 0x89, 0x6f,
-	0xbc, 0xd6, 0x72, 0xa9, 0x4e, 0x42, 0x01, 0xc3, 0x83, 0x45, 0xaa, 0x02, 0x1d, 0xc0, 0x8b, 0x63,
-	0xaa, 0x13, 0xf2, 0x0a, 0xe0, 0xeb, 0xe1, 0xf1, 0x66, 0x62, 0x5f, 0x3a, 0xd7, 0xc1, 0xfc, 0xcc,
-	0x48, 0x7c, 0xc4, 0x4c, 0x1f, 0xd4, 0xa9, 0xa1, 0xb2, 0x6d, 0x16, 0x57, 0x6d, 0x6a, 0xc6, 0xe5,
-	0xb1, 0x6d, 0x76, 0xd7, 0xa6, 0xe1, 0x1b, 0xf0, 0xb4, 0x87, 0xe4, 0x1c, 0xbc, 0x5d, 0x93, 0xc5,
-	0xb9, 0x1e, 0x99, 0x4f, 0xdd, 0x5d, 0x93, 0xdd, 0x32, 0x32, 0x39, 0x6a, 0x33, 0x93, 0x3f, 0x4a,
-	0x7d, 0x01, 0x83, 0xe8, 0x68, 0x64, 0x1f, 0x1d, 0xd7, 0xed, 0x9c, 0x9a, 0x76, 0x6e, 0x4b, 0xc6,
-	0x3b, 0x75, 0x4e, 0xf1, 0x34, 0x7c, 0x0d, 0xfe, 0x11, 0x52, 0xea, 0x72, 0x95, 0x20, 0x9b, 0x43,
-	0x75, 0x42, 0xc8, 0xf1, 0x21, 0x45, 0xa5, 0xaf, 0xfd, 0xb0, 0x00, 0xde, 0x6f, 0xb3, 0x0f, 0xbc,
-	0x69, 0x92, 0x8c, 0xab, 0x92, 0x2f, 0xb5, 0xd8, 0x99, 0x2e, 0x31, 0x26, 0x17, 0x60, 0x4b, 0x81,
-	0x97, 0x82, 0xb9, 0x6f, 0xd8, 0x57, 0x82, 0xda, 0x52, 0x3c, 0x90, 0xe5, 0xfc, 0x45, 0x56, 0xff,
-	0x91, 0x2c, 0xb4, 0xbd, 0xae, 0x45, 0x8d, 0xcb, 0xe0, 0x53, 0x9d, 0x28, 0x56, 0xb9, 0xaf, 0x38,
-	0x4e, 0xdf, 0xa7, 0x18, 0x87, 0x2d, 0x9c, 0x2e, 0x0a, 0xb1, 0xde, 0xde, 0x25, 0xb5, 0xcc, 0x93,
-	0x62, 0x99, 0x67, 0xe5, 0xbf, 0x76, 0x77, 0xa1, 0x3e, 0xc4, 0x58, 0x1b, 0xe1, 0xa0, 0x11, 0x03,
-	0xd9, 0xa1, 0x49, 0x6a, 0x64, 0x6a, 0x93, 0xd5, 0x77, 0xa8, 0x3b, 0xf4, 0x36, 0x6d, 0xba, 0xcc,
-	0xb3, 0x70, 0x0b, 0xf6, 0x4a, 0x90, 0x29, 0xf8, 0x69, 0x2d, 0x12, 0xb6, 0x4e, 0x1a, 0x89, 0x6c,
-	0x43, 0xb5, 0x93, 0x47, 0x88, 0x5c, 0x81, 0x5b, 0x0a, 0xc6, 0x1b, 0xc3, 0x3b, 0x32, 0xbc, 0x1f,
-	0x15, 0x16, 0xf5, 0xa8, 0x3e, 0x24, 0x67, 0xd0, 0x57, 0x81, 0x5e, 0x8a, 0xa8, 0x47, 0x31, 0x7b,
-	0xb8, 0xcf, 0xe7, 0xe0, 0xe2, 0x15, 0x32, 0x02, 0x4b, 0xcf, 0x77, 0x44, 0xad, 0x62, 0x71, 0xf2,
-	0xf3, 0x7e, 0x6a, 0xfd, 0xba, 0x9f, 0x5a, 0xbf, 0xef, 0xa7, 0xd6, 0xe7, 0x5e, 0xea, 0xe1, 0xbf,
-	0xe4, 0xe5, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x3b, 0xb5, 0x30, 0x4f, 0x57, 0x04, 0x00, 0x00,
+	// 890 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0xcd, 0x8e, 0xe3, 0x44,
+	0x10, 0x8e, 0xed, 0xfc, 0xb9, 0x9c, 0xcc, 0x2e, 0xad, 0x59, 0xc8, 0x22, 0x11, 0x82, 0xb5, 0xc0,
+	0x48, 0x88, 0x39, 0x0c, 0x7b, 0xd9, 0x03, 0x97, 0xc0, 0x48, 0xc9, 0x61, 0x51, 0xd4, 0xb1, 0xf6,
+	0xc0, 0x25, 0xb2, 0xd3, 0xbd, 0x8e, 0x15, 0xc7, 0x6d, 0xb5, 0xdb, 0xe0, 0xdc, 0x78, 0x0a, 0xb8,
+	0xf0, 0x40, 0x1c, 0x79, 0x04, 0x34, 0x4f, 0x82, 0xba, 0xba, 0x9d, 0x9f, 0x95, 0x38, 0x70, 0xab,
+	0xfa, 0xfa, 0x73, 0x57, 0xf5, 0x57, 0x3f, 0x86, 0xa1, 0x6a, 0xee, 0x4b, 0x29, 0x94, 0x20, 0xbd,
+	0x83, 0x60, 0x3c, 0x0f, 0xe7, 0xd0, 0x8b, 0x9a, 0xb9, 0x68, 0xc8, 0x27, 0x30, 0x50, 0x9c, 0x6f,
+	0xaa, 0x2c, 0x9d, 0x38, 0x33, 0xe7, 0x6e, 0x44, 0xfb, 0x8a, 0xf3, 0x75, 0x96, 0x92, 0xe7, 0xe0,
+	0x09, 0x99, 0x4e, 0x5c, 0x04, 0xb5, 0x49, 0x6e, 0xc0, 0x55, 0xcd, 0xc4, 0x43, 0xc0, 0x55, 0x4d,
+	0xf8, 0x9b, 0x0b, 0x6e, 0xd4, 0x90, 0x7b, 0xf0, 0x79, 0x29, 0xb6, 0xbb, 0x0d, 0x2f, 0x18, 0xde,
+	0x11, 0x3c, 0x3c, 0xbb, 0xc7, 0x28, 0xf7, 0x8f, 0x1a, 0x7f, 0x2c, 0xd8, 0xa2, 0x43, 0x87, 0xdc,
+	0xda, 0xe4, 0x0b, 0x08, 0x0c, 0xbf, 0x52, 0xb1, 0x54, 0x18, 0xc0, 0x5b, 0x74, 0x28, 0x20, 0xb8,
+	0xd6, 0x18, 0xf9, 0x1a, 0xfa, 0x89, 0xcc, 0x58, 0xca, 0x31, 0x5a, 0xf0, 0x30, 0xb6, 0xf7, 0xcd,
+	0x11, 0x5c, 0x74, 0xa8, 0x3d, 0x26, 0xdf, 0xc0, 0x70, 0x57, 0x27, 0x9b, 0x6d, 0x9c, 0xe7, 0x93,
+	0x2e, 0x52, 0x6f, 0x2c, 0x75, 0x51, 0x27, 0x3f, 0xc4, 0x79, 0xbe, 0xe8, 0xd0, 0xc1, 0xce, 0x98,
+	0xe4, 0x15, 0x8c, 0xab, 0x63, 0xb1, 0xdd, 0xa8, 0xc6, 0x86, 0xee, 0xd9, 0xd0, 0x81, 0x86, 0xa3,
+	0xc6, 0xc4, 0x9e, 0x41, 0xd0, 0xb2, 0xf4, 0x83, 0xfa, 0x96, 0xe3, 0x1b, 0xce, 0x63, 0xc1, 0xe6,
+	0x3e, 0x0c, 0xca, 0xf8, 0x98, 0x8b, 0x98, 0x85, 0xdf, 0xc3, 0x78, 0x9d, 0x31, 0xfe, 0x2e, 0xce,
+	0x33, 0x16, 0x2b, 0x21, 0xc9, 0xc7, 0xd0, 0x2f, 0xeb, 0x64, 0xcf, 0x8f, 0xad, 0x9a, 0xc6, 0x23,
+	0xb7, 0xd0, 0x2b, 0xc5, 0xaf, 0x5c, 0x9a, 0xe7, 0x52, 0xe3, 0x84, 0x02, 0x86, 0xad, 0x44, 0x9a,
+	0x81, 0x0a, 0xe0, 0x87, 0x63, 0x6a, 0x1c, 0xf2, 0x1a, 0xe0, 0x97, 0xf6, 0xf2, 0x6a, 0xe2, 0xce,
+	0xbc, 0xbb, 0xe0, 0xe1, 0xd6, 0x3e, 0xf1, 0x2a, 0x32, 0xbd, 0xe0, 0xe9, 0xa2, 0xb2, 0x7d, 0xba,
+	0x29, 0xeb, 0xc4, 0x96, 0xab, 0xcf, 0xf6, 0xe9, 0xaa, 0x4e, 0xc2, 0x37, 0xd0, 0x37, 0x1a, 0x92,
+	0x17, 0xd0, 0x3f, 0x54, 0xe9, 0x26, 0x33, 0x25, 0xf3, 0x69, 0xef, 0x50, 0xa5, 0x4b, 0x46, 0x26,
+	0xa7, 0xb7, 0xd9, 0xca, 0x9f, 0x9e, 0xfa, 0x2d, 0x0c, 0xac, 0xa6, 0x24, 0x84, 0x2e, 0x2a, 0x6e,
+	0xd2, 0x69, 0x15, 0x8f, 0x38, 0xd7, 0xa7, 0x14, 0xcf, 0xc2, 0xdf, 0x1d, 0x80, 0x1f, 0xf7, 0xe9,
+	0x5b, 0x5e, 0x55, 0x71, 0xca, 0x09, 0x81, 0xee, 0x7b, 0x29, 0x0e, 0x36, 0x18, 0xda, 0xe4, 0x25,
+	0xb8, 0x4a, 0x60, 0x98, 0xe0, 0xc1, 0x6f, 0x2f, 0x11, 0xd4, 0x55, 0xe2, 0x22, 0x3b, 0xef, 0x3f,
+	0xb2, 0xeb, 0x5e, 0x65, 0x87, 0xea, 0x49, 0x29, 0x24, 0xd6, 0xd4, 0xa7, 0xc6, 0xd1, 0x51, 0xd5,
+	0xb1, 0xe4, 0x58, 0x44, 0x9f, 0xa2, 0x1d, 0xd6, 0xf0, 0x7c, 0x9e, 0x8b, 0xed, 0x7e, 0x15, 0x4b,
+	0x95, 0xc5, 0xf9, 0x3a, 0x4b, 0x8b, 0xff, 0x9b, 0xdd, 0x4b, 0x3d, 0x4f, 0x9b, 0xac, 0x60, 0xdc,
+	0x8c, 0x83, 0x47, 0x07, 0xaa, 0x59, 0x6a, 0x57, 0x2b, 0xaf, 0x1b, 0x52, 0x8f, 0x93, 0xc9, 0xb0,
+	0xbf, 0xab, 0x93, 0x75, 0x96, 0x86, 0x7b, 0x70, 0x23, 0x41, 0xa6, 0xe0, 0x27, 0x52, 0xc4, 0x6c,
+	0x1b, 0x57, 0x0a, 0xa3, 0x0d, 0x75, 0x6b, 0x9d, 0x20, 0xf2, 0x0a, 0x7a, 0x85, 0x60, 0xbc, 0xb2,
+	0x71, 0x47, 0x36, 0xee, 0x4f, 0x1a, 0x5b, 0x74, 0xa8, 0x39, 0x24, 0xb7, 0xd0, 0xd5, 0x86, 0xa9,
+	0xed, 0xa2, 0x43, 0xd1, 0xbb, 0x6c, 0xcb, 0x17, 0xd0, 0xc3, 0x4f, 0xc8, 0x08, 0x1c, 0x53, 0xa6,
+	0x11, 0x75, 0xf2, 0xf0, 0x0f, 0x17, 0x06, 0xb6, 0x4a, 0xba, 0x51, 0x75, 0x9d, 0xb8, 0x6c, 0x1b,
+	0xd5, 0x78, 0x28, 0x59, 0x76, 0xe0, 0xb6, 0x4f, 0xd1, 0xc6, 0xf7, 0x72, 0xbe, 0x41, 0x29, 0x3d,
+	0xec, 0x4e, 0xbd, 0x33, 0xa2, 0x63, 0xc9, 0xf5, 0x35, 0x92, 0x97, 0x42, 0xaa, 0xf6, 0xb9, 0xc6,
+	0xd3, 0x4b, 0xa1, 0x14, 0xec, 0x62, 0xce, 0xce, 0x4b, 0x61, 0x25, 0x18, 0x4e, 0x9a, 0x5e, 0x0a,
+	0xa5, 0xb5, 0xf5, 0x20, 0x6b, 0xfe, 0x21, 0x2b, 0x14, 0x56, 0xeb, 0xdc, 0x56, 0x2b, 0xc1, 0xde,
+	0x66, 0x85, 0x66, 0x0f, 0x4a, 0x63, 0x92, 0xd7, 0x10, 0x98, 0xf9, 0x37, 0x83, 0x3f, 0x40, 0xfe,
+	0x47, 0x57, 0x3b, 0xc2, 0xce, 0x3e, 0x24, 0x27, 0x4f, 0xab, 0xa6, 0x78, 0xa3, 0x26, 0xc3, 0x56,
+	0x35, 0xed, 0xcd, 0xbb, 0x7a, 0xa9, 0x85, 0x9f, 0xc2, 0xb0, 0x4d, 0x4b, 0xaf, 0xb9, 0xa5, 0x99,
+	0x8a, 0x2e, 0x75, 0x97, 0x2c, 0x7c, 0x03, 0x03, 0x9b, 0xc3, 0x87, 0x47, 0x64, 0x0a, 0x60, 0xde,
+	0xbb, 0x88, 0xab, 0x9d, 0x1d, 0xb5, 0x0b, 0x24, 0x9c, 0x01, 0x9c, 0xd3, 0x39, 0x49, 0xeb, 0x9c,
+	0xa5, 0x0d, 0xff, 0x74, 0xe0, 0x59, 0xc4, 0xf9, 0x3b, 0x2e, 0xb3, 0xf7, 0x47, 0xca, 0xab, 0x3a,
+	0x57, 0x57, 0x72, 0x3b, 0xd7, 0x72, 0x7f, 0x0e, 0xc1, 0x56, 0x30, 0x5c, 0xd7, 0x85, 0x5d, 0x26,
+	0x23, 0x0a, 0x1a, 0x5a, 0x23, 0x42, 0xbe, 0x84, 0x9b, 0x13, 0x21, 0x56, 0xb5, 0xb4, 0x4d, 0x42,
+	0xc7, 0x2d, 0x07, 0x41, 0xf2, 0x15, 0x3c, 0x43, 0x5a, 0x29, 0x05, 0xab, 0xb7, 0x4a, 0x0f, 0x5a,
+	0xf7, 0xcc, 0x5b, 0x19, 0x74, 0xc9, 0xc2, 0x14, 0x20, 0xe2, 0x3c, 0x92, 0x59, 0x9a, 0x72, 0x49,
+	0x66, 0xe0, 0x29, 0xce, 0xed, 0x8e, 0xff, 0x70, 0xec, 0xf5, 0x11, 0xf9, 0x0c, 0x60, 0x9b, 0xd7,
+	0x95, 0xe2, 0x52, 0x5f, 0xe9, 0xa2, 0x50, 0xbe, 0x45, 0xcc, 0xfc, 0xea, 0x8a, 0x65, 0xac, 0x9a,
+	0x78, 0x33, 0xef, 0xae, 0x4b, 0x5b, 0x77, 0x7e, 0xf3, 0xd7, 0xd3, 0xd4, 0xf9, 0xfb, 0x69, 0xea,
+	0xfc, 0xf3, 0x34, 0x75, 0x7e, 0xee, 0x24, 0x7d, 0xfc, 0x5b, 0x7d, 0xf7, 0x6f, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0xc1, 0x46, 0x1d, 0xaf, 0xb9, 0x06, 0x00, 0x00,
 }
 
 func (m *TxBox) Marshal() (dAtA []byte, err error) {
@@ -1232,45 +1636,6 @@ func (m *HubCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *IndexCall) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *IndexCall) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *IndexCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Call) > 0 {
-		i -= len(m.Call)
-		copy(dAtA[i:], m.Call)
-		i = encodeVarintTx(dAtA, i, uint64(len(m.Call)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if m.Index != 0 {
-		i = encodeVarintTx(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *DkgMessage) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1529,6 +1894,363 @@ func (m *Nodes) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *TeeCall) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TeeCall) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Tx != nil {
+		{
+			size := m.Tx.Size()
+			i -= size
+			if _, err := m.Tx.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+		}
+	}
+	if len(m.Report) > 0 {
+		i -= len(m.Report)
+		copy(dAtA[i:], m.Report)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Report)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if m.TeeType != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.TeeType))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Time != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Time))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Caller) > 0 {
+		i -= len(m.Caller)
+		copy(dAtA[i:], m.Caller)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Caller)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TeeCall_PodStart) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall_PodStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.PodStart != nil {
+		{
+			size, err := m.PodStart.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTx(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x2a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *TeeCall_PodMint) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall_PodMint) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.PodMint != nil {
+		{
+			size, err := m.PodMint.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTx(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x32
+	}
+	return len(dAtA) - i, nil
+}
+func (m *TeeCall_BridgeCall) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall_BridgeCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.BridgeCall != nil {
+		{
+			size, err := m.BridgeCall.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTx(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x3a
+	}
+	return len(dAtA) - i, nil
+}
+func (m *TeeCall_Text) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall_Text) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Text != nil {
+		i -= len(m.Text)
+		copy(dAtA[i:], m.Text)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Text)))
+		i--
+		dAtA[i] = 0x42
+	}
+	return len(dAtA) - i, nil
+}
+func (m *PodStart) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PodStart) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PodStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Id != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *PodMint) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PodMint) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PodMint) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.ReportHash) > 0 {
+		i -= len(m.ReportHash)
+		copy(dAtA[i:], m.ReportHash)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.ReportHash)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Id != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Id))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BridgeCall) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BridgeCall) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *BridgeCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Time != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Time))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TeeVerifyResult) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TeeVerifyResult) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeVerifyResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.CodeProductId) > 0 {
+		i -= len(m.CodeProductId)
+		copy(dAtA[i:], m.CodeProductId)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.CodeProductId)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.CodeSignature) > 0 {
+		i -= len(m.CodeSignature)
+		copy(dAtA[i:], m.CodeSignature)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.CodeSignature)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CodeSigner) > 0 {
+		i -= len(m.CodeSigner)
+		copy(dAtA[i:], m.CodeSigner)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.CodeSigner)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.TeeType != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.TeeType))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TeeTrigger) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TeeTrigger) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeTrigger) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.Callids) > 0 {
+		dAtA11 := make([]byte, len(m.Callids)*10)
+		var j10 int
+		for _, num := range m.Callids {
+			for num >= 1<<7 {
+				dAtA11[j10] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j10++
+			}
+			dAtA11[j10] = uint8(num)
+			j10++
+		}
+		i -= j10
+		copy(dAtA[i:], dAtA11[:j10])
+		i = encodeVarintTx(dAtA, i, uint64(j10))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.ClusterId != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.ClusterId))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Tee != nil {
+		{
+			size, err := m.Tee.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTx(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	offset -= sovTx(v)
 	base := offset
@@ -1724,25 +2446,6 @@ func (m *HubCall) Size() (n int) {
 	return n
 }
 
-func (m *IndexCall) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Index != 0 {
-		n += 1 + sovTx(uint64(m.Index))
-	}
-	l = len(m.Call)
-	if l > 0 {
-		n += 1 + l + sovTx(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
 func (m *DkgMessage) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1865,6 +2568,185 @@ func (m *Nodes) Size() (n int) {
 			l = len(b)
 			n += 1 + l + sovTx(uint64(l))
 		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *TeeCall) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Caller)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.Time != 0 {
+		n += 1 + sovTx(uint64(m.Time))
+	}
+	if m.TeeType != 0 {
+		n += 1 + sovTx(uint64(m.TeeType))
+	}
+	l = len(m.Report)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.Tx != nil {
+		n += m.Tx.Size()
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *TeeCall_PodStart) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PodStart != nil {
+		l = m.PodStart.Size()
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+func (m *TeeCall_PodMint) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PodMint != nil {
+		l = m.PodMint.Size()
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+func (m *TeeCall_BridgeCall) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.BridgeCall != nil {
+		l = m.BridgeCall.Size()
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+func (m *TeeCall_Text) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Text != nil {
+		l = len(m.Text)
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+func (m *PodStart) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Id != 0 {
+		n += 1 + sovTx(uint64(m.Id))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *PodMint) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Id != 0 {
+		n += 1 + sovTx(uint64(m.Id))
+	}
+	l = len(m.ReportHash)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *BridgeCall) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Time != 0 {
+		n += 1 + sovTx(uint64(m.Time))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *TeeVerifyResult) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.TeeType != 0 {
+		n += 1 + sovTx(uint64(m.TeeType))
+	}
+	l = len(m.CodeSigner)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.CodeSignature)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.CodeProductId)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *TeeTrigger) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Tee != nil {
+		l = m.Tee.Size()
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.ClusterId != 0 {
+		n += 1 + sovTx(uint64(m.ClusterId))
+	}
+	if len(m.Callids) > 0 {
+		l = 0
+		for _, e := range m.Callids {
+			l += sovTx(uint64(e))
+		}
+		n += 1 + sovTx(uint64(l)) + l
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -2664,113 +3546,9 @@ func (m *HubCall) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Call = append(m.Call, &IndexCall{})
+			m.Call = append(m.Call, &TeeCall{})
 			if err := m.Call[len(m.Call)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTx(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTx
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *IndexCall) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTx
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: IndexCall: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: IndexCall: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
-			}
-			m.Index = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Index |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Call", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthTx
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTx
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Call = append(m.Call[:0], dAtA[iNdEx:postIndex]...)
-			if m.Call == nil {
-				m.Call = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -3417,6 +4195,899 @@ func (m *Nodes) Unmarshal(dAtA []byte) error {
 			m.L = append(m.L, make([]byte, postIndex-iNdEx))
 			copy(m.L[len(m.L)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TeeCall) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TeeCall: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TeeCall: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Caller", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Caller = append(m.Caller[:0], dAtA[iNdEx:postIndex]...)
+			if m.Caller == nil {
+				m.Caller = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			m.Time = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Time |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TeeType", wireType)
+			}
+			m.TeeType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TeeType |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Report", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Report = append(m.Report[:0], dAtA[iNdEx:postIndex]...)
+			if m.Report == nil {
+				m.Report = []byte{}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PodStart", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &PodStart{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Tx = &TeeCall_PodStart{v}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PodMint", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &PodMint{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Tx = &TeeCall_PodMint{v}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BridgeCall", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &BridgeCall{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Tx = &TeeCall_BridgeCall{v}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Text", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := make([]byte, postIndex-iNdEx)
+			copy(v, dAtA[iNdEx:postIndex])
+			m.Tx = &TeeCall_Text{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PodStart) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PodStart: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodStart: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Id |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PodMint) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PodMint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PodMint: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
+			}
+			m.Id = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Id |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReportHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ReportHash = append(m.ReportHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.ReportHash == nil {
+				m.ReportHash = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BridgeCall) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BridgeCall: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BridgeCall: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			m.Time = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Time |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TeeVerifyResult) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TeeVerifyResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TeeVerifyResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TeeType", wireType)
+			}
+			m.TeeType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TeeType |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeSigner", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeSigner = append(m.CodeSigner[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeSigner == nil {
+				m.CodeSigner = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeSignature", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeSignature = append(m.CodeSignature[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeSignature == nil {
+				m.CodeSignature = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CodeProductId", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CodeProductId = append(m.CodeProductId[:0], dAtA[iNdEx:postIndex]...)
+			if m.CodeProductId == nil {
+				m.CodeProductId = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TeeTrigger) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TeeTrigger: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TeeTrigger: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Tee", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Tee == nil {
+				m.Tee = &TeeCall{}
+			}
+			if err := m.Tee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClusterId", wireType)
+			}
+			m.ClusterId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ClusterId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Callids = append(m.Callids, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthTx
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthTx
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.Callids) == 0 {
+					m.Callids = make([]uint64, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Callids = append(m.Callids, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Callids", wireType)
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])

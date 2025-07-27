@@ -7,7 +7,6 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/subnet"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -124,14 +123,25 @@ func (c *Contract) GetPodsByIds(podIds []uint64) ([]model.Pod, error) {
 	return pods, nil
 }
 
-func (c *Contract) TxCallOfStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) (*types.Call, error) {
-	return c.cloud.CallOfStartPod(nodeId, pod_key, hash, chain.DryRunParams{
+func (c *Contract) TxCallOfStartPod(nodeId uint64, pod_key types.AccountID, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfStartPod(nodeId, pod_key, chain.DryRunParams{
 		Origin:    signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
 
-func (c *Contract) DryStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) error {
-	_, _, err := c.cloud.DryRunStartPod(nodeId, pod_key, hash, chain.DefaultParamWithOrigin(signer))
+func (c *Contract) DryStartPod(nodeId uint64, pod_key types.AccountID, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunStartPod(nodeId, pod_key, chain.DefaultParamWithOrigin(signer))
+	return err
+}
+
+func (c *Contract) TxCallOfMintPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfMintPod(nodeId, hash, chain.DryRunParams{
+		Origin:    signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+}
+func (c *Contract) DryMintPod(nodeId uint64, hash types.H256, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunMintPod(nodeId, hash, chain.DefaultParamWithOrigin(signer))
 	return err
 }

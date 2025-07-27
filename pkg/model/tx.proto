@@ -4,13 +4,14 @@ package model;
 
 option go_package = "";
 
-// Transaction
+// transaction
 message TxBox {
   bytes tee_sig = 1;
   bytes org = 2; 
   bytes tx = 3;
 }
 
+// side chain transaction
 message Tx{
   oneof payload {
     // string test = 99;
@@ -23,7 +24,7 @@ message Tx{
   }
 }
 
-// SideValidator
+// side validator
 message SideValidator {
   bytes pubkey = 1;
   int64 power = 2;
@@ -44,16 +45,10 @@ message Bridge {
 
 // Polkadot Hub Call
 message HubCall {
-  repeated IndexCall call = 2;
+  repeated TeeCall call = 2;
 }
 
-// Call with index
-message IndexCall {
-  int64 index = 1;
-  bytes call = 2;
-}
-
-// dkg message
+// DKG message
 message DkgMessage {
   string from = 1;
   To to = 2;
@@ -63,7 +58,7 @@ message DkgMessage {
   string type = 6;
 }
 
-// block 
+// block partial sign
 message BlockPartialSign {
   string from = 1;
   To to = 2;
@@ -71,6 +66,7 @@ message BlockPartialSign {
   bytes hub_sig = 4;
 }
 
+// p2p msg send to
 message To {
   oneof payload {
     bool broadcast  = 1;
@@ -79,6 +75,51 @@ message To {
   }
 }
 
+// multi node
 message Nodes {
   repeated bytes l = 2;
+}
+
+// TEE call
+message TeeCall{
+  bytes caller = 1;
+  int64 time = 2;
+  uint32 tee_type = 3;
+  bytes report = 4;
+  oneof tx {
+    PodStart pod_start = 5;
+    PodMint pod_mint = 6;
+    BridgeCall bridge_call = 7;
+    bytes text = 8;
+  }
+}
+
+// polkadot hub pod mint call
+message PodStart {
+  uint64 Id = 1;
+}
+
+// polkadot hub pod mint call
+message PodMint {
+  uint64 Id = 1;
+  bytes reportHash = 3;
+}
+
+// polkadot hub pod mint call
+message BridgeCall {
+  int64 time = 1;
+}
+
+// TEE report verify result
+message TeeVerifyResult{
+  uint32 tee_type = 1;
+  bytes code_signer = 2;
+  bytes code_signature = 3;
+  bytes code_product_id = 4;
+}
+
+message TeeTrigger{
+  TeeCall tee = 1;
+  uint64 cluster_id = 2;
+  repeated uint64 callids = 3;
 }

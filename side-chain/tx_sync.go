@@ -30,9 +30,9 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 	if err != nil {
 		util.LogWithRed("Sync to polkadot hub", "error => ", err.Error())
 		fmt.Println("                    ", " SS58 => ", s.dkg.DkgPubKey.SS58())
-		fmt.Println("                    ", " SYNC at batch tx ", txIndex)
+		fmt.Println("                    ", " SYNC at batch tx id", txIndex)
 	} else {
-		util.LogWithGreen("Sync to polkadot hub", "success at batch tx ", fmt.Sprint(txIndex))
+		util.LogWithGreen("Sync to polkadot hub", "success at batch tx id", fmt.Sprint(txIndex))
 	}
 
 	// stop sync transaction
@@ -66,8 +66,7 @@ func IsSyncRuning() bool {
 		}
 	}
 
-	return false
-	// return tx.Going > tx.Done
+	return tx.Going > tx.Done
 }
 
 // sync transaction step1
@@ -83,9 +82,9 @@ func SyncStep1() ([]byte, error) {
 		}
 	}
 
-	// if tx.Going > tx.Done {
-	// 	return nil, errors.New("SyncStep1 one transaction is runing")
-	// }
+	if tx.Going > tx.Done {
+		return nil, errors.New("SyncStep1 one transaction is runing")
+	}
 
 	return GetTxBytes(&model.Tx{
 		Payload: &model.Tx_SyncTxStart{

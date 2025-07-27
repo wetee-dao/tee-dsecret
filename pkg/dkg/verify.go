@@ -6,9 +6,9 @@ import (
 )
 
 // VerifyWorker 函数验证工人报告并返回签名者或错误
-func (d *DKG) VerifyWorker(reportData *model.TeeParam) ([]byte, error) {
+func (d *DKG) VerifyWorker(reportData *model.TeeCall) ([]byte, error) {
 	// 解码地址
-	signer := reportData.Address
+	signer := reportData.Caller
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)
@@ -35,9 +35,9 @@ func (d *DKG) VerifyWorker(reportData *model.TeeParam) ([]byte, error) {
 }
 
 // VerifyWorker 函数验证工人报告并返回签名者或错误
-func (d *DKG) VerifyDsecret(reportData *model.TeeParam) ([]byte, error) {
+func (d *DKG) VerifyDsecret(reportData *model.TeeCall) ([]byte, error) {
 	// 解码地址
-	signer := reportData.Address
+	signer := reportData.Caller
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)
@@ -64,9 +64,9 @@ func (d *DKG) VerifyDsecret(reportData *model.TeeParam) ([]byte, error) {
 }
 
 // VerifyWorker 函数验证工人报告并返回签名者或错误
-func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *model.TeeParam) ([]byte, error) {
+func (d *DKG) VerifyWorkLibos(wid gtypes.WorkId, reportData *model.TeeCall) ([]byte, error) {
 	// 解码地址
-	signer := reportData.Address
+	signer := reportData.Caller
 
 	// TODO
 	// report, err := tee.VerifyReport(reportData)

@@ -4,7 +4,6 @@ import (
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -36,8 +35,12 @@ type Chain interface {
 
 	// POD
 	GetMintInterval() (uint32, error)
-	TxCallOfStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) (*types.Call, error)
-	DryStartPod(nodeId uint64, pod_key util.Option[types.AccountID], hash types.H256, signer types.AccountID) error
+
+	TxCallOfStartPod(nodeId uint64, pod_key types.AccountID, signer types.AccountID) (*types.Call, error)
+	DryStartPod(nodeId uint64, pod_key types.AccountID, signer types.AccountID) error
+
+	TxCallOfMintPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
+	DryMintPod(nodeId uint64, hash types.H256, signer types.AccountID) error
 }
 
 func ConnectMainChain(url []string, pk *model.PrivKey) (Chain, error) {

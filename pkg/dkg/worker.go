@@ -14,8 +14,8 @@ import (
 
 // HandleUploadClusterProof 函数处理上传集群证明的逻辑
 func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string) ([]byte, error) {
-	// 解析 JSON 数据为 TEEParam 结构体
-	workerReport := &model.TeeParam{}
+	// 解析 JSON 数据为 TeeCall 结构体
+	workerReport := &model.TeeCall{}
 	err := json.Unmarshal(data, workerReport)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (dkg *DKG) HandleUploadClusterProof(data []byte, msgID string, OrgId string
 }
 
 func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) error {
-	workerReport := &model.TeeParam{}
+	workerReport := &model.TeeCall{}
 	err := json.Unmarshal(data, workerReport)
 	if err != nil {
 		return fmt.Errorf("unmarshal reencrypt secret reply: %w", err)

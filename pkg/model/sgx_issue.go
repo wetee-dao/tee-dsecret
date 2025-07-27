@@ -2,6 +2,7 @@ package model
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"time"
@@ -11,51 +12,56 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
-
-	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
-func IssueReport(pk *chain.Signer, data []byte) (*TeeParam, error) {
+func IssueReport(pk *chain.Signer, call *TeeCall) error {
 	timestamp := time.Now().Unix()
 
 	var buf bytes.Buffer
-	buf.Write(util.Int64ToBytes(timestamp))
+	buf.Write(Int64ToBytes(timestamp))
 	buf.Write(pk.PublicKey)
-	if len(data) > 0 {
-		buf.Write(data)
+	if call.Tx != nil {
+		txbuf := make([]byte, call.Tx.Size())
+		call.Tx.MarshalTo(txbuf)
+		buf.Write(txbuf)
 	}
+
 	sig, err := pk.Sign(buf.Bytes())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	report, err := enclave.GetRemoteReport(sig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &TeeParam{
-		Time:    timestamp,
-		Address: pk.PublicKey,
-		Report:  report,
-		Data:    data,
-	}, nil
+	// add report to call
+	call.Time = timestamp
+	call.TeeType = 0
+	call.Report = report
+	call.Caller = pk.PublicKey
+
+	return nil
 }
 
-func VerifyReport(reportData *TeeParam) (*TeeReport, error) {
+func VerifyReport(reportData *TeeCall) (*TeeVerifyResult, error) {
 	// TODO SEV/TDX not support
 	if reportData.TeeType != 0 {
-		return &TeeReport{
+		return &TeeVerifyResult{
 			CodeSignature: []byte{},
 			CodeSigner:    []byte{},
-			CodeProductID: []byte{},
+			CodeProductId: []byte{},
 		}, nil
 	}
 
-	var reportBytes, msgBytes, timestamp = reportData.Report, reportData.Data, reportData.Time
+	payload := reportData.Tx
+	msgBytes := make([]byte, payload.Size())
+	payload.MarshalTo(msgBytes)
+	var reportBytes, timestamp = reportData.Report, reportData.Time
 
 	// decode address
-	signer := reportData.Address
+	signer := reportData.Caller
 
 	report, err := enclave.VerifyRemoteReport(reportBytes)
 	if err == attestation.ErrTCBLevelInvalid {
@@ -70,14 +76,13 @@ func VerifyReport(reportData *TeeParam) (*TeeReport, error) {
 	}
 
 	var buf bytes.Buffer
-	buf.Write(util.Int64ToBytes(timestamp))
+	buf.Write(Int64ToBytes(timestamp))
 	buf.Write(signer)
 	if len(msgBytes) > 0 {
 		buf.Write(msgBytes)
 	}
 
 	sig := report.Data
-
 	if !pubkey.Verify(buf.Bytes(), sig) {
 		return nil, errors.New("invalid sgx report")
 	}
@@ -86,10 +91,20 @@ func VerifyReport(reportData *TeeParam) (*TeeReport, error) {
 	// 	return nil, errors.New("debug mode is not allowed")
 	// }
 
-	return &TeeReport{
+	return &TeeVerifyResult{
 		TeeType:       reportData.TeeType,
 		CodeSigner:    report.SignerID,
 		CodeSignature: report.UniqueID,
-		CodeProductID: report.ProductID,
+		CodeProductId: report.ProductID,
 	}, nil
+}
+
+func Int64ToBytes(time int64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(time))
+	return b
+}
+
+func BytesToInt64(b []byte) int64 {
+	return int64(binary.BigEndian.Uint64(b))
 }

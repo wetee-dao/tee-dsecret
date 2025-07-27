@@ -413,7 +413,6 @@ type Error struct { // Enum
 	PodStatusError         *bool // 9
 	InvalidSideChainCaller *bool // 10
 	DelFailed              *bool // 11
-	MintIntervalError      *bool // 12
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -512,14 +511,6 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
-
-	if ty.MintIntervalError != nil {
-		err = encoder.PushByte(12)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -577,10 +568,6 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.DelFailed = &t
 		return
-	case 12: // Base
-		t := true
-		ty.MintIntervalError = &t
-		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -632,10 +619,6 @@ func (ty *Error) Error() string {
 
 	if ty.DelFailed != nil {
 		return "DelFailed"
-	}
-
-	if ty.MintIntervalError != nil {
-		return "MintIntervalError"
 	}
 	return "Unknown"
 }
@@ -714,31 +697,31 @@ func (ty *EditType) Decode(decoder scale.Decoder) (err error) {
 	}
 }
 
-type Tuple_102 struct { // Tuple
+type Tuple_101 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_104
+	F2 []Tuple_103
 }
-type Tuple_104 struct { // Tuple
+type Tuple_103 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_107 struct { // Tuple
+type Tuple_106 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 uint32
 	F3 byte
 }
-type Tuple_110 struct { // Tuple
+type Tuple_109 struct { // Tuple
 	F0 Pod
-	F1 []Tuple_104
+	F1 []Tuple_103
 	F2 uint32
 	F3 byte
 }
-type Tuple_114 struct { // Tuple
+type Tuple_113 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_104
+	F2 []Tuple_103
 	F3 uint32
 	F4 uint32
 	F5 byte
