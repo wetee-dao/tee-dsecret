@@ -5,6 +5,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/wetee-dao/ink.go/util"
 )
 
 type Pod struct { // Composite
@@ -114,6 +115,143 @@ func (ty *TEEType) Decode(decoder scale.Decoder) (err error) {
 	case 1: // Base
 		t := true
 		ty.CVM = &t
+		return
+	default:
+		return fmt.Errorf("unrecognized enum")
+	}
+}
+
+type Env struct { // Enum
+	Env *struct { // 0
+		F0 []byte
+		F1 []byte
+	}
+	File *struct { // 1
+		F0 []byte
+		F1 []byte
+	}
+	Encrypt *struct { // 2
+		F0 []byte
+		F1 []byte
+	}
+}
+
+func (ty Env) Encode(encoder scale.Encoder) (err error) {
+	if ty.Env != nil {
+		err = encoder.PushByte(0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Env.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Env.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if ty.File != nil {
+		err = encoder.PushByte(1)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.File.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.File.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if ty.Encrypt != nil {
+		err = encoder.PushByte(2)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Encrypt.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Encrypt.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return fmt.Errorf("unrecognized enum")
+}
+
+func (ty *Env) Decode(decoder scale.Decoder) (err error) {
+	variant, err := decoder.ReadOneByte()
+	if err != nil {
+		return err
+	}
+	switch variant {
+	case 0: // Tuple
+		ty.Env = &struct {
+			F0 []byte
+			F1 []byte
+		}{}
+
+		err = decoder.Decode(&ty.Env.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.Env.F1)
+		if err != nil {
+			return err
+		}
+
+		return
+	case 1: // Tuple
+		ty.File = &struct {
+			F0 []byte
+			F1 []byte
+		}{}
+
+		err = decoder.Decode(&ty.File.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.File.F1)
+		if err != nil {
+			return err
+		}
+
+		return
+	case 2: // Tuple
+		ty.Encrypt = &struct {
+			F0 []byte
+			F1 []byte
+		}{}
+
+		err = decoder.Decode(&ty.Encrypt.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.Encrypt.F1)
+		if err != nil {
+			return err
+		}
+
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -303,6 +441,7 @@ type Container struct { // Composite
 	Command Command
 	Port    []Service
 	Cr      CR
+	Env     []Env
 }
 type Command struct { // Enum
 	SH   *[]byte // 0
@@ -400,19 +539,22 @@ type CR struct { // Composite
 	Disk []Disk
 	Gpu  uint32
 }
+type Secret struct { // Composite
+	Name []byte
+	Hash util.Option[types.H256]
+}
 type Error struct { // Enum
 	SetCodeFailed          *bool // 0
 	MustCallByGovContract  *bool // 1
-	WorkerNotFound         *bool // 2
-	WorkerLevelNotEnough   *bool // 3
-	RegionNotMatch         *bool // 4
-	WorkerNotOnline        *bool // 5
-	PodNotFound            *bool // 6
-	NotPodOwner            *bool // 7
-	PodKeyNotExist         *bool // 8
-	PodStatusError         *bool // 9
-	InvalidSideChainCaller *bool // 10
-	DelFailed              *bool // 11
+	WorkerLevelNotEnough   *bool // 2
+	RegionNotMatch         *bool // 3
+	WorkerNotOnline        *bool // 4
+	NotPodOwner            *bool // 5
+	PodKeyNotExist         *bool // 6
+	PodStatusError         *bool // 7
+	InvalidSideChainCaller *bool // 8
+	DelFailed              *bool // 9
+	NotFound               *bool // 10
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -432,7 +574,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerNotFound != nil {
+	if ty.WorkerLevelNotEnough != nil {
 		err = encoder.PushByte(2)
 		if err != nil {
 			return err
@@ -440,7 +582,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerLevelNotEnough != nil {
+	if ty.RegionNotMatch != nil {
 		err = encoder.PushByte(3)
 		if err != nil {
 			return err
@@ -448,7 +590,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.RegionNotMatch != nil {
+	if ty.WorkerNotOnline != nil {
 		err = encoder.PushByte(4)
 		if err != nil {
 			return err
@@ -456,7 +598,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerNotOnline != nil {
+	if ty.NotPodOwner != nil {
 		err = encoder.PushByte(5)
 		if err != nil {
 			return err
@@ -464,7 +606,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.PodNotFound != nil {
+	if ty.PodKeyNotExist != nil {
 		err = encoder.PushByte(6)
 		if err != nil {
 			return err
@@ -472,7 +614,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.NotPodOwner != nil {
+	if ty.PodStatusError != nil {
 		err = encoder.PushByte(7)
 		if err != nil {
 			return err
@@ -480,7 +622,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.PodKeyNotExist != nil {
+	if ty.InvalidSideChainCaller != nil {
 		err = encoder.PushByte(8)
 		if err != nil {
 			return err
@@ -488,7 +630,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.PodStatusError != nil {
+	if ty.DelFailed != nil {
 		err = encoder.PushByte(9)
 		if err != nil {
 			return err
@@ -496,16 +638,8 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.InvalidSideChainCaller != nil {
+	if ty.NotFound != nil {
 		err = encoder.PushByte(10)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if ty.DelFailed != nil {
-		err = encoder.PushByte(11)
 		if err != nil {
 			return err
 		}
@@ -530,43 +664,39 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		return
 	case 2: // Base
 		t := true
-		ty.WorkerNotFound = &t
+		ty.WorkerLevelNotEnough = &t
 		return
 	case 3: // Base
 		t := true
-		ty.WorkerLevelNotEnough = &t
+		ty.RegionNotMatch = &t
 		return
 	case 4: // Base
 		t := true
-		ty.RegionNotMatch = &t
+		ty.WorkerNotOnline = &t
 		return
 	case 5: // Base
 		t := true
-		ty.WorkerNotOnline = &t
+		ty.NotPodOwner = &t
 		return
 	case 6: // Base
 		t := true
-		ty.PodNotFound = &t
+		ty.PodKeyNotExist = &t
 		return
 	case 7: // Base
 		t := true
-		ty.NotPodOwner = &t
+		ty.PodStatusError = &t
 		return
 	case 8: // Base
 		t := true
-		ty.PodKeyNotExist = &t
+		ty.InvalidSideChainCaller = &t
 		return
 	case 9: // Base
 		t := true
-		ty.PodStatusError = &t
+		ty.DelFailed = &t
 		return
 	case 10: // Base
 		t := true
-		ty.InvalidSideChainCaller = &t
-		return
-	case 11: // Base
-		t := true
-		ty.DelFailed = &t
+		ty.NotFound = &t
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -581,10 +711,6 @@ func (ty *Error) Error() string {
 		return "MustCallByGovContract"
 	}
 
-	if ty.WorkerNotFound != nil {
-		return "WorkerNotFound"
-	}
-
 	if ty.WorkerLevelNotEnough != nil {
 		return "WorkerLevelNotEnough"
 	}
@@ -595,10 +721,6 @@ func (ty *Error) Error() string {
 
 	if ty.WorkerNotOnline != nil {
 		return "WorkerNotOnline"
-	}
-
-	if ty.PodNotFound != nil {
-		return "PodNotFound"
 	}
 
 	if ty.NotPodOwner != nil {
@@ -619,6 +741,10 @@ func (ty *Error) Error() string {
 
 	if ty.DelFailed != nil {
 		return "DelFailed"
+	}
+
+	if ty.NotFound != nil {
+		return "NotFound"
 	}
 	return "Unknown"
 }
@@ -697,32 +823,36 @@ func (ty *EditType) Decode(decoder scale.Decoder) (err error) {
 	}
 }
 
-type Tuple_101 struct { // Tuple
+type Tuple_113 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_103
+	F2 []Tuple_115
 }
-type Tuple_103 struct { // Tuple
+type Tuple_115 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_106 struct { // Tuple
+type Tuple_119 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 uint32
 	F3 byte
 }
-type Tuple_109 struct { // Tuple
+type Tuple_122 struct { // Tuple
 	F0 Pod
-	F1 []Tuple_103
+	F1 []Tuple_115
 	F2 uint32
 	F3 byte
 }
-type Tuple_113 struct { // Tuple
+type Tuple_126 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_103
+	F2 []Tuple_115
 	F3 uint32
 	F4 uint32
 	F5 byte
+}
+type Tuple_129 struct { // Tuple
+	F0 uint64
+	F1 Secret
 }

@@ -40,4 +40,4 @@ go-ink-gen -json subnet.json
 
 cd $DIR
 
-go run init_network_contract.go
+go run contract_init.go

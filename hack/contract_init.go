@@ -109,7 +109,7 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 		v1.AccountID(),
 		p1.AccountID(),
 		subnet.Ip{
-			Ipv4:   util.NewSome[uint32](2130706433),
+			Ipv4:   util.NewSome[uint32](3232264041),
 			Ipv6:   util.NewNone[types.U128](),
 			Domain: util.NewNone[[]byte](),
 		},
@@ -125,7 +125,7 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 		v2.AccountID(),
 		p2.AccountID(),
 		subnet.Ip{
-			Ipv4:   util.NewSome[uint32](2130706433),
+			Ipv4:   util.NewSome[uint32](3232264041),
 			Ipv6:   util.NewNone[types.U128](),
 			Domain: util.NewNone[[]byte](),
 		},
@@ -141,7 +141,7 @@ func InitSubnet(client *chain.ChainClient, pk chain.Signer, subnetAddress string
 		v3.AccountID(),
 		p3.AccountID(),
 		subnet.Ip{
-			Ipv4:   util.NewSome[uint32](2130706433),
+			Ipv4:   util.NewSome[uint32](3232264041),
 			Ipv6:   util.NewNone[types.U128](),
 			Domain: util.NewNone[[]byte](),
 		},

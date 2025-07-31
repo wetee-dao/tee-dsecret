@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	signer, _ := nodeSecret.ToSigner()
+	signer := nodeSecret.ToSigner()
 
 	data := []byte("1234567890")
 	hash := blake2b.Sum512(data)

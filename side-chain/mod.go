@@ -155,3 +155,7 @@ func InitSideChain(
 func (s *SideChain) SetDKG(dkg *dkg.DKG) {
 	s.dkg = dkg
 }
+
+func (s *SideChain) GetDKG() *dkg.DKG {
+	return s.dkg
+}

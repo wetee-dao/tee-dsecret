@@ -21,10 +21,5 @@ func GetP2PKey() (*chain.Signer, *PrivKey, error) {
 		return nil, nil, err
 	}
 
-	kr, err := privateKey.ToSigner()
-	if err != nil {
-		fmt.Println("ToSigner error:", err)
-		return nil, nil, err
-	}
-	return kr, privateKey, nil
+	return privateKey.ToSigner(), privateKey, nil
 }

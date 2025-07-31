@@ -47,15 +47,15 @@ func (p *PrivKey) GetPublic() *PubKey {
 	}
 }
 
-func (p *PrivKey) ToSigner() (*chain.Signer, error) {
+func (p *PrivKey) ToSigner() *chain.Signer {
 	bt := p.PrivateKey
 
 	var ed25519Key ed25519.PrivateKey = bt
 	s, err := chain.Ed25519PairFromPk(ed25519Key, 42)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return &s, nil
+	return &s
 }
 
 func (p PrivKey) MarshalJSON() ([]byte, error) {

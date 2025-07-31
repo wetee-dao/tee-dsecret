@@ -7,14 +7,44 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, secret model.Env) (*model.SecretEnvWithHash, error) {
-	return dkgIns.SetSecretEnv(ctx, secret)
+func (r *mutationResolver) UploadSecret(ctx context.Context, secret string) (bool, error) {
+	call := model.TeeCall{
+		Tx: &model.TeeCall_UploadSecret{
+			UploadSecret: &model.UploadSecret{
+				User:  []byte("user"),
+				Index: 0,
+				Data:  []byte(secret),
+				Time:  uint64(time.Now().Unix()),
+				Sig:   []byte(""),
+			},
+		},
+	}
+
+	err := model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
+	if err != nil {
+		return false, gqlerror.Errorf("GetReport error:" + err.Error())
+	}
+
+	_, err = sidechain.SubmitTx(&model.Tx{
+		Payload: &model.Tx_HubCall{
+			HubCall: &model.HubCall{
+				Call: []*model.TeeCall{&call},
+			},
+		},
+	})
+	if err != nil {
+		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
+	}
+
+	return true, nil
 }
 
 // Secret is the resolver for the secret field.

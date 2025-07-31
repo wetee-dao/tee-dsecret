@@ -53,13 +53,3 @@ func GetList(namespace string, subkey string, page int, size int) ([][]byte, err
 func DeleteList(namespace string, key string) error {
 	return DeletekeysByPrefix(namespace, key)
 }
-
-// func marshalSize(size uint64) []byte {
-// 	util.Int64ToBytes()
-// 	binary.LittleEndian.PutUint64(bs, size)
-// 	return bs
-// }
-
-// func unmarshalSize(bz []byte) uint64 {
-// 	return binary.LittleEndian.Uint64(bz)
-// }

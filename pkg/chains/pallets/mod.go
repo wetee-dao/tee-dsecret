@@ -27,10 +27,7 @@ func NewContract(url []string, pk *model.PrivKey) (*Chain, error) {
 		return nil, err
 	}
 
-	p, err := pk.ToSigner()
-	if err != nil {
-		return nil, err
-	}
+	p := pk.ToSigner()
 
 	return &Chain{
 		ChainClient: client,

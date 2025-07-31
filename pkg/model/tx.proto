@@ -91,6 +91,7 @@ message TeeCall{
     PodMint pod_mint = 6;
     BridgeCall bridge_call = 7;
     bytes text = 8;
+    UploadSecret upload_secret = 9;
   }
 }
 
@@ -111,11 +112,20 @@ message BridgeCall {
 }
 
 // TEE report verify result
-message TeeVerifyResult{
+message TeeVerifyResult {
   uint32 tee_type = 1;
   bytes code_signer = 2;
   bytes code_signature = 3;
   bytes code_product_id = 4;
+}
+
+// Upload secret hash
+message UploadSecret {
+  bytes user = 1;
+  uint64 index = 2;
+  bytes data = 3;
+  uint64 time = 4;
+  bytes sig = 5;
 }
 
 message TeeTrigger{

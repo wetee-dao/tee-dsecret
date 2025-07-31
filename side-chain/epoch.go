@@ -59,7 +59,7 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 
 	// Check if sync tx is submiting
 	if IsSyncRuning() {
-		util.LogWithYellow("CheckEpochFromValidator", "Sync is running, please wait...")
+		// util.LogWithYellow("CheckEpochFromValidator", "Sync is running, please wait...")
 		return nil
 	}
 

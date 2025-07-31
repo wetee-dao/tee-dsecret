@@ -139,10 +139,7 @@ func (dkg *DKG) HandleSignClusterProof(data []byte, msgID string, OrgId string) 
 		return errors.New("HandleSignClusterProof verify worker: " + err.Error())
 	}
 
-	siger, err := dkg.Signer.ToSigner()
-	if err != nil {
-		return errors.New("signer to signer: " + err.Error())
-	}
+	siger := dkg.Signer.ToSigner()
 
 	// 计算 cid
 	cid, err := model.CidFromBytes(workerReport.Report)

@@ -332,15 +332,15 @@ func (ty *Error) Error() string {
 	return "Unknown"
 }
 
-type Tuple_89 struct { // Tuple
+type Tuple_90 struct { // Tuple
 	F0 uint64
 	F1 K8sCluster
 }
-type Tuple_98 struct { // Tuple
+type Tuple_99 struct { // Tuple
 	F0 uint64
 	F1 SecretNode
 }
-type Tuple_101 struct { // Tuple
+type Tuple_102 struct { // Tuple
 	F0 uint64
 	F1 SecretNode
 	F2 uint32

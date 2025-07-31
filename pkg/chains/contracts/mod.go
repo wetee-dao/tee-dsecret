@@ -1,8 +1,5 @@
 package contracts
 
-//go:generate go-ink-gen -json subnet.json
-//go:generate go-ink-gen -json cloud.json
-
 import (
 	"math/big"
 
@@ -24,8 +21,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0xbce63af2f4b6ed7d594d28342af4352b6556f6e3"
-const cloudAddress = "0xe55c7bd2ea28e6b263f20518218657972c1555ca"
+const subnetAddress = "0x9e182824ea3a39abd3d2d841c8a34cb4ffbaebd2"
+const cloudAddress = "0x4a76b2004a83809a0afa19d3c3799ce4a7634bf2"
 
 func GetCloudAddress() string {
 	return cloudAddress
@@ -49,10 +46,7 @@ func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
 		return nil, err
 	}
 
-	p, err := pk.ToSigner()
-	if err != nil {
-		return nil, err
-	}
+	p := pk.ToSigner()
 
 	util.LogWithYellow("Mainchain Key", pk.GetPublic().SS58())
 	h160 := pk.GetPublic().H160()
@@ -117,7 +111,7 @@ func (c *Contract) GetBootPeers() ([]model.P2PAddr, error) {
 }
 
 func (c *Contract) GetNodes() ([]*model.Validator, []*model.PubKey, error) {
-	workers, _, err := c.subnet.QueryWorkers(1, 5000, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
+	workers, _, err := c.subnet.QueryWorkers(util.NewNone[uint64](), 5000, chain.DefaultParamWithOrigin(types.AccountID(c.signer.AccountID())))
 	if err != nil {
 		return nil, nil, err
 	}

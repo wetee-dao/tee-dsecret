@@ -3,6 +3,7 @@ package sidechain
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
@@ -49,8 +50,9 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 var SyncTxIndexKey = "sync_transaction"
 
 type AsyncBatchState struct {
-	Going int64
-	Done  int64
+	Going    int64
+	Done     int64
+	LastSync int64
 }
 
 // check sync is running
@@ -66,7 +68,7 @@ func IsSyncRuning() bool {
 		}
 	}
 
-	return tx.Going > tx.Done
+	return tx.Going > tx.Done && time.Now().Unix()-tx.LastSync <= 360
 }
 
 // sync transaction step1
@@ -75,6 +77,7 @@ func SyncStep1() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if tx == nil {
 		tx = &AsyncBatchState{
 			Going: 0,
@@ -82,8 +85,8 @@ func SyncStep1() ([]byte, error) {
 		}
 	}
 
-	if tx.Going > tx.Done {
-		return nil, errors.New("SyncStep1 one transaction is runing")
+	if tx.Going > tx.Done && time.Now().Unix()-tx.LastSync <= 360 {
+		return nil, errors.New("sync step1 one transaction is runing")
 	}
 
 	return GetTxBytes(&model.Tx{
@@ -100,8 +103,15 @@ func SyncStep2(i int64) error {
 		return err
 	}
 
-	if tx.Going > tx.Done {
-		return errors.New("SyncStep2 one transaction is runing")
+	if tx == nil {
+		tx = &AsyncBatchState{
+			Going: 0,
+			Done:  0,
+		}
+	}
+
+	if tx.Going > tx.Done && time.Now().Unix()-tx.LastSync <= 360 {
+		return errors.New("sync step2 one transaction is runing")
 	}
 
 	tx.Going = i
@@ -116,10 +126,11 @@ func SyncEnd(i int64) error {
 		return err
 	}
 
-	if i != tx.Going {
-		// util.LogWithRed("SyncEnd", "i is not equal to tx.Going")
+	if i != tx.Going && time.Now().Unix()-tx.LastSync <= 360 {
+		util.LogWithRed("SyncEnd", "i is not equal to tx.Going")
 	}
 
 	tx.Done = tx.Going
+	tx.LastSync = time.Now().Unix()
 	return model.SetJson(GLOABL_STATE, SyncTxIndexKey, tx)
 }

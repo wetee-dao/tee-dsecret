@@ -54,7 +54,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		UploadSecret func(childComplexity int, secret model.Env) int
+		UploadSecret func(childComplexity int, secret string) int
 	}
 
 	Query struct {
@@ -75,7 +75,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	UploadSecret(ctx context.Context, secret model.Env) (*model.SecretEnvWithHash, error)
+	UploadSecret(ctx context.Context, secret string) (bool, error)
 }
 type QueryResolver interface {
 	Validators(ctx context.Context) ([]string, error)
@@ -126,7 +126,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UploadSecret(childComplexity, args["secret"].(model.Env)), true
+		return e.complexity.Mutation.UploadSecret(childComplexity, args["secret"].(string)), true
 
 	case "Query.secret":
 		if e.complexity.Query.Secret == nil {
@@ -331,18 +331,18 @@ func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_upload_secret_argsSecret(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.Env, error) {
+) (string, error) {
 	if _, ok := rawArgs["secret"]; !ok {
-		var zeroVal model.Env
+		var zeroVal string
 		return zeroVal, nil
 	}
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("secret"))
 	if tmp, ok := rawArgs["secret"]; ok {
-		return ec.unmarshalNEnv2githubᚗcomᚋweteeᚑdaoᚋteeᚑdsecretᚋpkgᚋmodelᚐEnv(ctx, tmp)
+		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
-	var zeroVal model.Env
+	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -707,12 +707,12 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		directive0 := func(rctx context.Context) (any, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["secret"].(model.Env))
+			return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["secret"].(string))
 		}
 
 		directive1 := func(ctx context.Context) (any, error) {
 			if ec.directives.AuthCheck == nil {
-				var zeroVal *model.SecretEnvWithHash
+				var zeroVal bool
 				return zeroVal, errors.New("directive AuthCheck is not implemented")
 			}
 			return ec.directives.AuthCheck(ctx, nil, directive0)
@@ -725,10 +725,10 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.SecretEnvWithHash); ok {
+		if data, ok := tmp.(bool); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/wetee-dao/tee-dsecret/pkg/model.SecretEnvWithHash`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -740,9 +740,9 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.SecretEnvWithHash)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNSecretEnvWithHash2ᚖgithubᚗcomᚋweteeᚑdaoᚋteeᚑdsecretᚋpkgᚋmodelᚐSecretEnvWithHash(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -752,13 +752,7 @@ func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hash":
-				return ec.fieldContext_SecretEnvWithHash_hash(ctx, field)
-			case "secret":
-				return ec.fieldContext_SecretEnvWithHash_secret(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type SecretEnvWithHash", field.Name)
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	defer func() {
@@ -3933,11 +3927,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNEnv2githubᚗcomᚋweteeᚑdaoᚋteeᚑdsecretᚋpkgᚋmodelᚐEnv(ctx context.Context, v any) (model.Env, error) {
-	res, err := ec.unmarshalInputEnv(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
