@@ -4,11 +4,6 @@ package model
 
 // 环境变量
 // Environments
-type Env struct {
-	Envs  []*Kvalue `json:"envs"`
-	Files []*Kvalue `json:"files"`
-}
-
 type Kvalue struct {
 	K string `json:"k"`
 	V string `json:"v"`

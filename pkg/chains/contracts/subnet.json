@@ -1,11 +1,11 @@
 {
   "source": {
-    "hash": "0x881b479fcda91fa4bf959146f95a47242996925737290cc2efa614c5ed4bebbb",
-    "language": "ink! 6.0.0-alpha",
-    "compiler": "rustc 1.85.0",
+    "hash": "0x8f4a6a81c413de9ef916bbccba283c2e4ffc7edac1585ac9aaf4bbb77c1c784b",
+    "language": "ink! 6.0.0-alpha.1",
+    "compiler": "rustc 1.88.0",
     "build_info": {
       "build_mode": "Release",
-      "cargo_contract_version": "6.0.0-alpha",
+      "cargo_contract_version": "6.0.0-alpha.1",
       "rust_toolchain": "stable-x86_64-unknown-linux-gnu"
     }
   },
@@ -5046,5 +5046,5 @@
       }
     }
   ],
-  "version": 5
+  "version": 6
 }

@@ -17,7 +17,6 @@ message Tx{
     // string test = 99;
     EpochEnd epoch_end = 1;
     int64 epoch_start = 2;
-    Bridge bridge = 3;
     HubCall hub_call = 4;
     int64 sync_tx_start  = 5;
     int64 sync_tx_end = 6;
@@ -35,6 +34,7 @@ message EpochEnd {
   uint32 epoch = 1;
   repeated SideValidator validators = 2;
   bytes dkg_pub = 3;
+  bytes dkg_commits = 4;
 }
 
 // Call from TEE to mainchain
@@ -98,6 +98,9 @@ message TeeCall{
 // polkadot hub pod mint call
 message PodStart {
   uint64 Id = 1;
+  bytes name_space = 2;
+  bytes pub_key = 3;
+  repeated uint64 Indexs = 4;
 }
 
 // polkadot hub pod mint call
@@ -126,6 +129,48 @@ message UploadSecret {
   bytes data = 3;
   uint64 time = 4;
   bytes sig = 5;
+}
+
+message SecretBox{
+  string from = 1;
+  To to = 2;
+  oneof payload {
+    PodStart req = 4;
+    DecryptSharesResp shares_resp = 5;
+    DecryptResp resp = 6;
+  }
+}
+
+// secret data
+message SecretStore {
+  bytes raw_enc_cmt = 1;
+  repeated bytes raw_enc_scrt = 2;
+}
+
+// DecryptShare
+message DecryptShare {
+  int32 share_index = 2;
+  bytes xnc_ski = 3;
+  bytes chlgi = 4;
+  bytes proofi = 5;
+}
+
+// DecryptShares
+message DecryptSharesResp {
+  PodStart req = 2;
+  map<uint64, DecryptShare> shares = 3;
+}
+
+// Decrypt resp
+message DecryptResp {
+    bytes dkg_key = 1;
+  map<uint64, Secret> lists = 3;
+}
+
+// Decrypted secret
+message Secret {
+	bytes xnc_cmt = 1;
+	repeated bytes enc_scrt = 2;
 }
 
 message TeeTrigger{

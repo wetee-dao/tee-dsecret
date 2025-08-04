@@ -13,7 +13,7 @@ func SendBroadcast() *To {
 	}
 }
 
-// p2p send msg to validator
+// p2p send msg to modes
 func SendToNodes(ids []*PubKey) *To {
 	keys := make([][]byte, len(ids))
 	for i, id := range ids {

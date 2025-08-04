@@ -129,7 +129,6 @@ func (c *Contract) TxCallOfStartPod(nodeId uint64, pod_key types.AccountID, sign
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
-
 func (c *Contract) DryStartPod(nodeId uint64, pod_key types.AccountID, signer types.AccountID) error {
 	_, _, err := c.cloud.DryRunStartPod(nodeId, pod_key, chain.DefaultParamWithOrigin(signer))
 	return err
@@ -143,5 +142,16 @@ func (c *Contract) TxCallOfMintPod(nodeId uint64, hash types.H256, signer types.
 }
 func (c *Contract) DryMintPod(nodeId uint64, hash types.H256, signer types.AccountID) error {
 	_, _, err := c.cloud.DryRunMintPod(nodeId, hash, chain.DefaultParamWithOrigin(signer))
+	return err
+}
+
+func (c *Contract) TxCallOfUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfUpdateSecret(user, index, data, chain.DryRunParams{
+		Origin:    signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+}
+func (c *Contract) DryUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunUpdateSecret(user, index, data, chain.DefaultParamWithOrigin(signer))
 	return err
 }

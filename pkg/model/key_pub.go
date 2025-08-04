@@ -131,6 +131,15 @@ func PubKeyFromByte(pubkey []byte) *PubKey {
 	}
 }
 
+func PubKeyFromHex(h string) (*PubKey, error) {
+	b, err := hex.DecodeString(h)
+	if err != nil {
+		return nil, fmt.Errorf("decode hex: %w", err)
+	}
+
+	return PubKeyFromByte(b), nil
+}
+
 func PubKeyFromSS58(ss58 string) (*PubKey, error) {
 	_, pubkey, err := SS58Decode(ss58)
 	if err != nil {

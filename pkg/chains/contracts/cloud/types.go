@@ -11,16 +11,10 @@ import (
 type Pod struct { // Composite
 	Name       []byte
 	Owner      types.H160
-	Contract   PodRef
+	Contract   types.H160
 	Ptype      PodType
 	StartBlock uint32
 	TeeType    TEEType
-}
-type PodRef struct { // Composite
-	Inner CallBuilder
-}
-type CallBuilder struct { // Composite
-	Addr types.H160
 }
 type PodType struct { // Enum
 	CPU    *bool // 0
@@ -115,143 +109,6 @@ func (ty *TEEType) Decode(decoder scale.Decoder) (err error) {
 	case 1: // Base
 		t := true
 		ty.CVM = &t
-		return
-	default:
-		return fmt.Errorf("unrecognized enum")
-	}
-}
-
-type Env struct { // Enum
-	Env *struct { // 0
-		F0 []byte
-		F1 []byte
-	}
-	File *struct { // 1
-		F0 []byte
-		F1 []byte
-	}
-	Encrypt *struct { // 2
-		F0 []byte
-		F1 []byte
-	}
-}
-
-func (ty Env) Encode(encoder scale.Encoder) (err error) {
-	if ty.Env != nil {
-		err = encoder.PushByte(0)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.Env.F0)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.Env.F1)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if ty.File != nil {
-		err = encoder.PushByte(1)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.File.F0)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.File.F1)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if ty.Encrypt != nil {
-		err = encoder.PushByte(2)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.Encrypt.F0)
-		if err != nil {
-			return err
-		}
-
-		err = encoder.Encode(ty.Encrypt.F1)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-	return fmt.Errorf("unrecognized enum")
-}
-
-func (ty *Env) Decode(decoder scale.Decoder) (err error) {
-	variant, err := decoder.ReadOneByte()
-	if err != nil {
-		return err
-	}
-	switch variant {
-	case 0: // Tuple
-		ty.Env = &struct {
-			F0 []byte
-			F1 []byte
-		}{}
-
-		err = decoder.Decode(&ty.Env.F0)
-		if err != nil {
-			return err
-		}
-
-		err = decoder.Decode(&ty.Env.F1)
-		if err != nil {
-			return err
-		}
-
-		return
-	case 1: // Tuple
-		ty.File = &struct {
-			F0 []byte
-			F1 []byte
-		}{}
-
-		err = decoder.Decode(&ty.File.F0)
-		if err != nil {
-			return err
-		}
-
-		err = decoder.Decode(&ty.File.F1)
-		if err != nil {
-			return err
-		}
-
-		return
-	case 2: // Tuple
-		ty.Encrypt = &struct {
-			F0 []byte
-			F1 []byte
-		}{}
-
-		err = decoder.Decode(&ty.Encrypt.F0)
-		if err != nil {
-			return err
-		}
-
-		err = decoder.Decode(&ty.Encrypt.F1)
-		if err != nil {
-			return err
-		}
-
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -430,6 +287,143 @@ func (ty *DiskClass) Decode(decoder scale.Decoder) (err error) {
 		if err != nil {
 			return err
 		}
+		return
+	default:
+		return fmt.Errorf("unrecognized enum")
+	}
+}
+
+type Env struct { // Enum
+	Env *struct { // 0
+		F0 []byte
+		F1 []byte
+	}
+	File *struct { // 1
+		F0 []byte
+		F1 []byte
+	}
+	Encrypt *struct { // 2
+		F0 []byte
+		F1 uint64
+	}
+}
+
+func (ty Env) Encode(encoder scale.Encoder) (err error) {
+	if ty.Env != nil {
+		err = encoder.PushByte(0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Env.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Env.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if ty.File != nil {
+		err = encoder.PushByte(1)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.File.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.File.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if ty.Encrypt != nil {
+		err = encoder.PushByte(2)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Encrypt.F0)
+		if err != nil {
+			return err
+		}
+
+		err = encoder.Encode(ty.Encrypt.F1)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return fmt.Errorf("unrecognized enum")
+}
+
+func (ty *Env) Decode(decoder scale.Decoder) (err error) {
+	variant, err := decoder.ReadOneByte()
+	if err != nil {
+		return err
+	}
+	switch variant {
+	case 0: // Tuple
+		ty.Env = &struct {
+			F0 []byte
+			F1 []byte
+		}{}
+
+		err = decoder.Decode(&ty.Env.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.Env.F1)
+		if err != nil {
+			return err
+		}
+
+		return
+	case 1: // Tuple
+		ty.File = &struct {
+			F0 []byte
+			F1 []byte
+		}{}
+
+		err = decoder.Decode(&ty.File.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.File.F1)
+		if err != nil {
+			return err
+		}
+
+		return
+	case 2: // Tuple
+		ty.Encrypt = &struct {
+			F0 []byte
+			F1 uint64
+		}{}
+
+		err = decoder.Decode(&ty.Encrypt.F0)
+		if err != nil {
+			return err
+		}
+
+		err = decoder.Decode(&ty.Encrypt.F1)
+		if err != nil {
+			return err
+		}
+
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -823,36 +817,36 @@ func (ty *EditType) Decode(decoder scale.Decoder) (err error) {
 	}
 }
 
-type Tuple_113 struct { // Tuple
+type Tuple_106 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_115
+	F2 []Tuple_108
 }
-type Tuple_115 struct { // Tuple
+type Tuple_108 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_119 struct { // Tuple
+type Tuple_112 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 uint32
 	F3 byte
 }
-type Tuple_122 struct { // Tuple
+type Tuple_115 struct { // Tuple
 	F0 Pod
-	F1 []Tuple_115
+	F1 []Tuple_108
 	F2 uint32
 	F3 byte
 }
-type Tuple_126 struct { // Tuple
+type Tuple_119 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_115
+	F2 []Tuple_108
 	F3 uint32
 	F4 uint32
 	F5 byte
 }
-type Tuple_129 struct { // Tuple
+type Tuple_122 struct { // Tuple
 	F0 uint64
 	F1 Secret
 }

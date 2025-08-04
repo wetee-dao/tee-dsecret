@@ -109,7 +109,7 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 func (app *SideChain) ProcessProposal(_ context.Context, req *abci.ProcessProposalRequest) (*abci.ProcessProposalResponse, error) {
 	LogWithTime("🌈 ProcessProposal")
 
-	status := app.ProcessTx(req.Txs, app.onGoingBlock)
+	status := app.ProcessTx(req.Txs)
 	return &abci.ProcessProposalResponse{Status: status}, nil
 }
 
@@ -118,6 +118,8 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 	app.onGoingBlock = model.DBINS.NewTransaction()
 	respTxs, err := app.FinalizeTx(req.Txs, app.onGoingBlock, req.Height, req.ProposerAddress)
 	if err != nil {
+		app.onGoingBlock.Rollback()
+		app.onGoingBlock = nil
 		return nil, err
 	}
 
@@ -148,6 +150,9 @@ func (app *SideChain) FinalizeBlock(_ context.Context, req *abci.FinalizeBlockRe
 
 // Commit the application state
 func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.CommitResponse, error) {
+	defer func() {
+		app.onGoingBlock = nil
+	}()
 	if err := app.onGoingBlock.Commit(); err != nil {
 		return nil, err
 	}

@@ -97,8 +97,8 @@ func SyncStep1() ([]byte, error) {
 }
 
 // sync transaction step2
-func SyncStep2(i int64) error {
-	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
+func SyncStep2(i int64, txn *model.Txn) error {
+	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey))
 	if err != nil {
 		return err
 	}
@@ -116,12 +116,12 @@ func SyncStep2(i int64) error {
 
 	tx.Going = i
 	tx.Done = i - 1
-	return model.SetJson(GLOABL_STATE, SyncTxIndexKey, tx)
+	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey), tx)
 }
 
 // sync transaction step3
-func SyncEnd(i int64) error {
-	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
+func SyncEnd(i int64, txn *model.Txn) error {
+	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey))
 	if err != nil {
 		return err
 	}
@@ -132,5 +132,5 @@ func SyncEnd(i int64) error {
 
 	tx.Done = tx.Going
 	tx.LastSync = time.Now().Unix()
-	return model.SetJson(GLOABL_STATE, SyncTxIndexKey, tx)
+	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey), tx)
 }

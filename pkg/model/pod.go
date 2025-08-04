@@ -19,6 +19,7 @@ type Container struct { // Composite
 	Command Command
 	Port    []Service
 	Cr      CR
+	Env     []Env
 }
 
 type CR struct { // Composite
@@ -104,4 +105,19 @@ func GetUrlFromIp(ip Ip) string {
 			ipv6Int128.Uint64()&0xFFFF)
 	}
 	return url
+}
+
+type Env struct { // Enum
+	Env *struct { // 0
+		F0 []byte
+		F1 []byte
+	}
+	File *struct { // 1
+		F0 []byte
+		F1 []byte
+	}
+	Encrypt *struct { // 2
+		F0 []byte
+		F1 uint64
+	}
 }

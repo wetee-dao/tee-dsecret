@@ -149,6 +149,8 @@ func InitSideChain(
 		go sideChain.txCh.Start(sideChain.handlePartialSign)
 	}
 
+	p2pReactor.Sub("secret", sideChain.revSecret)
+
 	return SideChainNode, sideChain, p2pReactor, err
 }
 

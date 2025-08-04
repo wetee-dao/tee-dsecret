@@ -13,8 +13,6 @@ import (
 	"go.dedis.ch/kyber/v4/suites"
 )
 
-const name = "elgamal"
-
 var (
 	// For Bulletin handlers
 	InvalidReplyNamespace string = "invalidreply"
@@ -136,44 +134,47 @@ var (
 // 	return nil
 // }
 
-func Reencrypt(distKeyShare model.DistKeyShare, scrt *model.Secret, rdrPk model.PubKey) (ReencryptReply, error) {
-	var reply ReencryptReply
-	ste := rdrPk.Suite()
+func Reencrypt(distKeyShare model.DistKeyShare, secret *model.SecretStore, clientPubKey model.PubKey) (*ReencryptReply, error) {
+	ste := clientPubKey.Suite()
 
 	idx := distKeyShare.PriShare().I
 	ski := distKeyShare.PriShare().V
 
 	encCmt := ste.Point()
-	err := encCmt.UnmarshalBinary(scrt.EncCmt)
+	err := encCmt.UnmarshalBinary(secret.RawEncCmt)
 	if err != nil {
-		return reply, fmt.Errorf("unmarshal encCmt: %w", err)
+		return nil, fmt.Errorf("unmarshal encCmt: %w", err)
 	}
 
-	xncSki, chlgi, proofi, err := reencrypt(ste, ski, rdrPk.Point(), encCmt)
+	xncSki, chlgi, proofi, err := reencrypt(ste, ski, clientPubKey.Point(), encCmt)
 	if err != nil {
-		return reply, err
+		return nil, err
 	}
 
-	reply = ReencryptReply{
+	return &ReencryptReply{
 		Share: share.PubShare{
 			I: idx,
 			V: xncSki,
 		},
 		Challenge: chlgi,
 		Proof:     proofi,
-	}
-
-	return reply, nil
+	}, nil
 }
 
 // Verify verifies an incoming re-encryption reply from another node.
-func Verify(rdrPk model.PubKey, dkgCmt *share.PubPoly, encCmt kyber.Point, r ReencryptReply) error {
-	ste := rdrPk.Suite()
+func Verify(dkgCmt *share.PubPoly, secret *model.SecretStore, clientPubKey model.PubKey, r *ReencryptReply) error {
+	ste := clientPubKey.Suite()
+
+	encCmt := ste.Point()
+	err := encCmt.UnmarshalBinary(secret.RawEncCmt)
+	if err != nil {
+		return fmt.Errorf("unmarshal encCmt: %w", err)
+	}
 
 	xncSki := r.Share.V
 	idx := r.Share.I
-	err := verify(ste,
-		rdrPk.Point(),
+	err = verify(ste,
+		clientPubKey.Point(),
 		encCmt,
 		xncSki,
 		r.Challenge,

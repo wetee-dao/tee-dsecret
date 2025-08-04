@@ -663,12 +663,12 @@ func (c *Cloud) QueryPodLen(
 
 func (c *Cloud) QueryPods(
 	start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_113, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_106, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_113](
+	v, gas, err := chain.DryRunInk[[]Tuple_106](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -711,12 +711,12 @@ func (c *Cloud) QueryUserPodLen(
 
 func (c *Cloud) QueryUserPods(
 	start util.Option[uint32], size uint32, __ink_params chain.DryRunParams,
-) (*[]Tuple_113, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_106, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "user_pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_113](
+	v, gas, err := chain.DryRunInk[[]Tuple_106](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -735,12 +735,12 @@ func (c *Cloud) QueryUserPods(
 
 func (c *Cloud) QueryWorkerPodsVersion(
 	worker_id uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_119, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_112, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "worker_pods_version")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_119](
+	v, gas, err := chain.DryRunInk[[]Tuple_112](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -759,12 +759,12 @@ func (c *Cloud) QueryWorkerPodsVersion(
 
 func (c *Cloud) QueryWorkerPods(
 	worker_id uint64, start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_113, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_106, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "worker_pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_113](
+	v, gas, err := chain.DryRunInk[[]Tuple_106](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -783,12 +783,12 @@ func (c *Cloud) QueryWorkerPods(
 
 func (c *Cloud) QueryPod(
 	pod_id uint64, __ink_params chain.DryRunParams,
-) (*util.Option[Tuple_122], *chain.DryRunReturnGas, error) {
+) (*util.Option[Tuple_115], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pod")
 	}
-	v, gas, err := chain.DryRunInk[util.Option[Tuple_122]](
+	v, gas, err := chain.DryRunInk[util.Option[Tuple_115]](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -807,12 +807,12 @@ func (c *Cloud) QueryPod(
 
 func (c *Cloud) QueryPodsByIds(
 	pod_ids []uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_126, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_119, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pods_by_ids")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_126](
+	v, gas, err := chain.DryRunInk[[]Tuple_119](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -855,12 +855,12 @@ func (c *Cloud) QueryWorkerPodLen(
 
 func (c *Cloud) QueryUserSecrets(
 	user types.H160, start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_129, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_122, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "user_secrets")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_129](
+	v, gas, err := chain.DryRunInk[[]Tuple_122](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,

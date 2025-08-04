@@ -246,3 +246,7 @@ func DeletekeysByPrefix(namespace, key string) error {
 func comboKey(namespace, key string) string {
 	return namespace + "_" + key
 }
+
+func ComboNamespaceKey(namespace, key string) []byte {
+	return []byte(comboKey(namespace, string(key)))
+}

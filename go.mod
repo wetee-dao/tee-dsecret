@@ -16,7 +16,6 @@ require (
 	github.com/hashicorp/vault v1.19.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.10.0
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	github.com/vektah/gqlparser/v2 v2.5.27

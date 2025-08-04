@@ -3,6 +3,7 @@ package sidechain
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -46,12 +47,14 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 			})
 		}
 
+		commits, _ := json.Marshal(app.dkg.NewDkgKeyShare.CommitsWrap)
 		return GetTxBytes(&model.Tx{
 			Payload: &model.Tx_EpochEnd{
 				EpochEnd: &model.EpochEnd{
 					Epoch:      epoch,
 					Validators: sideValidators,
 					DkgPub:     app.dkg.DkgPubKey.PublicKey,
+					DkgCommits: commits,
 				},
 			},
 		})
@@ -160,6 +163,7 @@ func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 
 	// Save DKG pub key
 	txn.SetKey(GLOABL_STATE, "dkg_pub_key", epoch.DkgPub)
+	txn.SetKey(GLOABL_STATE, "dkg_pub_commits", epoch.DkgCommits)
 
 	// Delete old epoch validators
 	err := txn.DeletekeysByPrefix([]byte("G_validator"))

@@ -95,11 +95,6 @@ func (d *PriShare) UnmarshalJSON(bt []byte) error {
 	return nil
 }
 
-type Secret struct {
-	EncCmt  []byte   `json:"enc_cmt,omitempty"`  // encryption commitment
-	EncScrt [][]byte `json:"enc_scrt,omitempty"` // enncrypted secret
-}
-
 func CidFromBytes(b []byte) (cid.Cid, error) {
 	h, err := mh.Sum(b, mh.BLAKE2B_MIN, -1)
 	if err != nil {

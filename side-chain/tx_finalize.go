@@ -2,9 +2,10 @@ package sidechain
 
 import (
 	"bytes"
-	"errors"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/pkg/errors"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 )
@@ -28,23 +29,37 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		}
 
 		switch p := tx.Payload.(type) {
-		case *model.Tx_EpochStart:
-			app.SetEpochStatus(p.EpochStart) // set epoch last time
+		case *model.Tx_EpochStart: // set epoch last time
+			err := app.SetEpochStatus(p.EpochStart)
+			if err != nil {
+				return nil, err
+			}
 		case *model.Tx_EpochEnd:
 			app.calcValidatorUpdates(p.EpochEnd) // calc validator updates
 			err = app.SetEpoch(p.EpochEnd, txn)  // set epoch and validators
 			if err != nil {
 				return nil, err
 			}
-			app.SetEpochStatus(0)
-		case *model.Tx_Bridge:
-			break
-		case *model.Tx_SyncTxStart:
+			err = app.SetEpochStatus(0)
+			if err != nil {
+				return nil, err
+			}
+		case *model.Tx_SyncTxStart: // start hub sync tx
 			txIndex = p.SyncTxStart
-			SyncStep2(p.SyncTxStart)
-		case *model.Tx_SyncTxEnd:
-			SyncEnd(p.SyncTxEnd)
-		case *model.Tx_HubCall:
+			err = SyncStep2(p.SyncTxStart, txn)
+			if err != nil {
+				return nil, err
+			}
+		case *model.Tx_SyncTxEnd: // end hub sync tx
+			err = SyncEnd(p.SyncTxEnd, txn)
+			if err != nil {
+				return nil, err
+			}
+		case *model.Tx_HubCall: // add hub call
+			err := app.finalizeHubCall(p.HubCall, txn)
+			if err != nil {
+				return nil, err
+			}
 			hubCalls = append(hubCalls, p.HubCall)
 		default:
 			return nil, errors.New("invalid tx type")
@@ -53,6 +68,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		res = append(res, &abci.ExecTxResult{Code: uint32(abci.CodeTypeOK)})
 	}
 
+	// if hub tx, send partial sign
 	if txIndex > 0 && len(hubCalls) > 0 && app.dkg != nil {
 		err := app.sendPartialSign(txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
 		if err != nil {
@@ -60,4 +76,25 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		}
 	}
 	return res, nil
+}
+
+func (app *SideChain) finalizeHubCall(hub *model.HubCall, txn *model.Txn) error {
+	for _, callWrap := range hub.Call {
+		switch tx := callWrap.Tx.(type) {
+		case *model.TeeCall_PodStart:
+			continue
+		case *model.TeeCall_PodMint:
+			continue
+		case *model.TeeCall_UploadSecret:
+			upload := tx.UploadSecret
+			user := types.H160(upload.User)
+			err := app.SaveSecret(user, upload.Index, upload.Data, txn)
+			if err != nil {
+				return errors.Wrap(err, "finalizeHubCall SaveSecret")
+			}
+		default:
+			return errors.New("finalizeHubCall invalid tx type")
+		}
+	}
+	return nil
 }

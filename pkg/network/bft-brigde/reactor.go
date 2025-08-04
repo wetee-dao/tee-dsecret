@@ -31,6 +31,14 @@ var topics = map[string]p2p.ChannelDescriptor{
 		RecvMessageCapacity: MaxMsgSize,
 		MessageType:         &model.BlockPartialSign{},
 	},
+	"secret": {
+		ID:                  253,
+		Priority:            10000,
+		SendQueueCapacity:   1000,
+		RecvBufferCapacity:  50 * 4096,
+		RecvMessageCapacity: MaxMsgSize,
+		MessageType:         &model.SecretBox{},
+	},
 }
 
 type BTFReactor struct {
@@ -42,6 +50,7 @@ type BTFReactor struct {
 	nodekeys                []*model.PubKey
 	dkgHandler              func(any) error
 	blockPartialSignHandler func(any) error
+	secretHandler           func(any) error
 }
 
 func NewBTFReactor(name string) *BTFReactor {
@@ -109,7 +118,10 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 		}
 
 		msg.From = pub.String()
-		r.dkgHandler(msg)
+		err = r.dkgHandler(msg)
+		if err != nil {
+			util.LogWithRed("P2P Receive error", "dkgHandler", err)
+		}
 		return
 	case *model.BlockPartialSign:
 		if !msg.To.Check(r.id) {
@@ -127,7 +139,25 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 		}
 
 		msg.From = pub.String()
-		r.blockPartialSignHandler(msg)
+		err = r.blockPartialSignHandler(msg)
+		if err != nil {
+			util.LogWithRed("P2P Receive error", "blockPartialSignHandler", err)
+		}
+	case *model.SecretBox:
+		if !msg.To.Check(r.id) {
+			return
+		}
+
+		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
+		if err != nil {
+			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
+		}
+
+		msg.From = pub.String()
+		err = r.secretHandler(msg)
+		if err != nil {
+			util.LogWithRed("P2P Receive error", "secretHandler", err)
+		}
 	default:
 		util.LogWithRed("P2P Receive", "Receive error", "msg", msg)
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
+	"golang.org/x/crypto/blake2b"
 )
 
 // Submit tx to sidechain
@@ -57,6 +58,16 @@ func TEECallToHubCall(tcall *model.TeeCall, dkgKey types.AccountID) (*types.Call
 		call, err := chains.MainChain.TxCallOfMintPod(pod.Id, types.NewH256(pod.ReportHash), dkgKey)
 		if err != nil {
 			util.LogError("TxCallOfStartPod", err)
+			return nil, err
+		}
+
+		return call, nil
+	case *model.TeeCall_UploadSecret:
+		upload := tx.UploadSecret
+		hash := blake2b.Sum256(upload.Data)
+		call, err := chains.MainChain.TxCallOfUploadSecret(types.NewH160(upload.User), upload.Index, types.NewH256(hash[:]), dkgKey)
+		if err != nil {
+			util.LogError("TxCallOfUploadSecret", err)
 			return nil, err
 		}
 

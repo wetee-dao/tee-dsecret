@@ -10,7 +10,7 @@ import (
 )
 
 // Process tx
-func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessProposalStatus {
+func (app *SideChain) ProcessTx(txs [][]byte) abci.ProcessProposalStatus {
 	for _, txbt := range txs {
 		txbox := new(model.TxBox)
 		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
@@ -31,8 +31,6 @@ func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessPropos
 		case *model.Tx_SyncTxEnd:
 			break
 		case *model.Tx_HubCall:
-			break
-		case *model.Tx_Bridge:
 			break
 		default:
 			fmt.Println("Payload is not set")

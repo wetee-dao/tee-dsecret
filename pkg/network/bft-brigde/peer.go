@@ -7,7 +7,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func (p *BTFReactor) Send(node *model.To, message any) error {
+func (p *BTFReactor) Send(to *model.To, message any) error {
 	sendData := p2p.Envelope{}
 
 	// set sender id
@@ -15,17 +15,24 @@ func (p *BTFReactor) Send(node *model.To, message any) error {
 	switch msg := message.(type) {
 	case *model.DkgMessage:
 		sendData.ChannelID = topics["dkg"].ID
-		msg.To = node
+		msg.To = to
 		sendData.Message = msg
 	case *model.BlockPartialSign:
 		sendData.ChannelID = topics["block-partial-sign"].ID
-		msg.To = node
+		msg.To = to
+		sendData.Message = msg
+	case *model.SecretBox:
+		sendData.ChannelID = topics["secret"].ID
+		msg.To = to
 		sendData.Message = msg
 	default:
 		return errors.New("unknown message type")
 	}
 
-	p.Receive(sendData)
+	if to.Check(p.id) {
+		p.Receive(sendData)
+	}
+
 	p.Switch.Broadcast(sendData)
 	return nil
 }
@@ -49,6 +56,8 @@ func (p *BTFReactor) Sub(topic string, handler func(any) error) error {
 		p.dkgHandler = handler
 	case "block-partial-sign":
 		p.blockPartialSignHandler = handler
+	case "secret":
+		p.secretHandler = handler
 	default:
 		return errors.New("topic not found")
 	}

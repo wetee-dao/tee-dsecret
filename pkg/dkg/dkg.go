@@ -3,7 +3,6 @@ package dkg
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -15,8 +14,6 @@ import (
 
 // DKG 代表  DKG 协议的实例
 type DKG struct {
-	// 操作互斥锁
-	mu sync.RWMutex
 	// Host 是 P2P 网络主机
 	Peer p2peer.Peer
 	// Suite 是加密套件
@@ -50,8 +47,6 @@ type DKG struct {
 
 	// mainChan is the channel to receive out message
 	mainChain *model.PersistChan[*model.DkgMessage]
-	// PreRecerve is the channel to receive SendEncryptedSecretRequest
-	preRecerve map[string]chan any
 
 	// Consensus is running
 	lastConsensusTime    int64
@@ -81,13 +76,12 @@ func NewDKG(
 
 	// 创建 DKG 对象
 	dkg := &DKG{
-		Suite:      suites.MustFind("Ed25519"),
-		Signer:     NodeSecret,
-		Peer:       peer,
-		log:        log,
-		preRecerve: make(map[string]chan any),
-		deals:      make(map[string]*model.DealBundle),
-		responses:  make(map[string]*pedersen.ResponseBundle),
+		Suite:     suites.MustFind("Ed25519"),
+		Signer:    NodeSecret,
+		Peer:      peer,
+		log:       log,
+		deals:     make(map[string]*model.DealBundle),
+		responses: make(map[string]*pedersen.ResponseBundle),
 	}
 
 	dkg.Peer.Sub("dkg", dkg.DkgOutHandler)

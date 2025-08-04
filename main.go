@@ -101,7 +101,7 @@ func main() {
 	sideChain.SetDKG(dkgIns)
 
 	// 启动 graphql 服务器
-	go graph.StartServer(dkgIns, sideChain, gqlPort)
+	go graph.StartServer(sideChain, gqlPort)
 
 	// wait for stop signal
 	sigCh := make(chan os.Signal, 1)

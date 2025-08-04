@@ -29,10 +29,6 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_EpochEnd:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_Bridge:
-			if addMainChainTx {
-				*finaltx = append(*finaltx, txbt)
-			}
 		case *model.Tx_SyncTxStart:
 			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_SyncTxEnd:
