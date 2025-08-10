@@ -97,10 +97,11 @@ message TeeCall{
 
 // polkadot hub pod mint call
 message PodStart {
-  uint64 Id = 1;
-  bytes name_space = 2;
-  bytes pub_key = 3;
-  repeated uint64 Indexs = 4;
+  uint64 id = 1;
+  bytes app_id = 2;
+  bytes name_space = 3;
+  bytes pub_key = 4;
+  repeated uint64 Indexs = 5;
 }
 
 // polkadot hub pod mint call
@@ -163,7 +164,7 @@ message DecryptSharesResp {
 
 // Decrypt resp
 message DecryptResp {
-    bytes dkg_key = 1;
+  bytes dkg_key = 1;
   map<uint64, Secret> lists = 3;
 }
 
@@ -173,8 +174,23 @@ message Secret {
 	repeated bytes enc_scrt = 2;
 }
 
-message TeeTrigger{
+message TeeTrigger {
   TeeCall tee = 1;
   uint64 cluster_id = 2;
   repeated uint64 callids = 3;
+}
+
+// api req 
+message ApiReq {
+  uint64 id = 1;
+  bytes url = 2;
+  bytes from = 3;
+  bytes data = 4;
+}
+
+// api resp 
+message ApiResp {
+  uint64 req_id = 1;
+  int32 code = 2;
+  bytes data = 3;
 }
