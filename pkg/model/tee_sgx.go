@@ -2,9 +2,12 @@ package model
 
 import (
 	"bytes"
-	"encoding/binary"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/edgelesssys/ego/attestation"
@@ -14,9 +17,8 @@ import (
 	chain "github.com/wetee-dao/ink.go"
 )
 
-func IssueReport(pk *chain.Signer, call *TeeCall) error {
+func SgxIssue(pk *chain.Signer, call *TeeCall) error {
 	timestamp := time.Now().Unix()
-
 	var buf bytes.Buffer
 	buf.Write(Int64ToBytes(timestamp))
 	buf.Write(pk.PublicKey)
@@ -45,16 +47,7 @@ func IssueReport(pk *chain.Signer, call *TeeCall) error {
 	return nil
 }
 
-func VerifyReport(reportData *TeeCall) (*TeeVerifyResult, error) {
-	// TODO SEV/TDX not support
-	if reportData.TeeType != 0 {
-		return &TeeVerifyResult{
-			CodeSignature: []byte{},
-			CodeSigner:    []byte{},
-			CodeProductId: []byte{},
-		}, nil
-	}
-
+func SgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
 	payload := reportData.Tx
 	msgBytes := make([]byte, payload.Size())
 	payload.MarshalTo(msgBytes)
@@ -99,12 +92,56 @@ func VerifyReport(reportData *TeeCall) (*TeeVerifyResult, error) {
 	}, nil
 }
 
-func Int64ToBytes(time int64) []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(time))
-	return b
-}
+func ClientSgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
+	payload := reportData.Tx
+	msgBytes := make([]byte, payload.Size())
+	payload.MarshalTo(msgBytes)
+	var reportBytes, timestamp = reportData.Report, reportData.Time
 
-func BytesToInt64(b []byte) int64 {
-	return int64(binary.BigEndian.Uint64(b))
+	// decode address
+	signer := reportData.Caller
+
+	// call sgx-verify
+	reportBt := base64.StdEncoding.EncodeToString(reportBytes)
+	cmd := exec.Command("sgx-verify", reportBt)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, errors.New("call sgx-verify errors" + err.Error())
+	}
+	outs := strings.Split(string(output), "⊂⊂⊂⊂")
+	datas := strings.Split(outs[1], "∐∐∐∐")
+	report := &attestation.Report{}
+	err = json.Unmarshal([]byte(datas[1]), report)
+	if err != nil {
+		return nil, errors.New("call sgx-verify unmarshal errors" + err.Error())
+	}
+	// end call sgx-verify
+
+	pubkey, err := ed25519.Scheme{}.FromPublicKey(signer)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	buf.Write(Int64ToBytes(timestamp))
+	buf.Write(signer)
+	if len(msgBytes) > 0 {
+		buf.Write(msgBytes)
+	}
+
+	sig := report.Data
+	if !pubkey.Verify(buf.Bytes(), sig) {
+		return nil, errors.New("invalid sgx report")
+	}
+
+	// if report.Debug {
+	// 	return nil, errors.New("debug mode is not allowed")
+	// }
+
+	return &TeeVerifyResult{
+		TeeType:       reportData.TeeType,
+		CodeSigner:    report.SignerID,
+		CodeSignature: report.UniqueID,
+		CodeProductId: report.ProductID,
+	}, nil
 }

@@ -13,6 +13,7 @@ require (
 	github.com/edgelesssys/ego v1.7.0
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
+	github.com/google/go-sev-guest v0.13.0
 	github.com/hashicorp/vault v1.19.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/multiformats/go-multihash v0.2.3
@@ -29,7 +30,10 @@ require (
 	github.com/cometbft/cometbft-db v1.0.1 // indirect
 	github.com/dgraph-io/badger/v4 v4.5.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/google/go-configfs-tsm v0.2.2 // indirect
+	github.com/google/logger v1.1.1 // indirect
 	github.com/onsi/gomega v1.36.2 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 )
 
 require (

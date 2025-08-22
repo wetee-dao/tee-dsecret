@@ -166,7 +166,7 @@ func TestWorkerUpdate(t *testing.T) {
 	}
 
 	err = subnetIns.ExecSecretUpdate(0, []byte("v0"), subnet.Ip{
-		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv4:   util.NewSome[uint32](3232263885),
 		Ipv6:   util.NewNone[types.U128](),
 		Domain: util.NewNone[[]byte](),
 	}, 31000, chain.ExecParams{
@@ -176,7 +176,7 @@ func TestWorkerUpdate(t *testing.T) {
 	fmt.Println(err)
 
 	subnetIns.ExecSecretUpdate(1, []byte("v1"), subnet.Ip{
-		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv4:   util.NewSome[uint32](3232263885),
 		Ipv6:   util.NewNone[types.U128](),
 		Domain: util.NewNone[[]byte](),
 	}, 41000, chain.ExecParams{
@@ -185,7 +185,7 @@ func TestWorkerUpdate(t *testing.T) {
 	})
 
 	subnetIns.ExecSecretUpdate(2, []byte("v2"), subnet.Ip{
-		Ipv4:   util.NewSome[uint32](3232264041),
+		Ipv4:   util.NewSome[uint32](3232263885),
 		Ipv6:   util.NewNone[types.U128](),
 		Domain: util.NewNone[[]byte](),
 	}, 51000, chain.ExecParams{
