@@ -182,7 +182,6 @@ message TeeTrigger {
 
 // api req 
 message ApiReq {
-  uint64 id = 1;
   bytes url = 2;
   bytes from = 3;
   bytes data = 4;
@@ -190,7 +189,6 @@ message ApiReq {
 
 // api resp 
 message ApiResp {
-  uint64 req_id = 1;
   int32 code = 2;
   bytes data = 3;
 }
