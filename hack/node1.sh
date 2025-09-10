@@ -12,7 +12,7 @@ cd $DIR/node1
 export SIDE_CHAIN_PORT=41000
 export GQL_PORT=41005
 export PASSWORD=123456
-export CHAIN_ADDR=ws://127.0.0.1:9944
+export CHAIN_ADDR=ws://192.168.110.205:30002/ws
 
 ego-go build -o dsecret ../../main.go
 ego sign dsecret

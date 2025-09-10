@@ -14,7 +14,7 @@ import (
 )
 
 func TestCloud(t *testing.T) {
-	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func TestCloud(t *testing.T) {
 }
 
 func TestSetSubnetSolt(t *testing.T) {
-	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -64,7 +64,7 @@ func TestSetSubnetSolt(t *testing.T) {
 }
 
 func TestCloudUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
 	if err != nil {
 		panic(err)
 	}

@@ -821,6 +821,7 @@ type Tuple_106 struct { // Tuple
 	F0 uint64
 	F1 Pod
 	F2 []Tuple_108
+	F3 byte
 }
 type Tuple_108 struct { // Tuple
 	F0 uint64

@@ -1,6 +1,6 @@
 {
   "source": {
-    "hash": "0x1d737bbd0bfce123ceb938c54b5e2e2ff22e080f6ee2e433c50eead149ad8394",
+    "hash": "0x6574149a14aa3c1f8f92de9046f4aacde8294476586ff0f32505027832e442ea",
     "language": "ink! 6.0.0-alpha.1",
     "compiler": "rustc 1.88.0",
     "build_info": {
@@ -4394,7 +4394,8 @@
           "tuple": [
             5,
             9,
-            107
+            107,
+            2
           ]
         }
       }
