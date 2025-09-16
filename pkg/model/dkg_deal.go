@@ -11,8 +11,10 @@ import (
 )
 
 type ConsensusMsg struct {
+	Sponsor          *Validator
 	DealBundle       *DealBundle
 	Epoch            uint32
+	EpochTime        int64
 	ShareCommits     KyberPoints
 	OldValidators    []*Validator
 	Validators       []*Validator

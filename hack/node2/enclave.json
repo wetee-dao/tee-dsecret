@@ -35,5 +35,11 @@
             "name": "PASSWORD",
             "fromHost": true
         }
+    ],
+    "files": [
+        {
+            "source": "/etc/ssl/certs/ca-certificates.crt",
+            "target": "/etc/ssl/certs/ca-certificates.crt"
+        }
     ]
 }

@@ -36,6 +36,10 @@ func (p *PubKey) Std() (gocrypto.PublicKey, error) {
 	return p.PublicKey, nil
 }
 
+func (p *PubKey) Ed25519PublicKey() ed25519.PublicKey {
+	return p.PublicKey
+}
+
 func (p *PubKey) String() string {
 	return hex.EncodeToString(p.PublicKey)
 }
@@ -63,6 +67,13 @@ func (p PubKey) MarshalJSON() ([]byte, error) {
 
 func (p *PubKey) H160() types.H160 {
 	return H160FromPublicKey(p.PublicKey)
+}
+
+func (p *PubKey) AccountID() types.AccountID {
+	var bt [32]byte
+	copy(bt[:], p.PublicKey)
+
+	return types.AccountID(bt)
 }
 
 func (p *PubKey) UnmarshalJSON(bt []byte) error {
@@ -106,9 +117,7 @@ func PubKeyFromPoint(point kyber.Point) (*PubKey, error) {
 		return nil, fmt.Errorf("marshal point: %w", err)
 	}
 
-	var pk ed25519.PublicKey
-	pk = buf
-
+	var pk ed25519.PublicKey = buf
 	return &PubKey{
 		PublicKey: pk,
 		suite:     suites.MustFind("Ed25519"),
@@ -120,6 +129,15 @@ func PubKeyFromByte(pubkey []byte) *PubKey {
 		PublicKey: ed25519.PublicKey(pubkey),
 		suite:     suites.MustFind("Ed25519"),
 	}
+}
+
+func PubKeyFromHex(h string) (*PubKey, error) {
+	b, err := hex.DecodeString(h)
+	if err != nil {
+		return nil, fmt.Errorf("decode hex: %w", err)
+	}
+
+	return PubKeyFromByte(b), nil
 }
 
 func PubKeyFromSS58(ss58 string) (*PubKey, error) {

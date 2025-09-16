@@ -9,14 +9,27 @@ import (
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 type Txn struct {
 	in *pebble.Batch
 }
 
+func (db *DB) NewTransaction() *Txn {
+	return &Txn{in: db.DB.NewIndexedBatch()}
+}
+
+func (txn *Txn) SetKey(namespace, key string, value []byte) error {
+	return txn.Set([]byte(comboKey(namespace, key)), value)
+}
+
+func (txn *Txn) GetKey(namespace, key string, value proto.Message) ([]byte, error) {
+	return txn.Get([]byte(comboKey(namespace, key)))
+}
+
 func (txn *Txn) Set(key, value []byte) error {
-	val, err := SealWithProductKey(value, nil)
+	val, err := util.SealWithProductKey(value, nil)
 	if err != nil {
 		return err
 	}
@@ -30,7 +43,7 @@ func (txn *Txn) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return Unseal(v, nil)
+	return util.Unseal(v, nil)
 }
 
 func (txn *Txn) Delete(key []byte) error {
@@ -97,7 +110,7 @@ func TxnGetProtoMessageList[T any](txn *Txn, key []byte) (list []*T, err error) 
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
-		value, err := Unseal(v, nil)
+		value, err := util.Unseal(v, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +135,7 @@ func TxnGetProtoMessage[T any](txn *Txn, key []byte) (*T, error) {
 		return nil, nil
 	}
 
-	value, err := Unseal(v, nil)
+	value, err := util.Unseal(v, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +152,10 @@ func TxnSetProtoMessage[T proto.Message](txn *Txn, key []byte, value T) error {
 		return err
 	}
 	return txn.Set(key, buf.Bytes())
+}
+
+func (txn *Txn) Rollback() error {
+	return txn.in.Close()
 }
 
 func (txn *Txn) Commit() error {

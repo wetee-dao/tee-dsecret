@@ -79,7 +79,7 @@ func TestGetProtoMessage(t *testing.T) {
 		t.Error("value not equal")
 	}
 
-	list, err := GetProtoMessageList[types.ValidatorUpdate]("", "validator")
+	list, _, err := GetProtoMessageList[types.ValidatorUpdate]("", "validator")
 	if err != nil {
 		t.Error(err)
 	}

@@ -4,37 +4,33 @@ import (
 	"bytes"
 	"fmt"
 
-	abcicli "github.com/cometbft/cometbft/abci/client"
-	"github.com/cometbft/cometbft/abci/types"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 )
 
-func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
-	buf := new(bytes.Buffer)
-	err := types.WriteMessage(tx, buf)
-	if err != nil {
-		return nil, err
-	}
-
-	return SideChainNode.Mempool().CheckTx(buf.Bytes(), SideChainNode.NodeInfo().ID())
-}
-
-func (app *SideChain) ProcessTx(txs [][]byte, txn *model.Txn) abci.ProcessProposalStatus {
+// Process tx
+func (app *SideChain) ProcessTx(txs [][]byte) abci.ProcessProposalStatus {
 	for _, txbt := range txs {
+		txbox := new(model.TxBox)
+		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
+		if err != nil {
+			return abci.PROCESS_PROPOSAL_STATUS_REJECT
+		}
+
 		tx := new(model.Tx)
-		err := protoio.ReadMessage(bytes.NewBuffer(txbt), tx)
+		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
 		if err != nil {
 			return abci.PROCESS_PROPOSAL_STATUS_REJECT
 		}
 
 		switch tx.Payload.(type) {
-		case *model.Tx_Epoch:
+		case *model.Tx_EpochStart:
+		case *model.Tx_EpochEnd:
+		case *model.Tx_SyncTxStart:
+		case *model.Tx_SyncTxEnd:
 			break
-		case *model.Tx_Bridge:
-			break
-		case *model.Tx_Test:
+		case *model.Tx_HubCall:
 			break
 		default:
 			fmt.Println("Payload is not set")

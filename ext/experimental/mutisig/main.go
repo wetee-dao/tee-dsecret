@@ -104,7 +104,7 @@ func main() {
 	message := []byte("This is a test message for multi-signature.")
 
 	// 创建多个签名者
-	numSigners := 100
+	numSigners := 300
 	signers := make([]*Signer, numSigners)
 	for i := range numSigners {
 		signers[i] = NewSigner(suite)

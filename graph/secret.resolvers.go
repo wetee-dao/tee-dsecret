@@ -7,34 +7,65 @@ package graph
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	ink "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, secret model.Env) (*model.SecretEnvWithHash, error) {
-	return dkgIns.SetSecretEnv(ctx, secret)
-}
+func (r *mutationResolver) UploadSecret(ctx context.Context, secret string) (bool, error) {
+	pk, err := ink.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+	user := pk.H160Address()
 
-// Secret is the resolver for the secret field.
-func (r *queryResolver) Secret(ctx context.Context, hash string) (*model.SecretEnvWithHash, error) {
-	return dkgIns.GetSecretPubEnvData(ctx, hash)
+	encData, err := sideChain.EncryptSecret([]byte(secret))
+	if err != nil {
+		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
+	}
+
+	call := model.TeeCall{
+		Tx: &model.TeeCall_UploadSecret{
+			UploadSecret: &model.UploadSecret{
+				User:  user[:],
+				Index: 0,
+				Data:  encData,
+				Time:  uint64(time.Now().Unix()),
+				Sig:   []byte(""),
+			},
+		},
+	}
+
+	err = model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
+	if err != nil {
+		return false, gqlerror.Errorf("GetReport error:" + err.Error())
+	}
+
+	_, err = sidechain.SubmitTx(&model.Tx{
+		Payload: &model.Tx_HubCall{
+			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
+		},
+	})
+
+	if err != nil {
+		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
+	}
+
+	return true, nil
 }
 
 // TeeReport is the resolver for the tee_report field.
 func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, error) {
-	/// 获取报告
-	param, report, err := util.GetReport(hash)
-	if err != nil {
-		return "", gqlerror.Errorf("GetReport:" + err.Error())
-	}
-
 	// 组合报告
 	result := map[string]any{
-		"param":  param,
-		"report": report,
+		"param":  "",
+		"report": "",
 	}
 	bt, err := json.Marshal(result)
 	if err != nil {
@@ -46,8 +77,4 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
-// Query returns QueryResolver implementation.
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
-
 type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }

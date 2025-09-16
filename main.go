@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
-	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
-	chain "github.com/wetee-dao/tee-dsecret/chains"
 	"github.com/wetee-dao/tee-dsecret/graph"
+	chain "github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -22,7 +22,7 @@ var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:994
 func main() {
 	// 获取环境变量
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
-	chainAddr := util.GetEnv("CHAIN_ADDR", DefaultChainUrl)
+	chainAddr := strings.Split(util.GetEnv("CHAIN_ADDR", DefaultChainUrl), ",")
 	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
 	// password := util.GetEnv("PASSWORD", "")
 
@@ -35,14 +35,9 @@ func main() {
 	defer db.Close()
 
 	// init sidechain node key
-	nodeKey, err := p2p.LoadNodeKey("./chain_data/config/node_key.json")
+	_, p2pKey, err := model.GetP2PKey()
 	if err != nil {
 		fmt.Println("failed to load node key:", err)
-		os.Exit(1)
-	}
-	p2pKey, err := model.PrivateKeyFromOed25519(nodeKey.PrivKey.Bytes())
-	if err != nil {
-		fmt.Println("Marshal PKG_PK error:", err)
 		os.Exit(1)
 	}
 
@@ -61,34 +56,36 @@ func main() {
 	}
 
 	// Link to polkadot
-	mainChain, err := chain.ConnectMainChain(chainAddr, nodePriv)
+	_, err = chain.ConnectMainChain(chainAddr, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
 	}
 
 	// Init node
-	node, sideChain, dkgReactor, err := sidechain.Init(chainPort, mainChain, func() {
-		fmt.Println()
+	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
 		util.LogWithYellow("Main Chain", chainAddr)
 		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
 		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
+		os.Exit(1)
 	}
 
 	// Start BFT node
 	if err := node.Start(); err != nil {
 		log.Fatalf("failed to start BFT node: %v", err)
+		os.Exit(1)
 	}
 	defer func() {
 		_ = node.Stop()
 		node.Wait()
 	}()
 
-	// Create DKG
-	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, nil)
+	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, dkg.Logger{
+		NodeTag: "DKG",
+	})
 	if err != nil {
 		fmt.Println("Create DKG error:", err)
 		os.Exit(1)
@@ -96,11 +93,15 @@ func main() {
 	go dkgIns.Start()
 	defer dkgIns.Stop()
 
+	if dkgIns.DkgPubKey != nil {
+		util.LogWithYellow("DKG PubKey", dkgIns.DkgPubKey.SS58())
+	}
+
 	// Set DKG to sideChain
 	sideChain.SetDKG(dkgIns)
 
 	// 启动 graphql 服务器
-	go graph.StartServer(dkgIns, node, sideChain, gqlPort)
+	go graph.StartServer(sideChain, gqlPort)
 
 	// wait for stop signal
 	sigCh := make(chan os.Signal, 1)

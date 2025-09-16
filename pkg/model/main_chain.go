@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cometbft/cometbft/crypto"
 	"github.com/wetee-dao/ink.go/util"
 )
@@ -25,23 +25,23 @@ func (p *P2PAddr) SideChainUrl() string {
 // Ip
 type Ip struct {
 	Ipv4   util.Option[uint32]
-	Ipv6   util.Option[stypes.U128]
+	Ipv6   util.Option[types.U128]
 	Domain util.Option[[]byte]
 }
 
 // ToString
 func (ip *Ip) ToString() string {
 	url := ""
-	if !ip.Domain.IsNone {
+	if !ip.Domain.IsNone() {
 		url = string(ip.Domain.V)
-	} else if !ip.Ipv4.IsNone {
+	} else if !ip.Ipv4.IsNone() {
 		ipv4 := ip.Ipv4.V
 		url = fmt.Sprintf("%d.%d.%d.%d",
 			(ipv4>>24)&0xFF,
 			(ipv4>>16)&0xFF,
 			(ipv4>>8)&0xFF,
 			ipv4&0xFF)
-	} else if !ip.Ipv6.IsNone {
+	} else if !ip.Ipv6.IsNone() {
 		ipv6 := ip.Ipv6.V
 		ipv6Int128 := big.NewInt(0)
 		ipv6Int128.SetBytes(ipv6.Bytes())
@@ -60,17 +60,22 @@ func (ip *Ip) ToString() string {
 
 type K8sCluster struct {
 	Id            uint64
-	Account       [32]byte
+	Name          []byte
+	Owner         types.H160
+	Level         byte
+	RegionId      uint32
 	StartBlock    uint32
 	StopBlock     util.Option[uint32]
 	TerminalBlock util.Option[uint32]
-	Name          []byte
-	Ip            []Ip
+	P2pId         types.AccountID
+	Ip            Ip
 	Port          uint32
 	Status        byte
 }
 
 type Validator struct {
+	// node id
+	NodeID uint64
 	// account32
 	ValidatorId PubKey
 	// account32

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ipfs/go-cid"
 	mh "github.com/multiformats/go-multihash"
+	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	"go.dedis.ch/kyber/v4/share"
 )
@@ -31,16 +32,27 @@ type SecretCommitJson struct {
 // DistKeyShare
 type DistKeyShare struct {
 	// Coefficients of the public polynomial holding the public key
-	Commits KyberPoints //[]kyber.Point
-
+	CommitsWrap KyberPoints `json:"Commits"`
 	// PriShare of the distributed secret
-	PriShare PriShare
+	PriShareWrap PriShare `json:"PriShare"`
 }
 
+// DistKeyShare
+func (d DistKeyShare) PriShare() *share.PriShare {
+	return d.PriShareWrap.PriShare
+}
+
+// DistKeyShare
+func (d DistKeyShare) Commitments() []kyber.Point {
+	return d.CommitsWrap.Public
+}
+
+// PriShare
 type PriShare struct {
 	*share.PriShare
 }
 
+// Custom JSON serialization
 func (d PriShare) MarshalJSON() ([]byte, error) {
 	sbuf, err := d.V.MarshalBinary()
 	if err != nil {
@@ -56,6 +68,7 @@ func (d PriShare) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// Custom JSON deserialization
 func (d *PriShare) UnmarshalJSON(bt []byte) error {
 	jsonData := struct {
 		I uint32
@@ -80,11 +93,6 @@ func (d *PriShare) UnmarshalJSON(bt []byte) error {
 	}
 
 	return nil
-}
-
-type Secret struct {
-	EncCmt  []byte   `json:"enc_cmt,omitempty"`  // encryption commitment
-	EncScrt [][]byte `json:"enc_scrt,omitempty"` // enncrypted secret
 }
 
 func CidFromBytes(b []byte) (cid.Cid, error) {

@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 var DBINS *DB
@@ -19,10 +21,6 @@ const (
 
 type DB struct {
 	*pebble.DB
-}
-
-func (db *DB) NewTransaction() *Txn {
-	return &Txn{in: db.DB.NewIndexedBatch()}
 }
 
 func NewDB() (*DB, error) {
@@ -50,21 +48,53 @@ func Get(key string) ([]byte, error) {
 }
 
 func SetKey(namespace, key string, value []byte) error {
-	val, err := SealWithProductKey(value, nil)
+	val, err := util.SealWithProductKey(value, nil)
 	if err != nil {
 		return err
 	}
 
-	return DBINS.Set([]byte(namespace+"_"+key), val, pebble.Sync)
+	return DBINS.Set([]byte(comboKey(namespace, key)), val, pebble.Sync)
+}
+
+func SetJson[T any](namespace, key string, val *T) error {
+	bt, err := json.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	return SetKey(namespace, key, bt)
+}
+
+func SetCodec[T any](namespace, key string, val T) error {
+	bt, err := codec.Encode(val)
+	if err != nil {
+		return err
+	}
+
+	return SetKey(namespace, key, bt)
+}
+
+func GetCodec[T any](namespace, key string) (*T, error) {
+	bt, err := GetKey(namespace, key)
+	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return new(T), nil
+		}
+		return nil, err
+	}
+
+	val := new(T)
+	err = codec.Decode(bt, val)
+	return val, err
 }
 
 func GetKey(namespace, key string) ([]byte, error) {
-	value, _, err := DBINS.Get([]byte(namespace + "_" + key))
+	value, _, err := DBINS.Get([]byte(comboKey(namespace, key)))
 	if err != nil {
 		return nil, err
 	}
 
-	return Unseal(value, nil)
+	return util.Unseal(value, nil)
 }
 
 func GetJson[T any](namespace, key string) (*T, error) {
@@ -77,7 +107,7 @@ func GetJson[T any](namespace, key string) (*T, error) {
 	}
 
 	if len(v) == 0 {
-		return new(T), nil
+		return nil, nil
 	}
 
 	val := new(T)
@@ -86,13 +116,32 @@ func GetJson[T any](namespace, key string) (*T, error) {
 	return val, err
 }
 
-func SetJson[T any](namespace, key string, val *T) error {
-	bt, err := json.Marshal(val)
+func GetJsonList[T any](namespace, key string) (list []*T, err error) {
+	rkey := []byte(comboKey(namespace, key))
+	iter, err := DBINS.NewIter(&pebble.IterOptions{
+		LowerBound: rkey,
+		UpperBound: keyUpperBound(rkey),
+	})
 	if err != nil {
-		return err
+		return nil, err
+	}
+	defer iter.Close()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		v := iter.Value()
+		value, err := util.Unseal(v, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		val := new(T)
+		err = json.Unmarshal(value, val)
+		if err == nil {
+			list = append(list, val)
+		}
 	}
 
-	return SetKey(namespace, key, bt)
+	return
 }
 
 func keyUpperBound(b []byte) []byte {
@@ -107,22 +156,25 @@ func keyUpperBound(b []byte) []byte {
 	return nil
 }
 
-func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
-	rkey := []byte(namespace + "_" + key)
+func GetProtoMessageList[T any](namespace, key string) ([]*T, [][]byte, error) {
+	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
 		UpperBound: keyUpperBound(rkey),
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer iter.Close()
 
+	keys := make([][]byte, 0, 100)
+	list := make([]*T, 0, 100)
 	for iter.First(); iter.Valid(); iter.Next() {
 		v := iter.Value()
-		value, err := Unseal(v, nil)
+		keys = append(keys, *util.DeepCopy(iter.Key()))
+		value, err := util.Unseal(v, nil)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		val := new(T)
@@ -132,7 +184,7 @@ func GetProtoMessageList[T any](namespace, key string) (list []*T, err error) {
 		}
 	}
 
-	return
+	return list, keys, nil
 }
 
 func GetProtoMessage[T any](namespace, key string) (*T, error) {
@@ -145,7 +197,7 @@ func GetProtoMessage[T any](namespace, key string) (*T, error) {
 		return nil, nil
 	}
 
-	value, err := Unseal(v, nil)
+	value, err := util.Unseal(v, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +217,15 @@ func SetProtoMessage[T proto.Message](namespace, key string, value T) error {
 }
 
 func DeleteKey(namespace, key string) error {
-	return DBINS.Delete([]byte(namespace+"_"+key), pebble.Sync)
+	return DBINS.Delete([]byte(comboKey(namespace, key)), pebble.Sync)
+}
+
+func DeleteByteKey(key []byte) error {
+	return DBINS.Delete(key, pebble.Sync)
 }
 
 func DeletekeysByPrefix(namespace, key string) error {
-	rkey := []byte(namespace + "_" + key)
+	rkey := []byte(comboKey(namespace, key))
 	iter, err := DBINS.NewIter(&pebble.IterOptions{
 		LowerBound: rkey,
 		UpperBound: keyUpperBound(rkey),
@@ -185,4 +241,12 @@ func DeletekeysByPrefix(namespace, key string) error {
 	}
 
 	return txn.Commit(pebble.Sync)
+}
+
+func comboKey(namespace, key string) string {
+	return namespace + "_" + key
+}
+
+func ComboNamespaceKey(namespace, key string) []byte {
+	return []byte(comboKey(namespace, string(key)))
 }

@@ -15,27 +15,30 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	"github.com/cometbft/cometbft/version"
-	"github.com/wetee-dao/tee-dsecret/chains"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
-	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/peer/bft-brigde"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/network/bft-brigde"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 var SideChainNode *nm.Node
+var P2PKey *model.PubKey
 
-func Init(
+// init side chain
+func InitSideChain(
 	chainPort int,
-	mainChain chains.Chain,
+	light bool,
 	callback func(),
 ) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
 	// Get boot peers
-	boots, err := mainChain.GetBootPeers()
+	boots, err := chains.MainChain.GetBootPeers()
 	if err != nil {
 		return nil, nil, nil, errors.New("GetBootPeers error: " + err.Error())
 	}
 
 	// 创建侧链实例
-	sideChain, err := NewSideChain()
+	sideChain, err := NewSideChain(light)
 	if err != nil {
 		return nil, nil, nil, errors.New("NewSideChain error: " + err.Error())
 	}
@@ -89,8 +92,10 @@ func Init(
 		return nil, nil, nil, errors.New("failed to load node key: " + err.Error())
 	}
 
-	// add boot nodes
+	_, p2pKey, _ := model.GetP2PKey()
+	P2PKey = p2pKey.GetPublic()
 
+	// add boot nodes
 	seeds := []string{}
 	for _, boot := range boots {
 		if util.ToSideChainNodeID(boot.Id[:]) == nodeKey.ID() {
@@ -101,7 +106,7 @@ func Init(
 	config.P2P.Seeds = strings.Join(seeds, ",")
 
 	// load validator key
-	pv := privval.LoadFilePV(
+	validatorKey := privval.LoadFilePV(
 		config.PrivValidatorKeyFile(),
 		config.PrivValidatorStateFile(),
 	)
@@ -114,13 +119,13 @@ func Init(
 	}
 
 	// add DKG to chain node
-	dkgReactor := bftbrigde.NewBTFReactor("DKG", mainChain)
+	p2pReactor := bftbrigde.NewBTFReactor("DKG")
 
 	// init BFT node
 	SideChainNode, err = nm.NewNode(
 		context.Background(),
 		config,
-		pv,
+		validatorKey,
 		nodeKey,
 		proxy.NewLocalClientCreator(sideChain),
 		nm.DefaultGenesisDocProviderFunc(config),
@@ -128,7 +133,7 @@ func Init(
 		nm.DefaultMetricsProvider(config.Instrumentation),
 		logger,
 		nm.CustomReactors(map[string]p2p.Reactor{
-			"DKG": dkgReactor,
+			"DKG": p2pReactor,
 		}),
 	)
 	if err != nil {
@@ -136,13 +141,23 @@ func Init(
 	}
 
 	callback()
-	// if p2pConf.Seeds != "" {
-	// 	util.LogWithRed("Boot Nodes ", p2pConf.Seeds)
-	// }
 
-	return SideChainNode, sideChain, dkgReactor, err
+	sideChain.p2p = p2pReactor
+	if !light {
+		// add hook for partial sign
+		p2pReactor.Sub("block-partial-sign", sideChain.revPartialSign)
+		go sideChain.txCh.Start(sideChain.handlePartialSign)
+	}
+
+	p2pReactor.Sub("secret", sideChain.revSecret)
+
+	return SideChainNode, sideChain, p2pReactor, err
 }
 
 func (s *SideChain) SetDKG(dkg *dkg.DKG) {
 	s.dkg = dkg
+}
+
+func (s *SideChain) GetDKG() *dkg.DKG {
+	return s.dkg
 }

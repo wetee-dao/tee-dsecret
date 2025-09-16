@@ -24,7 +24,7 @@ import (
 //
 // 返回值:
 // - error: 如果转换、序列化或发送过程中发生错误，则返回相应的错误
-func (dkg *DKG) sendDealMessage(node *model.PubKey, message *model.ConsensusMsg) error {
+func (dkg *DKG) sendDealMessage(node *model.To, message *model.ConsensusMsg) error {
 	// 将协议消息序列化为JSON字节切片
 	bt, err := json.Marshal(message)
 	if err != nil {
@@ -32,7 +32,7 @@ func (dkg *DKG) sendDealMessage(node *model.PubKey, message *model.ConsensusMsg)
 	}
 
 	// 通过Peer发送序列化后的消息到目标节点
-	return dkg.sendToNode(node, "dkg", &model.Message{
+	return dkg.sendToNode(node, &model.DkgMessage{
 		Type:    "deal",
 		Payload: bt,
 	})
@@ -48,14 +48,18 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 		return err
 	}
 
-	newMsg := util.DeepCopy[model.ConsensusMsg](*pmessage)
+	// 开始本地节点的共识
+	// start local node consensus
+	newMsg := util.DeepCopy(*pmessage)
+	dkg.SaveSponsor(newMsg)
 	dkg.startConsensus(*newMsg)
+	// end local node
 
 	// 存储deal
 	dkg.deals[OrgId] = pmessage.DealBundle
 
-	mustDeals := len(dkg.DkgNodes)
-	if pmessage.Epoch > 0 {
+	mustDeals := len(dkg.Nodes)
+	if pmessage.Epoch > StartEpoch {
 		mustDeals = pmessage.ConsensusNodeNum
 	}
 	if len(dkg.deals) < mustDeals {
@@ -65,14 +69,14 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 
 	deals := make([]*pedersen.DealBundle, 0, len(dkg.deals))
 	for _, d := range dkg.deals {
-		new := util.DeepCopy[model.DealBundle](*d)
+		new := util.DeepCopy(*d)
 		deals = append(deals, new.DealBundle)
 	}
 
 	// 处理密钥份额
 	resp, err := dkg.DistKeyGenerator.ProcessDeals(deals)
 	if err != nil || resp == nil {
-		dkg.stopConsensus(false)
+		dkg.finishDkgConsensusStep(false, "dkg.DistKeyGenerator.ProcessDeals")
 		return fmt.Errorf("ProcessDeals error: %w", err)
 	}
 
@@ -89,27 +93,20 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	dkg.log.Info(logs...)
 
 	if errNum > 1 {
-		dkg.stopConsensus(false)
+		dkg.finishDkgConsensusStep(false, "errNum > 1")
 		return fmt.Errorf("ProcessDeals error: errNum >1")
 	}
 
 	// 将响应对象序列化为字节切片
-	bt, err := json.Marshal(resp)
-	if err != nil {
-		dkg.stopConsensus(false)
-		return err
-	}
+	bt, _ := json.Marshal(resp)
 
 	// 发送 deal resp 到所有参与节点
-	for _, node := range dkg.NewNodes {
-		// 向节点发送交易响应
-		err = dkg.sendToNode(&node.P2pId, "dkg", &model.Message{
-			Type:    "deal_resp",
-			Payload: bt,
-		})
-		if err != nil {
-			util.LogError("DEAL", "Send deal_resp error", err)
-		}
+	err = dkg.sendToNode(model.SendToNodes(dkg.NewNetIds()), &model.DkgMessage{
+		Type:    "deal_resp",
+		Payload: bt,
+	})
+	if err != nil {
+		util.LogError("DEAL", "Send deal_resp error", err)
 	}
 
 	return nil
@@ -143,22 +140,22 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 	// 处理密钥份额
 	res, justification, err := dkg.DistKeyGenerator.ProcessResponses(responses)
 	if err != nil {
-		dkg.stopConsensus(false)
+		dkg.finishDkgConsensusStep(false, "dkg.DistKeyGenerator.ProcessResponses")
 		// 如果处理过程中出现错误，返回错误
 		return fmt.Errorf("ProcessResponse: %w", err)
 	}
 
 	// 检查是否生成了密钥份额
 	if res != nil {
-		dkg.DkgKeyShare = &model.DistKeyShare{
-			Commits:  model.KyberPoints{Public: res.Key.Commits},
-			PriShare: model.PriShare{PriShare: res.Key.Share},
+		dkg.NewDkgKeyShare = &model.DistKeyShare{
+			CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
+			PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 		}
-		dkg.DkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
+		dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 		// 保存密钥份额
-		dkg.saveStore()
-		dkg.stopConsensus(true)
+		dkg.saveState()
+		dkg.finishDkgConsensusStep(true, "")
 		return nil
 	}
 
@@ -167,15 +164,15 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 		// reshare 可能在这里获取私钥
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err == nil {
-			dkg.DkgKeyShare = &model.DistKeyShare{
-				Commits:  model.KyberPoints{Public: res.Key.Commits},
-				PriShare: model.PriShare{PriShare: res.Key.Share},
+			dkg.NewDkgKeyShare = &model.DistKeyShare{
+				CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
+				PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 			}
-			dkg.DkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
+			dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
 
 			// 保存密钥份额
-			dkg.saveStore()
-			dkg.stopConsensus(true)
+			dkg.saveState()
+			dkg.finishDkgConsensusStep(true, "")
 			return nil
 		}
 	}
@@ -207,7 +204,7 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 	// 	}
 	// }
 
-	dkg.stopConsensus(false)
+	dkg.finishDkgConsensusStep(false, "HandleDealResp not implemented")
 	return fmt.Errorf("HandleDealResp not implemented")
 }
 
@@ -245,7 +242,7 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 // 	}
 
 // 	dkg.justifs = append(dkg.justifs, message)
-// 	if len(dkg.responses) < len(dkg.DkgNodes) {
+// 	if len(dkg.responses) < len(dkg.Nodes) {
 // 		// 如果交易数量小于阈值，则返回错误
 // 		return nil
 // 	}

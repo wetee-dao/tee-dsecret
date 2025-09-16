@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/pkg/peer/local"
+	"github.com/wetee-dao/tee-dsecret/pkg/network/local"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
@@ -33,6 +33,9 @@ func TestNetwork(t *testing.T) {
 		os.Exit(1)
 	}
 	defer db.Close()
+
+	// Skip partial sign
+	skipPartialSign = true
 
 	nodes := []*model.PubKey{}
 	validators := []*model.Validator{}
@@ -68,15 +71,28 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	dkg_pubkey := new(model.PubKey)
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      1,
+	}, func(signer *DssSigner, nodeId uint64) {
+		util.LogWithBlue("CONSENSUS SUCCESS", nodeId)
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		util.LogWithYellow("V0 |||", d.DkgKeyShare.PriShare.String())
+		util.LogWithYellow("V0 |||", d.DkgKeyShare.PriShare().String())
 	}
+	dkg_pubkey = dkgs[0].DkgPubKey
 
 	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
@@ -119,62 +135,53 @@ func TestNetwork(t *testing.T) {
 		dkgs = append(dkgs, dkg)
 	}
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      2,
+	}, func(signer *DssSigner, nodeId uint64) {
+		// util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare != nil {
-			util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare.String())
-		}
+		util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare().String())
 	}
 
 	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
-	dkgs[0].TryConsensus(model.ConsensusMsg{
+	err = dkgs[0].TryEpochConsensus(model.ConsensusMsg{
 		Validators: validators,
 		Epoch:      3,
+	}, func(signer *DssSigner, nodeId uint64) {
+		// util.LogWithBlue("CONSENSUS SUCCESS", pub, sig, "====", Sr25519Verify(pubkey, pub.ToBytes(), sig))
+		for _, dkg := range dkgs {
+			dkg.ToNewEpoch()
+		}
+	}, func(error) {
+		util.LogWithBlue("CONSENSUS Error", err.Error())
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		if d.DkgKeyShare.PriShare.PriShare != nil {
-			util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare.String())
-		}
+		util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare().String())
+	}
+
+	fmt.Println("dkg pubkey", dkgs[0].DkgPubKey.SS58())
+	fmt.Println("dkg pubkey", dkg_pubkey.SS58())
+	if dkgs[0].DkgPubKey.SS58() != dkg_pubkey.SS58() {
+		t.Fatal("dkg pubkey error")
 	}
 }
-
-// func TestSave(t *testing.T) {
-// 	os.RemoveAll("./chain_data")
-
-// 	db, err := model.NewDB()
-// 	if err != nil {
-// 		require.NoErrorf(t, err, "failed store.InitDB")
-// 		os.Exit(1)
-// 	}
-
-// 	defer db.Close()
-
-// 	nodeSecret, _ := model.PrivateKeyFromHex(peerSecret[0])
-// 	peer, err := local.NewNetwork(nodeSecret, []string{}, []*model.PubKey{}, uint32(0), uint32(0))
-// 	require.NoErrorf(t, err, "failed peer.NewNetwork")
-// 	dkg, err := NewDKG(nodeSecret, peer, inkUtil.NewNone[[]*model.Validator](), Logger{
-// 		NodeIndex: 0,
-// 	})
-
-// 	dkg.Epoch = 100
-// 	go dkg.saveStore()
-
-// 	time.Sleep(time.Second)
-
-// 	dkg.Epoch = 1
-
-// 	err = dkg.reStore()
-// 	require.NoErrorf(t, err, "failed reStore")
-
-// 	if dkg.Epoch != 100 {
-// 		t.Errorf("dkg.Epoch != 100")
-// 	}
-// }

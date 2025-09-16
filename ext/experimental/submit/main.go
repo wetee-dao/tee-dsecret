@@ -7,14 +7,14 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/tee-dsecret/chains/pallets/generated/dsecret"
-	gtypes "github.com/wetee-dao/tee-dsecret/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/dsecret"
+	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"golang.org/x/crypto/blake2b"
 )
 
 func main() {
-	client, err := chain.ClientInit("ws://127.0.0.1:9944", true)
+	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	signer, _ := nodeSecret.ToSigner()
+	signer := nodeSecret.ToSigner()
 
 	data := []byte("1234567890")
 	hash := blake2b.Sum512(data)
@@ -63,7 +63,7 @@ func main() {
 		panic(err)
 	}
 
-	err = client.SignAndSubmit(signer, call, true)
+	err = client.SignAndSubmit(signer, call, true, 0)
 	if err != nil {
 		panic(err)
 	}
