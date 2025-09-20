@@ -25,6 +25,8 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 		}
 
 		switch tx.Payload.(type) {
+		case *model.Tx_Empty:
+			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_EpochStart:
 			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_EpochEnd:

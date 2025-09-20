@@ -73,8 +73,3 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 	}
 	return string(bt), nil
 }
-
-// Mutation returns MutationResolver implementation.
-func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
-
-type mutationResolver struct{ *Resolver }

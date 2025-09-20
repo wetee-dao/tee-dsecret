@@ -21,11 +21,8 @@ type Contract struct {
 	cloud  *cloud.Cloud
 }
 
-const subnetAddress = "0xb506e4c44ebbddc38440368f9b86d33b75a0784f"
-const cloudAddress = "0x72381a1a0c2858fa134b89b72b054bcb51f80a6a"
-
 func GetCloudAddress() string {
-	return cloudAddress
+	return CloudAddress
 }
 
 func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
@@ -34,13 +31,13 @@ func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
 		return nil, err
 	}
 
-	subnet, err := subnet.InitSubnetContract(client, subnetAddress)
+	subnet, err := subnet.InitSubnetContract(client, SubnetAddress)
 	if err != nil {
 		util.LogWithPurple("InitSubnetContract", err)
 		return nil, err
 	}
 
-	cloud, err := cloud.InitCloudContract(client, cloudAddress)
+	cloud, err := cloud.InitCloudContract(client, CloudAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		return nil, err

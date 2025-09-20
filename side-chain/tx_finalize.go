@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -29,6 +30,8 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		}
 
 		switch p := tx.Payload.(type) {
+		case *model.Tx_Empty:
+			fmt.Println("Empty TX:", p.Empty)
 		case *model.Tx_EpochStart: // set epoch last time
 			err := app.SetEpochStatus(p.EpochStart)
 			if err != nil {

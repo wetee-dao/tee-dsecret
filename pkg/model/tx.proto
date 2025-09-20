@@ -14,7 +14,7 @@ message TxBox {
 // side chain transaction
 message Tx{
   oneof payload {
-    // string test = 99;
+    int64 empty = 99;
     EpochEnd epoch_end = 1;
     int64 epoch_start = 2;
     HubCall hub_call = 4;

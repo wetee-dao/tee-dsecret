@@ -1,11 +1,11 @@
 {
   "source": {
-    "hash": "0x8f4a6a81c413de9ef916bbccba283c2e4ffc7edac1585ac9aaf4bbb77c1c784b",
+    "hash": "0x381eca5a105d190afedbd186e27a7d526c6b1e39cf58a09356ce5c18f9131f50",
     "language": "ink! 6.0.0-alpha.1",
     "compiler": "rustc 1.88.0",
     "build_info": {
       "build_mode": "Release",
-      "cargo_contract_version": "6.0.0-alpha.1",
+      "cargo_contract_version": "6.0.0-alpha.3",
       "rust_toolchain": "stable-x86_64-unknown-linux-gnu"
     }
   },
@@ -30,7 +30,7 @@
             "ink_primitives",
             "ConstructorResult"
           ],
-          "type": 77
+          "type": 78
         },
         "selector": "0x9bae9d5e"
       }
@@ -53,21 +53,15 @@
         "displayName": [
           "BlockNumber"
         ],
-        "type": 5
-      },
-      "chainExtension": {
-        "displayName": [
-          "ChainExtension"
-        ],
-        "type": 111
+        "type": 3
       },
       "hash": {
         "displayName": [
           "Hash"
         ],
-        "type": 110
+        "type": 112
       },
-      "maxEventTopics": 4,
+      "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
       "timestamp": {
         "displayName": [
@@ -82,7 +76,7 @@
         "ink",
         "LangError"
       ],
-      "type": 78
+      "type": 79
     },
     "messages": [
       {
@@ -99,7 +93,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 79
+          "type": 80
         },
         "selector": "0x3fd8cc61"
       },
@@ -127,28 +121,19 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0xe6b90091"
       },
       {
         "args": [
           {
-            "label": "region_id",
-            "type": {
-              "displayName": [
-                "u32"
-              ],
-              "type": 5
-            }
-          },
-          {
             "label": "name",
             "type": {
               "displayName": [
                 "Vec"
               ],
-              "type": 3
+              "type": 4
             }
           }
         ],
@@ -164,9 +149,37 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0xb6993f90"
+      },
+      {
+        "args": [
+          {
+            "label": "id",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 3
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          " get region name"
+        ],
+        "label": "region",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ],
+          "type": 86
+        },
+        "selector": "0x69197ade"
       },
       {
         "args": [
@@ -192,7 +205,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 85
+          "type": 87
         },
         "selector": "0xdfcf3455"
       },
@@ -204,7 +217,7 @@
               "displayName": [
                 "Option"
               ],
-              "type": 87
+              "type": 89
             }
           },
           {
@@ -229,7 +242,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 88
+          "type": 90
         },
         "selector": "0xc9dfba3b"
       },
@@ -257,7 +270,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 91
+          "type": 93
         },
         "selector": "0x936d50f4"
       },
@@ -285,7 +298,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 91
+          "type": 93
         },
         "selector": "0x59a206f7"
       },
@@ -297,7 +310,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 3
+              "type": 4
             }
           },
           {
@@ -324,7 +337,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -342,7 +355,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -358,7 +371,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 93
+          "type": 95
         },
         "selector": "0xb90fc981"
       },
@@ -379,7 +392,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 3
+              "type": 4
             }
           },
           {
@@ -397,7 +410,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -411,7 +424,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x79bdb96f"
       },
@@ -432,7 +445,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -441,7 +454,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -450,7 +463,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -459,7 +472,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -468,7 +481,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -477,7 +490,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           },
           {
@@ -502,7 +515,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 95
+          "type": 97
         },
         "selector": "0xf70c3369"
       },
@@ -523,7 +536,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -539,7 +552,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 95
+          "type": 97
         },
         "selector": "0x6d25dbe9"
       },
@@ -567,7 +580,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x6efe8ecf"
       },
@@ -595,7 +608,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 93
+          "type": 95
         },
         "selector": "0xeab3ba14"
       },
@@ -613,7 +626,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 97
+          "type": 99
         },
         "selector": "0xd91d379f"
       },
@@ -625,7 +638,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 3
+              "type": 4
             }
           },
           {
@@ -661,7 +674,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -677,7 +690,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 93
+          "type": 95
         },
         "selector": "0x55719146"
       },
@@ -698,7 +711,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 3
+              "type": 4
             }
           },
           {
@@ -716,7 +729,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -730,7 +743,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x032511ea"
       },
@@ -767,7 +780,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x4d815cac"
       },
@@ -795,7 +808,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x016716ab"
       },
@@ -813,7 +826,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 100
+          "type": 102
         },
         "selector": "0xcc64f718"
       },
@@ -831,7 +844,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 103
+          "type": 105
         },
         "selector": "0x8c922079"
       },
@@ -859,7 +872,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x3c10643c"
       },
@@ -887,7 +900,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0xdbac71a8"
       },
@@ -905,7 +918,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 104
+          "type": 106
         },
         "selector": "0xfd83a947"
       },
@@ -917,7 +930,7 @@
               "displayName": [
                 "u32"
               ],
-              "type": 5
+              "type": 3
             }
           }
         ],
@@ -933,7 +946,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 77
+          "type": 78
         },
         "selector": "0x6f527ac8"
       },
@@ -961,7 +974,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0xfc3bf295"
       },
@@ -979,7 +992,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 106
+          "type": 108
         },
         "selector": "0x9f8ccaab"
       },
@@ -991,7 +1004,7 @@
               "displayName": [
                 "H256"
               ],
-              "type": 108
+              "type": 110
             }
           }
         ],
@@ -1007,7 +1020,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 83
+          "type": 84
         },
         "selector": "0x694fb50f"
       },
@@ -1023,7 +1036,7 @@
             "ink",
             "MessageResult"
           ],
-          "type": 109
+          "type": 111
         },
         "selector": "0x6484abad"
       }
@@ -1045,15 +1058,34 @@
             },
             {
               "layout": {
-                "root": {
-                  "layout": {
-                    "leaf": {
-                      "key": "0xc63d642d",
-                      "ty": 3
+                "struct": {
+                  "fields": [
+                    {
+                      "layout": {
+                        "leaf": {
+                          "key": "0x00000000",
+                          "ty": 3
+                        }
+                      },
+                      "name": "next_id"
+                    },
+                    {
+                      "layout": {
+                        "root": {
+                          "layout": {
+                            "leaf": {
+                              "key": "0x0f273c89",
+                              "ty": 4
+                            }
+                          },
+                          "root_key": "0x0f273c89",
+                          "ty": 5
+                        }
+                      },
+                      "name": "store"
                     }
-                  },
-                  "root_key": "0xc63d642d",
-                  "ty": 4
+                  ],
+                  "name": "Regions"
                 }
               },
               "name": "regions"
@@ -1081,7 +1113,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf6e29ac9",
-                                      "ty": 3
+                                      "ty": 4
                                     }
                                   },
                                   "name": "name"
@@ -1108,7 +1140,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf6e29ac9",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "region_id"
@@ -1117,7 +1149,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf6e29ac9",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "start_block"
@@ -1138,7 +1170,7 @@
                                               "layout": {
                                                 "leaf": {
                                                   "key": "0xf6e29ac9",
-                                                  "ty": 5
+                                                  "ty": 3
                                                 }
                                               },
                                               "name": "0"
@@ -1167,7 +1199,7 @@
                                               "layout": {
                                                 "leaf": {
                                                   "key": "0xf6e29ac9",
-                                                  "ty": 5
+                                                  "ty": 3
                                                 }
                                               },
                                               "name": "0"
@@ -1209,7 +1241,7 @@
                                                       "layout": {
                                                         "leaf": {
                                                           "key": "0xf6e29ac9",
-                                                          "ty": 5
+                                                          "ty": 3
                                                         }
                                                       },
                                                       "name": "0"
@@ -1267,7 +1299,7 @@
                                                       "layout": {
                                                         "leaf": {
                                                           "key": "0xf6e29ac9",
-                                                          "ty": 3
+                                                          "ty": 4
                                                         }
                                                       },
                                                       "name": "0"
@@ -1290,7 +1322,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf6e29ac9",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "port"
@@ -1375,7 +1407,7 @@
                           "layout": {
                             "leaf": {
                               "key": "0xc9ff81bf",
-                              "ty": 5
+                              "ty": 3
                             }
                           },
                           "root_key": "0xc9ff81bf",
@@ -1388,7 +1420,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 5
+                          "ty": 3
                         }
                       },
                       "name": "k1_length"
@@ -1399,7 +1431,7 @@
                           "layout": {
                             "leaf": {
                               "key": "0x2fc744da",
-                              "ty": 5
+                              "ty": 3
                             }
                           },
                           "root_key": "0x2fc744da",
@@ -1439,7 +1471,7 @@
                           "layout": {
                             "leaf": {
                               "key": "0xbabfe33b",
-                              "ty": 5
+                              "ty": 3
                             }
                           },
                           "root_key": "0xbabfe33b",
@@ -1452,7 +1484,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 5
+                          "ty": 3
                         }
                       },
                       "name": "k1_length"
@@ -1463,7 +1495,7 @@
                           "layout": {
                             "leaf": {
                               "key": "0x88d86326",
-                              "ty": 5
+                              "ty": 3
                             }
                           },
                           "root_key": "0x88d86326",
@@ -1491,7 +1523,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "cpu"
@@ -1500,7 +1532,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "cvm_cpu"
@@ -1509,7 +1541,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "mem"
@@ -1518,7 +1550,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "cvm_mem"
@@ -1527,7 +1559,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "disk"
@@ -1536,7 +1568,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0x0107eeb8",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "gpu"
@@ -1557,7 +1589,7 @@
                                               "layout": {
                                                 "leaf": {
                                                   "key": "0x0107eeb8",
-                                                  "ty": 5
+                                                  "ty": 3
                                                 }
                                               },
                                               "name": "0"
@@ -1609,7 +1641,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf4e5d4ef",
-                                      "ty": 3
+                                      "ty": 4
                                     }
                                   },
                                   "name": "name"
@@ -1645,7 +1677,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf4e5d4ef",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "start_block"
@@ -1666,7 +1698,7 @@
                                               "layout": {
                                                 "leaf": {
                                                   "key": "0xf4e5d4ef",
-                                                  "ty": 5
+                                                  "ty": 3
                                                 }
                                               },
                                               "name": "0"
@@ -1699,7 +1731,7 @@
                                                       "layout": {
                                                         "leaf": {
                                                           "key": "0xf4e5d4ef",
-                                                          "ty": 5
+                                                          "ty": 3
                                                         }
                                                       },
                                                       "name": "0"
@@ -1757,7 +1789,7 @@
                                                       "layout": {
                                                         "leaf": {
                                                           "key": "0xf4e5d4ef",
-                                                          "ty": 3
+                                                          "ty": 4
                                                         }
                                                       },
                                                       "name": "0"
@@ -1780,7 +1812,7 @@
                                   "layout": {
                                     "leaf": {
                                       "key": "0xf4e5d4ef",
-                                      "ty": 5
+                                      "ty": 3
                                     }
                                   },
                                   "name": "port"
@@ -1844,7 +1876,7 @@
               "layout": {
                 "leaf": {
                   "key": "0x00000000",
-                  "ty": 5
+                  "ty": 3
                 }
               },
               "name": "epoch"
@@ -1853,7 +1885,7 @@
               "layout": {
                 "leaf": {
                   "key": "0x00000000",
-                  "ty": 5
+                  "ty": 3
                 }
               },
               "name": "epoch_solt"
@@ -1871,7 +1903,7 @@
               "layout": {
                 "leaf": {
                   "key": "0x00000000",
-                  "ty": 5
+                  "ty": 3
                 }
               },
               "name": "last_epoch_block"
@@ -1902,7 +1934,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 3
+                          "ty": 4
                         }
                       },
                       "name": "0"
@@ -1911,7 +1943,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 3
+                          "ty": 4
                         }
                       },
                       "name": "1"
@@ -1930,7 +1962,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 3
+                          "ty": 4
                         }
                       },
                       "name": "0"
@@ -1939,7 +1971,7 @@
                       "layout": {
                         "leaf": {
                           "key": "0x00000000",
-                          "ty": 3
+                          "ty": 4
                         }
                       },
                       "name": "1"
@@ -2040,9 +2072,7 @@
       "id": 3,
       "type": {
         "def": {
-          "sequence": {
-            "type": 2
-          }
+          "primitive": "u32"
         }
       }
     },
@@ -2050,16 +2080,26 @@
       "id": 4,
       "type": {
         "def": {
+          "sequence": {
+            "type": 2
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "def": {
           "composite": {}
         },
         "params": [
           {
             "name": "K",
-            "type": 5
+            "type": 3
           },
           {
             "name": "V",
-            "type": 3
+            "type": 4
           },
           {
             "name": "KeyType",
@@ -2072,14 +2112,6 @@
           "mapping",
           "Mapping"
         ]
-      }
-    },
-    {
-      "id": 5,
-      "type": {
-        "def": {
-          "primitive": "u32"
-        }
       }
     },
     {
@@ -2228,7 +2260,7 @@
             "fields": [
               {
                 "name": "name",
-                "type": 3,
+                "type": 4,
                 "typeName": "Vec<u8>"
               },
               {
@@ -2243,12 +2275,12 @@
               },
               {
                 "name": "region_id",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "start_block",
-                "type": 5,
+                "type": 3,
                 "typeName": "BlockNumber"
               },
               {
@@ -2273,7 +2305,7 @@
               },
               {
                 "name": "port",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
@@ -2304,7 +2336,7 @@
               {
                 "fields": [
                   {
-                    "type": 5
+                    "type": 3
                   }
                 ],
                 "index": 1,
@@ -2316,7 +2348,7 @@
         "params": [
           {
             "name": "T",
-            "type": 5
+            "type": 3
           }
         ],
         "path": [
@@ -2401,7 +2433,7 @@
               {
                 "fields": [
                   {
-                    "type": 3
+                    "type": 4
                   }
                 ],
                 "index": 1,
@@ -2413,7 +2445,7 @@
         "params": [
           {
             "name": "T",
-            "type": 3
+            "type": 4
           }
         ],
         "path": [
@@ -2682,11 +2714,11 @@
         "params": [
           {
             "name": "K",
-            "type": 5
+            "type": 3
           },
           {
             "name": "V",
-            "type": 5
+            "type": 3
           },
           {
             "name": "KeyType",
@@ -2752,11 +2784,11 @@
         "params": [
           {
             "name": "K",
-            "type": 5
+            "type": 3
           },
           {
             "name": "V",
-            "type": 5
+            "type": 3
           },
           {
             "name": "KeyType",
@@ -2896,7 +2928,7 @@
           },
           {
             "name": "V",
-            "type": 5
+            "type": 3
           },
           {
             "name": "KeyType",
@@ -2962,11 +2994,11 @@
         "params": [
           {
             "name": "K",
-            "type": 5
+            "type": 3
           },
           {
             "name": "V",
-            "type": 5
+            "type": 3
           },
           {
             "name": "KeyType",
@@ -3094,32 +3126,32 @@
               },
               {
                 "name": "cpu",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "cvm_cpu",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "mem",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "cvm_mem",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "disk",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
                 "name": "gpu",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
@@ -3215,7 +3247,7 @@
             "fields": [
               {
                 "name": "name",
-                "type": 3,
+                "type": 4,
                 "typeName": "Vec<u8>"
               },
               {
@@ -3235,7 +3267,7 @@
               },
               {
                 "name": "start_block",
-                "type": 5,
+                "type": 3,
                 "typeName": "BlockNumber"
               },
               {
@@ -3250,7 +3282,7 @@
               },
               {
                 "name": "port",
-                "type": 5,
+                "type": 3,
                 "typeName": "u32"
               },
               {
@@ -3466,7 +3498,7 @@
         "def": {
           "tuple": [
             10,
-            5
+            3
           ]
         }
       }
@@ -3550,7 +3582,7 @@
         "params": [
           {
             "name": "K",
-            "type": 5
+            "type": 3
           },
           {
             "name": "V",
@@ -3634,12 +3666,12 @@
               },
               {
                 "name": "regions",
-                "type": 4,
-                "typeName": "<Mapping<u32, Vec<u8>> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<761544134u32, ()\n>,>>::Type"
+                "type": 72,
+                "typeName": "<Regions as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<761544134u32, ()>,>>::Type"
               },
               {
                 "name": "workers",
-                "type": 72,
+                "type": 73,
                 "typeName": "<Workers as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<1839609358u32, ()>,>>::Type"
               },
               {
@@ -3659,17 +3691,17 @@
               },
               {
                 "name": "regions_workers",
-                "type": 73,
+                "type": 74,
                 "typeName": "<RegionWorkers as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<1156809157u32, ()>,>>::Type"
               },
               {
                 "name": "worker_mortgages",
-                "type": 74,
+                "type": 75,
                 "typeName": "<WorkerMortgages as::ink::storage::traits::AutoStorableHint<::ink\n::storage::traits::ManualKey<2382045541u32, ()>,>>::Type"
               },
               {
                 "name": "secrets",
-                "type": 75,
+                "type": 76,
                 "typeName": "<Secrets as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<2927588268u32, ()>,>>::Type"
               },
               {
@@ -3684,12 +3716,12 @@
               },
               {
                 "name": "epoch",
-                "type": 5,
+                "type": 3,
                 "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<812186708u32, ()>,>>::Type"
               },
               {
                 "name": "epoch_solt",
-                "type": 5,
+                "type": 3,
                 "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<3816918884u32, ()>,>>::Type"
               },
               {
@@ -3699,7 +3731,7 @@
               },
               {
                 "name": "last_epoch_block",
-                "type": 5,
+                "type": 3,
                 "typeName": "<BlockNumber as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<465680660u32, ()>,>>::Type"
               },
               {
@@ -3714,12 +3746,12 @@
               },
               {
                 "name": "worker_code",
-                "type": 76,
+                "type": 77,
                 "typeName": "<(Vec<u8>, Vec<u8>) as::ink::storage::traits::AutoStorableHint\n<::ink::storage::traits::ManualKey<1179998655u32, ()>,>>::Type"
               },
               {
                 "name": "secret_code",
-                "type": 76,
+                "type": 77,
                 "typeName": "<(Vec<u8>, Vec<u8>) as::ink::storage::traits::AutoStorableHint\n<::ink::storage::traits::ManualKey<2528729481u32, ()>,>>::Type"
               },
               {
@@ -3755,6 +3787,32 @@
             "fields": [
               {
                 "name": "next_id",
+                "type": 3,
+                "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<1831523232u32, ()>,>>::Type"
+              },
+              {
+                "name": "store",
+                "type": 5,
+                "typeName": "<ink::storage::Mapping<u32, Vec<u8>, ink::storage::traits::\nAutoKey> as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<2302420751u32, ()>,>>::Type"
+              }
+            ]
+          }
+        },
+        "path": [
+          "subnet",
+          "datas",
+          "Regions"
+        ]
+      }
+    },
+    {
+      "id": 73,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "next_id",
                 "type": 10,
                 "typeName": "<NodeID as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<560417924u32, ()>,>>::Type"
               },
@@ -3774,7 +3832,7 @@
       }
     },
     {
-      "id": 73,
+      "id": 74,
       "type": {
         "def": {
           "composite": {
@@ -3786,7 +3844,7 @@
               },
               {
                 "name": "k1_length",
-                "type": 5,
+                "type": 3,
                 "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<3518814450u32, ()>,>>::Type"
               },
               {
@@ -3810,7 +3868,7 @@
       }
     },
     {
-      "id": 74,
+      "id": 75,
       "type": {
         "def": {
           "composite": {
@@ -3822,7 +3880,7 @@
               },
               {
                 "name": "k1_length",
-                "type": 5,
+                "type": 3,
                 "typeName": "<u32 as::ink::storage::traits::AutoStorableHint<::ink::storage\n::traits::ManualKey<3494608279u32, ()>,>>::Type"
               },
               {
@@ -3846,7 +3904,7 @@
       }
     },
     {
-      "id": 75,
+      "id": 76,
       "type": {
         "def": {
           "composite": {
@@ -3872,18 +3930,18 @@
       }
     },
     {
-      "id": 76,
+      "id": 77,
       "type": {
         "def": {
           "tuple": [
-            3,
-            3
+            4,
+            4
           ]
         }
       }
     },
     {
-      "id": 77,
+      "id": 78,
       "type": {
         "def": {
           "variant": {
@@ -3900,7 +3958,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -3916,7 +3974,7 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -3925,7 +3983,7 @@
       }
     },
     {
-      "id": 78,
+      "id": 79,
       "type": {
         "def": {
           "variant": {
@@ -3940,48 +3998,6 @@
         "path": [
           "ink_primitives",
           "LangError"
-        ]
-      }
-    },
-    {
-      "id": 79,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 80
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 78
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 80
-          },
-          {
-            "name": "E",
-            "type": 78
-          }
-        ],
-        "path": [
-          "Result"
         ]
       }
     },
@@ -4003,7 +4019,7 @@
               {
                 "fields": [
                   {
-                    "type": 82
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4019,7 +4035,7 @@
           },
           {
             "name": "E",
-            "type": 82
+            "type": 79
           }
         ],
         "path": [
@@ -4031,6 +4047,48 @@
       "id": 81,
       "type": {
         "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 82
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 83
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 82
+          },
+          {
+            "name": "E",
+            "type": 83
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 82,
+      "type": {
+        "def": {
           "sequence": {
             "type": 53
           }
@@ -4038,7 +4096,7 @@
       }
     },
     {
-      "id": 82,
+      "id": 83,
       "type": {
         "def": {
           "variant": {
@@ -4118,48 +4176,6 @@
       }
     },
     {
-      "id": 83,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 84
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 78
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 84
-          },
-          {
-            "name": "E",
-            "type": 78
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
       "id": 84,
       "type": {
         "def": {
@@ -4168,7 +4184,7 @@
               {
                 "fields": [
                   {
-                    "type": 9
+                    "type": 85
                   }
                 ],
                 "index": 0,
@@ -4177,7 +4193,7 @@
               {
                 "fields": [
                   {
-                    "type": 82
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4189,11 +4205,11 @@
         "params": [
           {
             "name": "T",
-            "type": 9
+            "type": 85
           },
           {
             "name": "E",
-            "type": 82
+            "type": 79
           }
         ],
         "path": [
@@ -4210,7 +4226,7 @@
               {
                 "fields": [
                   {
-                    "type": 86
+                    "type": 9
                   }
                 ],
                 "index": 0,
@@ -4219,7 +4235,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 83
                   }
                 ],
                 "index": 1,
@@ -4231,11 +4247,11 @@
         "params": [
           {
             "name": "T",
-            "type": 86
+            "type": 9
           },
           {
             "name": "E",
-            "type": 78
+            "type": 83
           }
         ],
         "path": [
@@ -4245,6 +4261,90 @@
     },
     {
       "id": 86,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 79
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 19
+          },
+          {
+            "name": "E",
+            "type": 79
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 87,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 88
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 79
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 88
+          },
+          {
+            "name": "E",
+            "type": 79
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 88,
       "type": {
         "def": {
           "variant": {
@@ -4277,7 +4377,7 @@
       }
     },
     {
-      "id": 87,
+      "id": 89,
       "type": {
         "def": {
           "variant": {
@@ -4310,7 +4410,7 @@
       }
     },
     {
-      "id": 88,
+      "id": 90,
       "type": {
         "def": {
           "variant": {
@@ -4318,7 +4418,7 @@
               {
                 "fields": [
                   {
-                    "type": 89
+                    "type": 91
                   }
                 ],
                 "index": 0,
@@ -4327,7 +4427,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4339,11 +4439,11 @@
         "params": [
           {
             "name": "T",
-            "type": 89
+            "type": 91
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -4352,17 +4452,17 @@
       }
     },
     {
-      "id": 89,
+      "id": 91,
       "type": {
         "def": {
           "sequence": {
-            "type": 90
+            "type": 92
           }
         }
       }
     },
     {
-      "id": 90,
+      "id": 92,
       "type": {
         "def": {
           "tuple": [
@@ -4370,81 +4470,6 @@
             15
           ]
         }
-      }
-    },
-    {
-      "id": 91,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 92
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 78
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 92
-          },
-          {
-            "name": "E",
-            "type": 78
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 92,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "index": 0,
-                "name": "None"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 90
-                  }
-                ],
-                "index": 1,
-                "name": "Some"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 90
-          }
-        ],
-        "path": [
-          "Option"
-        ]
       }
     },
     {
@@ -4465,7 +4490,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4481,7 +4506,7 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -4496,22 +4521,17 @@
           "variant": {
             "variants": [
               {
-                "fields": [
-                  {
-                    "type": 10
-                  }
-                ],
                 "index": 0,
-                "name": "Ok"
+                "name": "None"
               },
               {
                 "fields": [
                   {
-                    "type": 82
+                    "type": 92
                   }
                 ],
                 "index": 1,
-                "name": "Err"
+                "name": "Some"
               }
             ]
           }
@@ -4519,15 +4539,11 @@
         "params": [
           {
             "name": "T",
-            "type": 10
-          },
-          {
-            "name": "E",
-            "type": 82
+            "type": 92
           }
         ],
         "path": [
-          "Result"
+          "Option"
         ]
       }
     },
@@ -4549,7 +4565,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4565,7 +4581,7 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -4582,7 +4598,7 @@
               {
                 "fields": [
                   {
-                    "type": 5
+                    "type": 10
                   }
                 ],
                 "index": 0,
@@ -4591,7 +4607,7 @@
               {
                 "fields": [
                   {
-                    "type": 82
+                    "type": 83
                   }
                 ],
                 "index": 1,
@@ -4603,11 +4619,11 @@
         "params": [
           {
             "name": "T",
-            "type": 5
+            "type": 10
           },
           {
             "name": "E",
-            "type": 82
+            "type": 83
           }
         ],
         "path": [
@@ -4633,7 +4649,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4649,7 +4665,7 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -4661,33 +4677,12 @@
       "id": 98,
       "type": {
         "def": {
-          "sequence": {
-            "type": 99
-          }
-        }
-      }
-    },
-    {
-      "id": 99,
-      "type": {
-        "def": {
-          "tuple": [
-            10,
-            53
-          ]
-        }
-      }
-    },
-    {
-      "id": 100,
-      "type": {
-        "def": {
           "variant": {
             "variants": [
               {
                 "fields": [
                   {
-                    "type": 101
+                    "type": 3
                   }
                 ],
                 "index": 0,
@@ -4696,7 +4691,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 83
                   }
                 ],
                 "index": 1,
@@ -4708,11 +4703,11 @@
         "params": [
           {
             "name": "T",
-            "type": 101
+            "type": 3
           },
           {
             "name": "E",
-            "type": 78
+            "type": 83
           }
         ],
         "path": [
@@ -4721,12 +4716,65 @@
       }
     },
     {
-      "id": 101,
+      "id": 99,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 100
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 79
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 100
+          },
+          {
+            "name": "E",
+            "type": 79
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 100,
       "type": {
         "def": {
           "sequence": {
-            "type": 102
+            "type": 101
           }
+        }
+      }
+    },
+    {
+      "id": 101,
+      "type": {
+        "def": {
+          "tuple": [
+            10,
+            53
+          ]
         }
       }
     },
@@ -4734,16 +4782,68 @@
       "id": 102,
       "type": {
         "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 103
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 79
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 103
+          },
+          {
+            "name": "E",
+            "type": 79
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 103,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 104
+          }
+        }
+      }
+    },
+    {
+      "id": 104,
+      "type": {
+        "def": {
           "tuple": [
             10,
             53,
-            5
+            3
           ]
         }
       }
     },
     {
-      "id": 103,
+      "id": 105,
       "type": {
         "def": {
           "variant": {
@@ -4760,7 +4860,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4776,94 +4876,11 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
           "Result"
-        ]
-      }
-    },
-    {
-      "id": 104,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 105
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 78
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 105
-          },
-          {
-            "name": "E",
-            "type": 78
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 105,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "name": "epoch",
-                "type": 5,
-                "typeName": "u32"
-              },
-              {
-                "name": "epoch_solt",
-                "type": 5,
-                "typeName": "u32"
-              },
-              {
-                "name": "last_epoch_block",
-                "type": 5,
-                "typeName": "BlockNumber"
-              },
-              {
-                "name": "now",
-                "type": 5,
-                "typeName": "BlockNumber"
-              },
-              {
-                "name": "side_chain_pub",
-                "type": 0,
-                "typeName": "Address"
-              }
-            ]
-          }
-        },
-        "path": [
-          "subnet",
-          "datas",
-          "EpochInfo"
         ]
       }
     },
@@ -4885,7 +4902,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4901,7 +4918,7 @@
           },
           {
             "name": "E",
-            "type": 78
+            "type": 79
           }
         ],
         "path": [
@@ -4913,12 +4930,53 @@
       "id": 107,
       "type": {
         "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "epoch",
+                "type": 3,
+                "typeName": "u32"
+              },
+              {
+                "name": "epoch_solt",
+                "type": 3,
+                "typeName": "u32"
+              },
+              {
+                "name": "last_epoch_block",
+                "type": 3,
+                "typeName": "BlockNumber"
+              },
+              {
+                "name": "now",
+                "type": 3,
+                "typeName": "BlockNumber"
+              },
+              {
+                "name": "side_chain_pub",
+                "type": 0,
+                "typeName": "Address"
+              }
+            ]
+          }
+        },
+        "path": [
+          "subnet",
+          "datas",
+          "EpochInfo"
+        ]
+      }
+    },
+    {
+      "id": 108,
+      "type": {
+        "def": {
           "variant": {
             "variants": [
               {
                 "fields": [
                   {
-                    "type": 101
+                    "type": 109
                   }
                 ],
                 "index": 0,
@@ -4927,7 +4985,7 @@
               {
                 "fields": [
                   {
-                    "type": 82
+                    "type": 79
                   }
                 ],
                 "index": 1,
@@ -4939,34 +4997,15 @@
         "params": [
           {
             "name": "T",
-            "type": 101
+            "type": 109
           },
           {
             "name": "E",
-            "type": 82
+            "type": 79
           }
         ],
         "path": [
           "Result"
-        ]
-      }
-    },
-    {
-      "id": 108,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "type": 12,
-                "typeName": "[u8; 32]"
-              }
-            ]
-          }
-        },
-        "path": [
-          "primitive_types",
-          "H256"
         ]
       }
     },
@@ -4979,7 +5018,7 @@
               {
                 "fields": [
                   {
-                    "type": 0
+                    "type": 103
                   }
                 ],
                 "index": 0,
@@ -4988,7 +5027,7 @@
               {
                 "fields": [
                   {
-                    "type": 78
+                    "type": 83
                   }
                 ],
                 "index": 1,
@@ -5000,11 +5039,11 @@
         "params": [
           {
             "name": "T",
-            "type": 0
+            "type": 103
           },
           {
             "name": "E",
-            "type": 78
+            "type": 83
           }
         ],
         "path": [
@@ -5026,9 +5065,8 @@
           }
         },
         "path": [
-          "ink_primitives",
-          "types",
-          "Hash"
+          "primitive_types",
+          "H256"
         ]
       }
     },
@@ -5036,12 +5074,61 @@
       "id": 111,
       "type": {
         "def": {
-          "variant": {}
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 79
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 79
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 112,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 12,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
         },
         "path": [
           "ink_primitives",
           "types",
-          "NoChainExtension"
+          "Hash"
         ]
       }
     }

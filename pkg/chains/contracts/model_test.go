@@ -14,7 +14,7 @@ import (
 )
 
 func TestCloud(t *testing.T) {
-	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -25,7 +25,7 @@ func TestCloud(t *testing.T) {
 		panic(err)
 	}
 
-	cloudIns, err := cloud.InitCloudContract(client, cloudAddress)
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		panic(err)
@@ -40,7 +40,7 @@ func TestCloud(t *testing.T) {
 }
 
 func TestSetSubnetSolt(t *testing.T) {
-	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +51,7 @@ func TestSetSubnetSolt(t *testing.T) {
 		panic(err)
 	}
 
-	subnetIns, err := subnet.InitSubnetContract(client, subnetAddress)
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		panic(err)
@@ -64,7 +64,7 @@ func TestSetSubnetSolt(t *testing.T) {
 }
 
 func TestCloudUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{"wss://xiaobai.asyou.me:30001/ws"}, true)
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +88,7 @@ func TestCloudUpdate(t *testing.T) {
 		panic(err)
 	}
 
-	cloudIns, err := cloud.InitCloudContract(client, cloudAddress)
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		panic(err)
@@ -105,7 +105,7 @@ func TestCloudUpdate(t *testing.T) {
 }
 
 func TestSubnetUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -129,9 +129,9 @@ func TestSubnetUpdate(t *testing.T) {
 		panic(err)
 	}
 
-	fmt.Println("cloudAddress: ", cloudAddress)
+	fmt.Println("cloudAddress: ", CloudAddress)
 
-	subnetIns, err := subnet.InitSubnetContract(client, subnetAddress)
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
 	if err != nil {
 		util.LogWithPurple("InitCloudContract", err)
 		panic(err)
@@ -148,7 +148,7 @@ func TestSubnetUpdate(t *testing.T) {
 }
 
 func TestWorkerUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{"ws://127.0.0.1:9944"}, true)
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
 		panic(err)
 	}
@@ -159,7 +159,7 @@ func TestWorkerUpdate(t *testing.T) {
 		panic(err)
 	}
 
-	subnetIns, err := subnet.InitSubnetContract(client, subnetAddress)
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
 	if err != nil {
 		util.LogWithPurple("InitSubnetContract", err)
 		panic(err)
