@@ -54,11 +54,13 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		InitDiskKey  func(childComplexity int, index string, sign string) int
 		StartEpoch   func(childComplexity int) int
-		UploadSecret func(childComplexity int, secret string) int
+		UploadSecret func(childComplexity int, index string, secret string, sign string) int
 	}
 
 	Query struct {
+		SecretRsa  func(childComplexity int) int
 		TeeReport  func(childComplexity int, hash string) int
 		Validators func(childComplexity int) int
 	}
@@ -76,11 +78,13 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	StartEpoch(ctx context.Context) (bool, error)
-	UploadSecret(ctx context.Context, secret string) (bool, error)
+	UploadSecret(ctx context.Context, index string, secret string, sign string) (bool, error)
+	InitDiskKey(ctx context.Context, index string, sign string) (bool, error)
 }
 type QueryResolver interface {
 	Validators(ctx context.Context) ([]string, error)
 	TeeReport(ctx context.Context, hash string) (string, error)
+	SecretRsa(ctx context.Context) (string, error)
 }
 
 type executableSchema struct {
@@ -116,6 +120,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.LenValue.V(childComplexity), true
 
+	case "Mutation.init_disk_key":
+		if e.complexity.Mutation.InitDiskKey == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_init_disk_key_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.InitDiskKey(childComplexity, args["index"].(string), args["sign"].(string)), true
+
 	case "Mutation.start_epoch":
 		if e.complexity.Mutation.StartEpoch == nil {
 			break
@@ -133,7 +149,14 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UploadSecret(childComplexity, args["secret"].(string)), true
+		return e.complexity.Mutation.UploadSecret(childComplexity, args["index"].(string), args["secret"].(string), args["sign"].(string)), true
+
+	case "Query.secret_rsa":
+		if e.complexity.Query.SecretRsa == nil {
+			break
+		}
+
+		return e.complexity.Query.SecretRsa(childComplexity), true
 
 	case "Query.tee_report":
 		if e.complexity.Query.TeeReport == nil {
@@ -312,16 +335,95 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_init_disk_key_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_upload_secret_argsSecret(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_init_disk_key_argsIndex(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["secret"] = arg0
+	args["index"] = arg0
+	arg1, err := ec.field_Mutation_init_disk_key_argsSign(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["sign"] = arg1
 	return args, nil
 }
+func (ec *executionContext) field_Mutation_init_disk_key_argsIndex(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["index"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
+	if tmp, ok := rawArgs["index"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_init_disk_key_argsSign(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["sign"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sign"))
+	if tmp, ok := rawArgs["sign"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_upload_secret_argsIndex(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["index"] = arg0
+	arg1, err := ec.field_Mutation_upload_secret_argsSecret(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["secret"] = arg1
+	arg2, err := ec.field_Mutation_upload_secret_argsSign(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["sign"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_upload_secret_argsIndex(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["index"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
+	if tmp, ok := rawArgs["index"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_upload_secret_argsSecret(
 	ctx context.Context,
 	rawArgs map[string]any,
@@ -333,6 +435,24 @@ func (ec *executionContext) field_Mutation_upload_secret_argsSecret(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("secret"))
 	if tmp, ok := rawArgs["secret"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_upload_secret_argsSign(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["sign"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sign"))
+	if tmp, ok := rawArgs["sign"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -716,7 +836,7 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["secret"].(string))
+		return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["index"].(string), fc.Args["secret"].(string), fc.Args["sign"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -751,6 +871,61 @@ func (ec *executionContext) fieldContext_Mutation_upload_secret(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_upload_secret_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_init_disk_key(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_init_disk_key(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().InitDiskKey(rctx, fc.Args["index"].(string), fc.Args["sign"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_init_disk_key(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_init_disk_key_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -852,6 +1027,50 @@ func (ec *executionContext) fieldContext_Query_tee_report(ctx context.Context, f
 	if fc.Args, err = ec.field_Query_tee_report_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_secret_rsa(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_secret_rsa(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SecretRsa(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_secret_rsa(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -3251,6 +3470,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "init_disk_key":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_init_disk_key(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3325,6 +3551,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_tee_report(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "secret_rsa":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_secret_rsa(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

@@ -6,7 +6,10 @@ package graph
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -17,7 +20,7 @@ import (
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, secret string) (bool, error) {
+func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secret string, sign string) (bool, error) {
 	pk, err := ink.Sr25519PairFromSecret("//Alice", 42)
 	if err != nil {
 		util.LogWithPurple("Sr25519PairFromSecret", err)
@@ -60,6 +63,11 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, secret string) (boo
 	return true, nil
 }
 
+// InitDiskKey is the resolver for the init_disk_key field.
+func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, sign string) (bool, error) {
+	panic(fmt.Errorf("not implemented: InitDiskKey - init_disk_key"))
+}
+
 // TeeReport is the resolver for the tee_report field.
 func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, error) {
 	// 组合报告
@@ -71,5 +79,19 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 	if err != nil {
 		return "", gqlerror.Errorf("Marshal:" + err.Error())
 	}
+	return string(bt), nil
+}
+
+// SecretRsa is the resolver for the secret_rsa field.
+func (r *queryResolver) SecretRsa(ctx context.Context) (string, error) {
+	publicKey := &rsaKey.PublicKey
+
+	publicKeyBytes := x509.MarshalPKCS1PublicKey(publicKey)
+	publicBlock := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+
+	bt := pem.EncodeToMemory(publicBlock)
 	return string(bt), nil
 }

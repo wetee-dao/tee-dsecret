@@ -1,6 +1,8 @@
 package graph
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 
@@ -14,6 +16,16 @@ import (
 )
 
 var sideChain *sidechain.SideChain
+var rsaKey *rsa.PrivateKey
+
+func init() {
+	var err error
+	rsaKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(fmt.Errorf("生成私钥失败: %v", err))
+	}
+
+}
 
 // 启动GraphQL服务器
 // StartServer starts the GraphQL server.
