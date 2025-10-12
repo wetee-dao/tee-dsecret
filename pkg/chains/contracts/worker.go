@@ -145,13 +145,25 @@ func (c *Contract) DryMintPod(nodeId uint64, hash types.H256, signer types.Accou
 	return err
 }
 
-func (c *Contract) TxCallOfUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) (*types.Call, error) {
-	return c.cloud.CallOfUpdateSecret(user, index, data, chain.DryRunParams{
+func (c *Contract) TxCallOfUploadSecret(user types.H160, index uint64, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfMintSecret(user, index, chain.DryRunParams{
 		Origin:    signer,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
 }
-func (c *Contract) DryUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) error {
-	_, _, err := c.cloud.DryRunUpdateSecret(user, index, data, chain.DefaultParamWithOrigin(signer))
+func (c *Contract) DryUploadSecret(user types.H160, index uint64, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunMintSecret(user, index, chain.DefaultParamWithOrigin(signer))
+	return err
+}
+
+func (c *Contract) TxCallOfInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) (*types.Call, error) {
+	return c.cloud.CallOfUpdateDiskKey(user, index, hash, chain.DryRunParams{
+		Origin:    signer,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+}
+
+func (c *Contract) DryInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) error {
+	_, _, err := c.cloud.DryRunUpdateDiskKey(user, index, hash, chain.DefaultParamWithOrigin(signer))
 	return err
 }

@@ -42,8 +42,13 @@ type Chain interface {
 	TxCallOfMintPod(nodeId uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
 	DryMintPod(nodeId uint64, hash types.H256, signer types.AccountID) error
 
-	TxCallOfUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) (*types.Call, error)
-	DryUploadSecret(user types.H160, index uint64, data types.H256, signer types.AccountID) error
+	// secret
+	TxCallOfUploadSecret(user types.H160, index uint64, signer types.AccountID) (*types.Call, error)
+	DryUploadSecret(user types.H160, index uint64, signer types.AccountID) error
+
+	// disk
+	TxCallOfInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
+	DryInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) error
 }
 
 func ConnectMainChain(url []string, pk *model.PrivKey) (Chain, error) {

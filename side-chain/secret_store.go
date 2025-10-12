@@ -15,6 +15,7 @@ import (
 
 const (
 	SecretSpace = "secret"
+	DiskSpace   = "disk"
 )
 
 func (s *SideChain) EncryptSecret(data []byte) ([]byte, error) {
@@ -59,6 +60,10 @@ func (s *SideChain) EncryptSecret(data []byte) ([]byte, error) {
 
 func (s *SideChain) SaveSecret(user types.H160, index uint64, data []byte, txn *model.Txn) error {
 	return txn.Set(model.ComboNamespaceKey(SecretSpace, user.Hex()+"_"+fmt.Sprint(index)), data)
+}
+
+func (s *SideChain) InitDisk(user types.H160, index uint64, data []byte, txn *model.Txn) error {
+	return txn.Set(model.ComboNamespaceKey(DiskSpace, user.Hex()+"_"+fmt.Sprint(index)), data)
 }
 
 func (s *SideChain) GetSecrets(user types.H160, indexs []uint64) (map[uint64]*model.SecretStore, error) {

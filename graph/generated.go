@@ -54,9 +54,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		InitDiskKey  func(childComplexity int, index string, sign string) int
+		InitDiskKey  func(childComplexity int, index string, user string) int
 		StartEpoch   func(childComplexity int) int
-		UploadSecret func(childComplexity int, index string, secret string, sign string) int
+		UploadSecret func(childComplexity int, index string, secret string, hash string, user string) int
 	}
 
 	Query struct {
@@ -78,8 +78,8 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	StartEpoch(ctx context.Context) (bool, error)
-	UploadSecret(ctx context.Context, index string, secret string, sign string) (bool, error)
-	InitDiskKey(ctx context.Context, index string, sign string) (bool, error)
+	UploadSecret(ctx context.Context, index string, secret string, hash string, user string) (bool, error)
+	InitDiskKey(ctx context.Context, index string, user string) (bool, error)
 }
 type QueryResolver interface {
 	Validators(ctx context.Context) ([]string, error)
@@ -130,7 +130,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.InitDiskKey(childComplexity, args["index"].(string), args["sign"].(string)), true
+		return e.complexity.Mutation.InitDiskKey(childComplexity, args["index"].(string), args["user"].(string)), true
 
 	case "Mutation.start_epoch":
 		if e.complexity.Mutation.StartEpoch == nil {
@@ -149,7 +149,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UploadSecret(childComplexity, args["index"].(string), args["secret"].(string), args["sign"].(string)), true
+		return e.complexity.Mutation.UploadSecret(childComplexity, args["index"].(string), args["secret"].(string), args["hash"].(string), args["user"].(string)), true
 
 	case "Query.secret_rsa":
 		if e.complexity.Query.SecretRsa == nil {
@@ -343,11 +343,11 @@ func (ec *executionContext) field_Mutation_init_disk_key_args(ctx context.Contex
 		return nil, err
 	}
 	args["index"] = arg0
-	arg1, err := ec.field_Mutation_init_disk_key_argsSign(ctx, rawArgs)
+	arg1, err := ec.field_Mutation_init_disk_key_argsUser(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["sign"] = arg1
+	args["user"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_init_disk_key_argsIndex(
@@ -368,17 +368,17 @@ func (ec *executionContext) field_Mutation_init_disk_key_argsIndex(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_init_disk_key_argsSign(
+func (ec *executionContext) field_Mutation_init_disk_key_argsUser(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
-	if _, ok := rawArgs["sign"]; !ok {
+	if _, ok := rawArgs["user"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
 
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sign"))
-	if tmp, ok := rawArgs["sign"]; ok {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+	if tmp, ok := rawArgs["user"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -399,11 +399,16 @@ func (ec *executionContext) field_Mutation_upload_secret_args(ctx context.Contex
 		return nil, err
 	}
 	args["secret"] = arg1
-	arg2, err := ec.field_Mutation_upload_secret_argsSign(ctx, rawArgs)
+	arg2, err := ec.field_Mutation_upload_secret_argsHash(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["sign"] = arg2
+	args["hash"] = arg2
+	arg3, err := ec.field_Mutation_upload_secret_argsUser(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["user"] = arg3
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_upload_secret_argsIndex(
@@ -442,17 +447,35 @@ func (ec *executionContext) field_Mutation_upload_secret_argsSecret(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_upload_secret_argsSign(
+func (ec *executionContext) field_Mutation_upload_secret_argsHash(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
-	if _, ok := rawArgs["sign"]; !ok {
+	if _, ok := rawArgs["hash"]; !ok {
 		var zeroVal string
 		return zeroVal, nil
 	}
 
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("sign"))
-	if tmp, ok := rawArgs["sign"]; ok {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("hash"))
+	if tmp, ok := rawArgs["hash"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_upload_secret_argsUser(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["user"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
+	if tmp, ok := rawArgs["user"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -836,7 +859,7 @@ func (ec *executionContext) _Mutation_upload_secret(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["index"].(string), fc.Args["secret"].(string), fc.Args["sign"].(string))
+		return ec.resolvers.Mutation().UploadSecret(rctx, fc.Args["index"].(string), fc.Args["secret"].(string), fc.Args["hash"].(string), fc.Args["user"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -891,7 +914,7 @@ func (ec *executionContext) _Mutation_init_disk_key(ctx context.Context, field g
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().InitDiskKey(rctx, fc.Args["index"].(string), fc.Args["sign"].(string))
+		return ec.resolvers.Mutation().InitDiskKey(rctx, fc.Args["index"].(string), fc.Args["user"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

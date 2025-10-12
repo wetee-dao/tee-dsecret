@@ -95,6 +95,13 @@ func (app *SideChain) finalizeHubCall(hub *model.HubCall, txn *model.Txn) error 
 			if err != nil {
 				return errors.Wrap(err, "finalizeHubCall SaveSecret")
 			}
+		case *model.TeeCall_InitDisk:
+			initDisk := tx.InitDisk
+			user := types.H160(initDisk.User)
+			err := app.InitDisk(user, initDisk.Index, initDisk.Data, txn)
+			if err != nil {
+				return errors.Wrap(err, "finalizeHubCall InitDisk")
+			}
 		default:
 			return errors.New("finalizeHubCall invalid tx type")
 		}

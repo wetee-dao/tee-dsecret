@@ -10,7 +10,6 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
-	"golang.org/x/crypto/blake2b"
 )
 
 // Submit tx to sidechain
@@ -64,16 +63,23 @@ func TEECallToHubCall(tcall *model.TeeCall, dkgKey types.AccountID) (*types.Call
 		return call, nil
 	case *model.TeeCall_UploadSecret:
 		upload := tx.UploadSecret
-		hash := blake2b.Sum256(upload.Data)
-		call, err := chains.MainChain.TxCallOfUploadSecret(types.NewH160(upload.User), upload.Index, types.NewH256(hash[:]), dkgKey)
+		call, err := chains.MainChain.TxCallOfUploadSecret(types.NewH160(upload.User), upload.Index, dkgKey)
 		if err != nil {
 			util.LogError("TxCallOfUploadSecret", err)
 			return nil, err
 		}
 
 		return call, nil
-		// case *model.TeeCall_BridgeCall:
+	case *model.TeeCall_InitDisk:
+		init := tx.InitDisk
+		call, err := chains.MainChain.TxCallOfInitDisk(types.NewH160(init.User), init.Index, types.NewH256(init.Hash), dkgKey)
+		if err != nil {
+			util.LogError("TxCallOfInitDisk", err)
+			return nil, err
+		}
 
+		return call, nil
+		// case *model.TeeCall_BridgeCall:
 	}
 	return nil, errors.New("invalid tee call")
 }

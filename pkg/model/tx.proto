@@ -92,6 +92,7 @@ message TeeCall{
     BridgeCall bridge_call = 7;
     bytes text = 8;
     UploadSecret upload_secret = 9;
+    InitDisk init_disk = 10;
   }
 }
 
@@ -129,7 +130,16 @@ message UploadSecret {
   uint64 index = 2;
   bytes data = 3;
   uint64 time = 4;
-  bytes sig = 5;
+  bytes hash = 5;
+}
+
+// Init disk
+message InitDisk {
+  bytes user = 1;
+  uint64 index = 2;
+  bytes data = 3;
+  uint64 time = 4;
+  bytes hash = 5;
 }
 
 message SecretBox{
