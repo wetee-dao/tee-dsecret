@@ -98,7 +98,7 @@ func (app *SideChain) finalizeHubCall(hub *model.HubCall, txn *model.Txn) error 
 		case *model.TeeCall_InitDisk:
 			initDisk := tx.InitDisk
 			user := types.H160(initDisk.User)
-			err := app.InitDisk(user, initDisk.Index, initDisk.Data, txn)
+			err := app.SaveDiskKey(user, initDisk.Index, initDisk.Data, txn)
 			if err != nil {
 				return errors.Wrap(err, "finalizeHubCall InitDisk")
 			}

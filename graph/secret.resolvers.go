@@ -48,7 +48,7 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secre
 	}
 
 	// encrypt secret
-	encData, err := sideChain.EncryptSecret(msg)
+	encData, err := sideChain.Encrypt(msg)
 	if err != nil {
 		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
 	}
@@ -101,7 +101,7 @@ func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user s
 	}
 
 	// encrypt secret
-	encData, err := sideChain.EncryptSecret(key)
+	encData, err := sideChain.Encrypt(key)
 	if err != nil {
 		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
 	}

@@ -102,7 +102,8 @@ message PodStart {
   bytes app_id = 2;
   bytes name_space = 3;
   bytes pub_key = 4;
-  repeated uint64 Indexs = 5;
+  repeated uint64 secrets = 5;
+  repeated uint64 disks = 6;
 }
 
 // polkadot hub pod mint call
@@ -169,13 +170,15 @@ message DecryptShare {
 // DecryptShares
 message DecryptSharesResp {
   PodStart req = 2;
-  map<uint64, DecryptShare> shares = 3;
+  map<uint64, DecryptShare> secret_shares = 3;
+  map<uint64, DecryptShare> disk_shares = 4;
 }
 
 // Decrypt resp
 message DecryptResp {
   bytes dkg_key = 1;
-  map<uint64, Secret> lists = 3;
+  map<uint64, Secret> secrets = 3;
+  map<uint64, Secret> disk_keys = 4;
 }
 
 // Decrypted secret
