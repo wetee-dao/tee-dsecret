@@ -172,6 +172,7 @@ message DecryptSharesResp {
   PodStart req = 2;
   map<uint64, DecryptShare> secret_shares = 3;
   map<uint64, DecryptShare> disk_shares = 4;
+  bytes error = 5;
 }
 
 // Decrypt resp

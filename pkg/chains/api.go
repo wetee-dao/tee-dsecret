@@ -13,11 +13,14 @@ var MainChain Chain
 type Chain interface {
 	// get chain client
 	GetClient() *chain.ChainClient
+	GetChainUrls() []string
 	GetSignerAddress() string
+
 	// nodes
 	GetBootPeers() ([]model.P2PAddr, error)
 	GetNodes() ([]*model.Validator, []*model.PubKey, error)
 	GetValidatorList() ([]*model.Validator, error)
+
 	// epoch
 	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
 	GetNextEpochValidatorList() ([]*model.Validator, error)

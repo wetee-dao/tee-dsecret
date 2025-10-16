@@ -111,7 +111,7 @@ func SyncStep2(i int64, txn *model.Txn) error {
 	}
 
 	if tx.Going > tx.Done && time.Now().Unix()-tx.LastSync <= 360 {
-		return errors.New("sync step2 one transaction is runing")
+		// return errors.New("sync step2 one transaction is runing")
 	}
 
 	tx.Going = i

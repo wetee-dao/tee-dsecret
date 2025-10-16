@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
@@ -18,21 +19,23 @@ type Container struct { // Composite
 	Image   []byte
 	Command Command
 	Port    []Service
-	Cr      CR
+	Cpu     uint32
+	Mem     uint32
+	Disk    []ContainerDisk
+	Gpu     uint32
 	Env     []Env
 }
 
-type CR struct { // Composite
-	Cpu  uint32
-	Mem  uint32
-	Disk []Disk
-	Gpu  uint32
-}
-
-type Disk struct { // Composite
-	Path DiskClass
+type ContainerDisk struct { // Composite
+	Id   uint32
+	Path []byte
 	Size uint32
 }
+
+// type Disk struct { // Composite
+// 	Path DiskClass
+// 	Size uint32
+// }
 
 type DiskClass struct { // Enum
 	SSD *[]byte // 0
@@ -120,4 +123,11 @@ type Env struct { // Enum
 		F0 []byte
 		F1 uint64
 	}
+}
+
+func CopyWithJSON[T any, V any](from T) V {
+	bt, _ := json.Marshal(from)
+	to := new(V)
+	json.Unmarshal(bt, to)
+	return *to
 }

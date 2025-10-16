@@ -19,14 +19,15 @@ type Contract struct {
 	signer *chain.Signer
 	subnet *subnet.Subnet
 	cloud  *cloud.Cloud
+	urls   []string
 }
 
 func GetCloudAddress() string {
 	return CloudAddress
 }
 
-func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
-	client, err := chain.InitClient(url, false)
+func NewContract(urls []string, pk *model.PrivKey) (*Contract, error) {
+	client, err := chain.InitClient(urls, false)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +70,15 @@ func NewContract(url []string, pk *model.PrivKey) (*Contract, error) {
 
 	return &Contract{
 		ChainClient: client,
+		urls:        urls,
 		signer:      p,
 		subnet:      subnet,
 		cloud:       cloud,
 	}, nil
+}
+
+func (c *Contract) GetChainUrls() []string {
+	return c.urls
 }
 
 func (c *Contract) GetClient() *chain.ChainClient {
