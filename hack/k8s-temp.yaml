@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wetee-dsecret
+  namespace: worker-addon
+spec:
+  selector:
+    matchLabels:
+      app: wetee-dsecret
+  template:
+    metadata:
+      labels:
+        app: wetee-dsecret
+    spec:
+      containers:
+        - name: c0
+          image: $DSECRET_IMAGE
+          ports:
+            - containerPort: $SIDE_CHAIN_PORT
+              name: side
+              protocol: TCP
+            - containerPort: $GQL_PORT
+              name: qgl
+              protocol: TCP
+          env:
+            - name: SIDE_CHAIN_PORT
+              value: '$SIDE_CHAIN_PORT'
+            - name: GQL_PORT
+              value: '$GQL_PORT'
+            - name: CHAIN_ADDR
+              value: $CHAIN_ADDR
+          volumeMounts:
+            - name: wetee-dsecret
+              mountPath: /chain_data
+          resources:
+            limits:
+              alibabacloud.com/sgx_epc_MiB: 10
+            requests:
+              alibabacloud.com/sgx_epc_MiB: 10
+      volumes:
+        - name: wetee-dsecret
+          hostPath:
+            type: DirectoryOrCreate
+            path: $DSECRET_DIR
+      nodeSelector:
+        TEE: "SGX"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wetee-dsecret-service
+  namespace: worker-addon
+spec:
+  type: NodePort
+  selector:
+    app: wetee-dsecret
+  ports:
+    - name: side
+      protocol: TCP
+      nodePort: $SIDE_CHAIN_PORT
+      port: $SIDE_CHAIN_PORT
+      targetPort: $SIDE_CHAIN_PORT
+    - name: qgl
+      protocol: TCP
+      nodePort: $GQL_PORT
+      port: $GQL_PORT
+      targetPort: $GQL_PORT

@@ -26,6 +26,10 @@ func GetCloudAddress() string {
 	return CloudAddress
 }
 
+func GetSubnetAddress() string {
+	return SubnetAddress
+}
+
 func NewContract(urls []string, pk *model.PrivKey) (*Contract, error) {
 	client, err := chain.InitClient(urls, false)
 	if err != nil {

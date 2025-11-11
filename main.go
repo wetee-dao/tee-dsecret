@@ -24,7 +24,6 @@ func main() {
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
 	chainAddr := strings.Split(util.GetEnv("CHAIN_ADDR", DefaultChainUrl), ",")
 	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
-	// password := util.GetEnv("PASSWORD", "")
 
 	// Init app db
 	db, err := model.NewDB()

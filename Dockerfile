@@ -1,10 +1,8 @@
-FROM wetee/ego-ubuntu-deploy:22.04:22.04
+FROM wetee/ego-ubuntu-24-04:1.7.2
 WORKDIR /
 
-ADD bin/manager  /
+ADD hack/build/dsecret  /
 
-RUN mkdir -p /opt/wetee-worker
+RUN mkdir -p /chain_data
 
-EXPOSE 8880 8883 
-
-CMD ["/bin/sh", "-c" ,"ego run manager"]
+CMD ["/bin/sh", "-c" ,"ego run dsecret"]

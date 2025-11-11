@@ -39,6 +39,59 @@ func TestCloud(t *testing.T) {
 	fmt.Println(subnet.Hex())
 }
 
+func TestQueryCloudStage(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	stage, _, err := cloudIns.QueryMintInterval(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QueryPodLen", err)
+		panic(err)
+	}
+	fmt.Println(*stage)
+}
+
+func TestSetCloudStage(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	err = cloudIns.ExecSetMintInterval(300, chain.ExecParams{
+		Signer:    &pk,
+		PayAmount: types.NewU128(*big.NewInt(0)),
+	})
+	if err != nil {
+		util.LogWithPurple("ExecSetMintInterval", err)
+	}
+}
+
 func TestSetSubnetSolt(t *testing.T) {
 	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {

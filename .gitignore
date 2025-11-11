@@ -36,3 +36,4 @@ bin/
 hack/node1/
 hack/node2/
 hack/contract_cache
+k8s.yaml
