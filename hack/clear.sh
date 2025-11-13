@@ -8,7 +8,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 cd $DIR/../
 
-cd bin
+cd $DIR/../hack/node0
 rm -rf ./chain_data/BFT
 rm -rf ./chain_data/wetee
 rm -rf ./chain_data/data/cs.wal

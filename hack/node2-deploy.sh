@@ -12,9 +12,10 @@ img=$(cat ./hack/.version)
 
 export DSECRET_IMAGE=$img
 export DSECRET_DIR=/home/wetee/work/wetee/tee-dsecret/hack/node2/chain_data
+export NAME=dsecret-2
 
-export SIDE_CHAIN_PORT=30030
-export GQL_PORT=30035
+export SIDE_CHAIN_PORT=30130
+export GQL_PORT=30135
 export CHAIN_ADDR=ws://192.168.110.205:30002/ws
 
 
@@ -22,5 +23,6 @@ echo '' > ./hack/k8s.yaml
 envsubst < ./hack/k8s-temp.yaml > ./hack/k8s.yaml
 
 # 部署镜像
-kubectl delete -f ./hack/k8s.yaml
+kubectl delete deployment dsecret-2 -n worker-addon
+kubectl delete service dsecret-2-service -n worker-addon
 kubectl create -f ./hack/k8s.yaml

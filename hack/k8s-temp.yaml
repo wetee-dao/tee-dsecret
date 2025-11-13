@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wetee-dsecret
+  name: $NAME
   namespace: worker-addon
 spec:
   selector:
     matchLabels:
-      app: wetee-dsecret
+      app: $NAME
   template:
     metadata:
       labels:
-        app: wetee-dsecret
+        app: $NAME
     spec:
       containers:
         - name: c0
@@ -30,7 +30,7 @@ spec:
             - name: CHAIN_ADDR
               value: $CHAIN_ADDR
           volumeMounts:
-            - name: wetee-dsecret
+            - name: $NAME
               mountPath: /chain_data
           resources:
             limits:
@@ -38,7 +38,7 @@ spec:
             requests:
               alibabacloud.com/sgx_epc_MiB: 10
       volumes:
-        - name: wetee-dsecret
+        - name: $NAME
           hostPath:
             type: DirectoryOrCreate
             path: $DSECRET_DIR
@@ -49,12 +49,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: wetee-dsecret-service
+  name: $NAME-service
   namespace: worker-addon
 spec:
   type: NodePort
   selector:
-    app: wetee-dsecret
+    app: $NAME
   ports:
     - name: side
       protocol: TCP
