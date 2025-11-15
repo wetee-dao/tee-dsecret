@@ -1,11 +1,11 @@
 {
   "source": {
-    "hash": "0xa7dd956c8e20bcde53bd4e5b6c6948c2b44af0086377ec652cf1537c0be3831b",
-    "language": "ink! 6.0.0-alpha",
+    "hash": "0x8d818d684642ed3b786cf5533da9f2ef476fa1003acaf7a078373fb35d6c0574",
+    "language": "ink! 6.0.0-beta",
     "compiler": "rustc 1.88.0",
     "build_info": {
       "build_mode": "Release",
-      "cargo_contract_version": "6.0.0-alpha",
+      "cargo_contract_version": "6.0.0-beta",
       "rust_toolchain": "stable-x86_64-unknown-linux-gnu"
     }
   },
@@ -55,19 +55,13 @@
         ],
         "type": 3
       },
-      "chainExtension": {
-        "displayName": [
-          "ChainExtension"
-        ],
-        "type": 113
-      },
       "hash": {
         "displayName": [
           "Hash"
         ],
         "type": 112
       },
-      "maxEventTopics": 4,
+      "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
       "timestamp": {
         "displayName": [
@@ -5137,20 +5131,7 @@
           "Hash"
         ]
       }
-    },
-    {
-      "id": 113,
-      "type": {
-        "def": {
-          "variant": {}
-        },
-        "path": [
-          "ink_primitives",
-          "types",
-          "NoChainExtension"
-        ]
-      }
     }
   ],
-  "version": 5
+  "version": 6
 }

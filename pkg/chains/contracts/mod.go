@@ -5,10 +5,10 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
+	"github.com/wetee-dao/ink.go/pallet/revive"
 	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/cloud"
 	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts/subnet"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/revive"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -63,6 +63,7 @@ func NewContract(urls []string, pk *model.PrivKey) (*Contract, error) {
 		runtimeCall := revive.MakeMapAccountCall()
 		call, err := (runtimeCall).AsCall()
 		if err != nil {
+			util.LogWithPurple("MakeMapAccountCall", err)
 			return nil, err
 		}
 

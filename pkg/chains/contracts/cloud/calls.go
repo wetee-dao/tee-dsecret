@@ -663,12 +663,12 @@ func (c *Cloud) QueryPodLen(
 
 func (c *Cloud) QueryPods(
 	start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_119, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_115, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_119](
+	v, gas, err := chain.DryRunInk[[]Tuple_115](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -711,12 +711,12 @@ func (c *Cloud) QueryUserPodLen(
 
 func (c *Cloud) QueryUserPods(
 	start util.Option[uint32], size uint32, __ink_params chain.DryRunParams,
-) (*[]Tuple_119, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_115, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "user_pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_119](
+	v, gas, err := chain.DryRunInk[[]Tuple_115](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -735,12 +735,12 @@ func (c *Cloud) QueryUserPods(
 
 func (c *Cloud) QueryWorkerPodsVersion(
 	worker_id uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_125, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_121, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "worker_pods_version")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_125](
+	v, gas, err := chain.DryRunInk[[]Tuple_121](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -759,12 +759,12 @@ func (c *Cloud) QueryWorkerPodsVersion(
 
 func (c *Cloud) QueryWorkerPods(
 	worker_id uint64, start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_119, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_115, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "worker_pods")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_119](
+	v, gas, err := chain.DryRunInk[[]Tuple_115](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -783,12 +783,12 @@ func (c *Cloud) QueryWorkerPods(
 
 func (c *Cloud) QueryPod(
 	pod_id uint64, __ink_params chain.DryRunParams,
-) (*util.Option[Tuple_128], *chain.DryRunReturnGas, error) {
+) (*util.Option[Tuple_124], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pod")
 	}
-	v, gas, err := chain.DryRunInk[util.Option[Tuple_128]](
+	v, gas, err := chain.DryRunInk[util.Option[Tuple_124]](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -805,14 +805,38 @@ func (c *Cloud) QueryPod(
 	return v, gas, nil
 }
 
+func (c *Cloud) QueryPodExtInfo(
+	pod_id uint64, __ink_params chain.DryRunParams,
+) (*util.Option[Tuple_127], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "pod_ext_info")
+	}
+	v, gas, err := chain.DryRunInk[util.Option[Tuple_127]](
+		c,
+		__ink_params.Origin,
+		__ink_params.PayAmount,
+		__ink_params.GasLimit,
+		__ink_params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0xd80935c3",
+			Args:     []any{pod_id},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	return v, gas, nil
+}
+
 func (c *Cloud) QueryPodsByIds(
 	pod_ids []uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_132, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_135, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "pods_by_ids")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_132](
+	v, gas, err := chain.DryRunInk[[]Tuple_135](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -855,12 +879,12 @@ func (c *Cloud) QueryWorkerPodLen(
 
 func (c *Cloud) QueryUserSecrets(
 	user types.H160, start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_140, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_143, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "user_secrets")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_140](
+	v, gas, err := chain.DryRunInk[[]Tuple_143](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
@@ -1241,6 +1265,74 @@ func (c *Cloud) CallOfUpdateDiskKey(
 	)
 }
 
+func (c *Cloud) DryRunMintDisk(
+	_user types.H160, _disk_id uint64, __ink_params chain.DryRunParams,
+) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
+	if c.ChainClient.Debug {
+		fmt.Println()
+		util.LogWithPurple("[ DryRun   method ]", "mint_disk")
+	}
+	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
+		c,
+		__ink_params.Origin,
+		__ink_params.PayAmount,
+		__ink_params.GasLimit,
+		__ink_params.StorageDepositLimit,
+		util.InkContractInput{
+			Selector: "0x07093d89",
+			Args:     []any{_user, _disk_id},
+		},
+	)
+	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
+		return nil, nil, err
+	}
+	if v != nil && v.IsErr {
+		return nil, nil, errors.New("Contract Reverted: " + v.E.Error())
+	}
+
+	return v, gas, nil
+}
+
+func (c *Cloud) ExecMintDisk(
+	_user types.H160, _disk_id uint64, __ink_params chain.ExecParams,
+) error {
+	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
+	_param.PayAmount = __ink_params.PayAmount
+	_, gas, err := c.DryRunMintDisk(_user, _disk_id, _param)
+	if err != nil {
+		return err
+	}
+	return chain.CallInk(
+		c,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x07093d89",
+			Args:     []any{_user, _disk_id},
+		},
+		__ink_params,
+	)
+}
+
+func (c *Cloud) CallOfMintDisk(
+	_user types.H160, _disk_id uint64, __ink_params chain.DryRunParams,
+) (*types.Call, error) {
+	_, gas, err := c.DryRunMintDisk(_user, _disk_id, __ink_params)
+	if err != nil {
+		return nil, err
+	}
+	return chain.CallOfTransaction(
+		c,
+		__ink_params.PayAmount,
+		gas.GasRequired,
+		gas.StorageDeposit,
+		util.InkContractInput{
+			Selector: "0x07093d89",
+			Args:     []any{_user, _disk_id},
+		},
+	)
+}
+
 func (c *Cloud) QueryDisk(
 	user types.H160, disk_id uint64, __ink_params chain.DryRunParams,
 ) (*util.Option[Disk], *chain.DryRunReturnGas, error) {
@@ -1267,12 +1359,12 @@ func (c *Cloud) QueryDisk(
 
 func (c *Cloud) QueryUserDisks(
 	user types.H160, start util.Option[uint64], size uint64, __ink_params chain.DryRunParams,
-) (*[]Tuple_148, *chain.DryRunReturnGas, error) {
+) (*[]Tuple_151, *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
 		util.LogWithPurple("[ DryRun   method ]", "user_disks")
 	}
-	v, gas, err := chain.DryRunInk[[]Tuple_148](
+	v, gas, err := chain.DryRunInk[[]Tuple_151](
 		c,
 		__ink_params.Origin,
 		__ink_params.PayAmount,
