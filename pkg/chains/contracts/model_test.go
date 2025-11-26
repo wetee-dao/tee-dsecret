@@ -83,7 +83,7 @@ func TestSetCloudStage(t *testing.T) {
 		panic(err)
 	}
 
-	err = cloudIns.ExecSetMintInterval(300, chain.ExecParams{
+	err = cloudIns.ExecSetMintInterval(200, chain.ExecParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
@@ -110,7 +110,7 @@ func TestSetSubnetSolt(t *testing.T) {
 		panic(err)
 	}
 
-	subnetIns.ExecSetEpochSolt(500, chain.ExecParams{
+	subnetIns.ExecSetEpochSolt(1000, chain.ExecParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})
