@@ -61,6 +61,11 @@ spec:
       nodePort: $SIDE_CHAIN_PORT
       port: $SIDE_CHAIN_PORT
       targetPort: $SIDE_CHAIN_PORT
+    - name: side-rpc
+      protocol: TCP
+      nodePort: $SIDE_CHAIN_RPC_PORT
+      port: $SIDE_CHAIN_RPC_PORT
+      targetPort: $SIDE_CHAIN_RPC_PORT
     - name: qgl
       protocol: TCP
       nodePort: $GQL_PORT

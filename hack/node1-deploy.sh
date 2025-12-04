@@ -15,6 +15,7 @@ export DSECRET_DIR=/home/wetee/work/wetee/tee-dsecret/hack/node1/chain_data
 export NAME=dsecret-1
 
 export SIDE_CHAIN_PORT=30120
+export SIDE_CHAIN_RPC_PORT=30121
 export GQL_PORT=30125
 export CHAIN_ADDR=ws://192.168.110.205:30002/ws
 
