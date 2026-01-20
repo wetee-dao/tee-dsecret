@@ -58,6 +58,11 @@ func (s *SideChain) loadChains() error {
 }
 
 func (s *SideChain) getChain(chainId uint32) (chains.ChainApi, error) {
+
+	if chainId == 0 {
+		return chains.MainChain, nil
+	}
+
 	chain, ok := s.chains[chainId]
 	if !ok {
 		return nil, errors.New("chain not found")

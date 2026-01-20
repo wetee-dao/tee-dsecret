@@ -42,6 +42,8 @@ type ChainApi interface {
 
 // MainChainApi is the interface for the main chain
 type MainChainApi interface {
+	ChainApi
+
 	// get chain client
 	GetClient() *chain.ChainClient
 	GetChainUrls() []string
