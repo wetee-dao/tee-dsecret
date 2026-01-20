@@ -8,6 +8,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/version"
 
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/network/bft-brigde"
@@ -18,16 +19,18 @@ const ApplicationVersion = 1
 
 type SideChain struct {
 	abci.BaseApplication
+	state AppState
 
 	dkg *dkg.DKG
 	p2p *bftbrigde.BTFReactor
 
 	txCh *model.PersistChan[*model.BlockPartialSign]
 
-	state               AppState
 	onGoingBlock        *model.Txn
 	onGoingValidators   []abci.ValidatorUpdate
 	currProposerAddress []byte
+
+	chains map[uint32]*chains.ChainApi
 }
 
 func NewSideChain(light bool) (*SideChain, error) {

@@ -72,7 +72,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 
 	// if hub tx, send partial sign
 	if txIndex > 0 && len(hubCalls) > 0 && app.dkg != nil {
-		err := app.sendPartialSign(txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
+		err := app.sendPartialSign(hubCalls[0].ChainId, txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
 		if err != nil {
 			return nil, err
 		}

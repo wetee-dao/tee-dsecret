@@ -1,35 +1,18 @@
 package chains
 
 import (
+
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/contracts"
+	contracts "github.com/wetee-dao/tee-dsecret/pkg/chains/ink"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-var MainChain Chain
+var MainChain MainChainApi
 
-type Chain interface {
-	// get chain client
-	GetClient() *chain.ChainClient
-	GetChainUrls() []string
-	GetSignerAddress() string
-
-	// nodes
-	GetBootPeers() ([]model.P2PAddr, error)
-	GetNodes() ([]*model.Validator, []*model.PubKey, error)
-	GetValidatorList() ([]*model.Validator, error)
-
-	// epoch
-	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
-	GetNextEpochValidatorList() ([]*model.Validator, error)
-	SetNewEpoch(nodeId uint64) error
-	TxCallOfSetNextEpoch(nodeId uint64, signer types.AccountID) (*types.Call, error)
-
-	/// query node id
-	GetMintWorker(user types.AccountID) (*model.K8sCluster, error)
-
+// ChainApi is the interface for the chain
+type ChainApi interface {
 	// query pods by worker
 	GetPodsVersionByWorker(workerId uint64) ([]model.PodVersion, error)
 	GetPodsByIds(podIds []uint64) ([]model.Pod, error)
@@ -52,11 +35,44 @@ type Chain interface {
 	// disk
 	TxCallOfInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) (*types.Call, error)
 	DryInitDisk(user types.H160, index uint64, hash types.H256, signer types.AccountID) error
+
+	// TEE call to call
+	TEECallToCall(tcall *model.TeeCall, dkgKey types.AccountID) (*types.Call, error)
 }
 
-func ConnectMainChain(url []string, pk *model.PrivKey) (Chain, error) {
+// MainChainApi is the interface for the main chain
+type MainChainApi interface {
+	// get chain client
+	GetClient() *chain.ChainClient
+	GetChainUrls() []string
+	GetSignerAddress() string
+
+	// nodes
+	GetBootPeers() ([]model.P2PAddr, error)
+	GetNodes() ([]*model.Validator, []*model.PubKey, error)
+	GetValidatorList() ([]*model.Validator, error)
+
+	// epoch
+	GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error)
+	GetNextEpochValidatorList() ([]*model.Validator, error)
+	SetNewEpoch(nodeId uint64) error
+	TxCallOfSetNextEpoch(nodeId uint64, signer types.AccountID) (*types.Call, error)
+
+	/// query node id
+	GetMintWorker(user types.AccountID) (*model.K8sCluster, error)
+}
+
+// ConnectMainChain 连接主链
+func ConnectMainChain(urls []string, pk *model.PrivKey) (MainChainApi, error) {
 	var err error
 
-	MainChain, err = contracts.NewContract(url, pk)
+	MainChain, err = contracts.NewContract(urls, pk)
 	return MainChain, err
+}
+
+func ConnectChain(urls []string, pk *model.PrivKey) (ChainApi, error) {
+	var err error
+
+	chain, err := contracts.NewContract(urls, pk)
+	return chain, err
 }

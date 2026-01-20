@@ -45,6 +45,7 @@ message Bridge {
 
 // Polkadot Hub Call
 message HubCall {
+  uint32 chain_id = 1;
   repeated TeeCall call = 2;
 }
 

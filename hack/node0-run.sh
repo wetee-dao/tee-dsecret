@@ -6,14 +6,18 @@ while [ -h "$SOURCE"  ]; do
     [[ $SOURCE != /*  ]] && SOURCE="$DIR/$SOURCE"
 done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
-cd $DIR/../
 
-ego-go build -o ./bin/dsecret ./main.go
+cd $DIR/node0
 
 export SIDE_CHAIN_PORT=30010
 export GQL_PORT=30015
 export CHAIN_ADDR=ws://192.168.110.205:30002/ws
 
-cd ./bin/
+ego-go build -o dsecret ../../main.go
+ego sign dsecret
+
+rm nohup.out
+
 ego sign dsecret && ego run dsecret
+# nohup ego run dsecret &
 # ./dsecret

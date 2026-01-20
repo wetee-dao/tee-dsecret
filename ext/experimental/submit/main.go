@@ -7,8 +7,8 @@ import (
 
 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/dsecret"
-	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets/generated/types"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/ink/generated/dsecret"
+	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/ink/generated/types"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"golang.org/x/crypto/blake2b"
 )

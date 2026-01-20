@@ -20,10 +20,15 @@ import (
 // tx_index - The index of the transaction.
 // hubs - A slice of pointers to model.HubCall objects containing the calls to be batched.
 // proposer - A pointer to a model.PubKey object representing the proposer's public key.
-func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, proposer *model.PubKey) error {
+func (s *SideChain) sendPartialSign(chainId uint32, tx_index int64, hubs []*model.HubCall, proposer *model.PubKey) error {
 	// Check if the list of hub calls is empty. If so, exit the function early.
 	if len(hubs) == 0 {
 		return errors.New("hubs is empty")
+	}
+
+	chain, err := s.getChain(chainId)
+	if err != nil {
+		return errors.Wrap(err, "getChain error")
 	}
 
 	// Initialize a slice to hold all index calls extracted from the hub calls.
@@ -47,10 +52,12 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 	calls := make([]types.Call, 0, len(teeCalls))
 	// Iterate through each index call and decode it into a types.Call object.
 	for _, c := range teeCalls {
-		call, err := TEECallToHubCall(c, s.dkg.DkgPubKey.AccountID())
+		call, err := chain.TEECallToCall(c, s.dkg.DkgPubKey.AccountID())
 		if err != nil {
 			return errors.Wrap(err, "TEECallToHubCall error")
 		}
+
+		// Send the partial signature to the proposer vi
 		// Decode the byte slice of the index call into the types.Call object.
 		calls = append(calls, *call)
 	}
@@ -84,7 +91,9 @@ func (s *SideChain) sendPartialSign(tx_index int64, hubs []*model.HubCall, propo
 		return errors.Wrap(err, "Set tx data error")
 	}
 
-	// Send the partial signature to the proposer via P2P.
+	// Send the partial signature t
+
+	// Send the partial signature to the proposer vio the proposer via P2P.
 	err = s.p2p.Send(model.SendToNode(proposer), psig)
 	if err != nil {
 		return errors.Wrap(err, "P2P Send error")
@@ -120,15 +129,14 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 		return err
 	}
 
-	// Retrieve all partial signatures associated with the transaction index from the global state.
+	// 4. 检索所有部分签名
 	sigs, err := s.SigListOfTx(msg.TxIndex)
 	if err != nil {
 		util.LogWithRed("PartialSign", "GetSigList error", err)
 		return err
 	}
 
-	// Check if the number of partial signatures is not equal to the threshold + 1.
-	// If so, log the current number of signatures and the required threshold + 1, then return nil.
+	// 5. 检查是否收集到足够的签名
 	if len(sigs) < s.dkg.Threshold+1 || len(sigs) > s.dkg.Threshold+1 {
 		util.LogWithGray("PartialSign", "ALL =", len(sigs), "TH[+1] =", s.dkg.Threshold+1)
 		return nil
@@ -140,10 +148,11 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 		shares = append(shares, sig.HubSig)
 	}
 
-	// Synchronize tx with extracted share signatures to the Polkadot hub.
+	// 8. 同步到主链
 	err = s.SyncToHub(msg.TxIndex, shares)
 	if err != nil {
-		// Return the error if synchronization fails.
+		// 同步失败，但状态已经在 SyncToHub 中更新
+		util.LogWithRed("handlePartialSign", "SyncToHub error:", err)
 		return err
 	}
 
@@ -153,7 +162,7 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 const PartialSigPrefix = "partial_sig_"
 
 // SavePartialSig saves the block partial signature to the global state.
-// It serializes the provided BlockPartialSign object and stores it in the global state
+// It serializes the provided BlockPartialSign object and stores it// in the global state
 // with a key constructed using the partial signature prefix, transaction index, and user ID.
 //
 // Parameters:
