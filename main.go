@@ -99,6 +99,13 @@ func main() {
 	// Set DKG to sideChain
 	sideChain.SetDKG(dkgIns)
 
+	// load chains
+	err = sideChain.LoadChains()
+	if err != nil {
+		log.Fatalf("loadChains error: %v", err)
+		os.Exit(1)
+	}
+
 	// 启动 graphql 服务器
 	go graph.StartServer(sideChain, gqlPort)
 

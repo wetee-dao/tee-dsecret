@@ -155,12 +155,6 @@ func InitSideChain(
 
 	p2pReactor.Sub("secret", sideChain.revSecret)
 
-	// load chains
-	err = sideChain.loadChains()
-	if err != nil {
-		return nil, nil, nil, errors.New("loadChains error: " + err.Error())
-	}
-
 	return SideChainNode, sideChain, p2pReactor, err
 }
 

@@ -22,7 +22,7 @@ func chainKey(chainId uint32) string {
 	return chainKeyPrefix + strconv.FormatUint(uint64(chainId), 10)
 }
 
-func (s *SideChain) loadChains() error {
+func (s *SideChain) LoadChains() error {
 	// 如果 chains map 未初始化，先初始化
 	if s.chains == nil {
 		s.chains = make(map[uint32]*chains.ChainApi)
