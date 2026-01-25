@@ -196,7 +196,7 @@ func (s *SideChain) SigListOfTx(txIndex int64) ([]*model.BlockPartialSign, error
 	// Fetch the list of serialized partial signatures from the global state with the given prefix.
 	// The prefix is constructed using the PartialSigPrefix and the transaction index.
 	// The method fetches a maximum of 5000 items starting from the first item.
-	bts, err := model.GetList(GLOABL_STATE, PartialSigPrefix+fmt.Sprint(txIndex)+"_", 1, 5000)
+	bts, _, err := model.GetList(GLOABL_STATE, PartialSigPrefix+fmt.Sprint(txIndex)+"_", nil, 5000)
 	if err != nil {
 		// If an error occurs during the retrieval, return nil and the error.
 		return nil, err
