@@ -12,6 +12,9 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
+const TxIndexPrefix = "tx_index_"
+const PartialSigPrefix = "partial_sig_"
+
 // sendPartialSign sends partial signatures of a batch call to a specified proposer.
 // It constructs a batch call from the provided hub calls, partially signs it,
 // and then sends the partial signature to the proposer via P2P.
@@ -86,7 +89,7 @@ func (s *SideChain) sendPartialSign(chainId uint32, tx_index int64, hubs []*mode
 	}
 
 	// Store the batch call in the global state with a key based on the transaction index.
-	err = model.SetCodec(GLOABL_STATE, "tx_index"+fmt.Sprint(tx_index), *call)
+	err = model.SetCodec(GLOABL_STATE, TxIndexPrefix+fmt.Sprint(tx_index), *call)
 	if err != nil {
 		return errors.Wrap(err, "Set tx data error")
 	}
@@ -158,8 +161,6 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 
 	return nil
 }
-
-const PartialSigPrefix = "partial_sig_"
 
 // SavePartialSig saves the block partial signature to the global state.
 // It serializes the provided BlockPartialSign object and stores it// in the global state

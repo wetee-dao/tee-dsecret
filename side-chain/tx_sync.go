@@ -14,7 +14,7 @@ import (
 
 // Submit sync tx to polkadot hub
 func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
-	call, err := model.GetCodec[types.Call](GLOABL_STATE, "tx_index"+fmt.Sprint(txIndex))
+	call, err := model.GetCodec[types.Call](GLOABL_STATE, TxIndexPrefix+fmt.Sprint(txIndex))
 	if err != nil || call == nil {
 		util.LogWithRed("Sync to polkadot hub", "error: call not found call data")
 		return errors.New("sync to polkadot hub error: call not found call data")
