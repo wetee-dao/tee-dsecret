@@ -35,6 +35,14 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 		util.LogWithRed("Sync to polkadot hub", "error => ", err.Error())
 		fmt.Println("                    ", " SS58 => ", s.dkg.DkgPubKey.SS58())
 		fmt.Println("                    ", " SYNC at batch tx id", txIndex)
+		// 提交失败时，将 SyncTxRetry 提交到 mempool，由下一轮 proposer 打包进块
+		// （只有本节点会执行 SyncToHub，故只提交一次；mempool 会广播给其他节点）
+		util.LogWithYellow("Sync to polkadot hub", "submitting SyncTxRetry to mempool", "txIndex:", txIndex)
+		SubmitTx(&model.Tx{
+			Payload: &model.Tx_SyncTxRetry{
+				SyncTxRetry: txIndex,
+			},
+		})
 		return err
 	}
 

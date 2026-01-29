@@ -38,6 +38,8 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_SyncTxEnd:
 			*finaltx = append(*finaltx, txbt)
+		case *model.Tx_SyncTxRetry:
+			*finaltx = append(*finaltx, txbt)
 		case *model.Tx_HubCall:
 			if addMainChainTx {
 				hubCall := tx.GetHubCall()

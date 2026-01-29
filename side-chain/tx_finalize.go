@@ -57,9 +57,39 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			if err != nil {
 				return nil, err
 			}
-
 			// 所有节点在处理 SyncTxEnd 时统一清理 tx_index_ 储存
 			deleteTxIndexStore(p.SyncTxEnd)
+		case *model.Tx_SyncTxRetry: // retry hub sync tx
+			if app.dkg == nil {
+				// dkg 未初始化，无法处理重试
+				LogWithTime("SyncTxRetry", "dkg is nil, skipping retry for txIndex:", p.SyncTxRetry)
+				break
+			}
+
+			// 重新获取该交易的所有部分签名
+			sigs, err := app.SigListOfTx(p.SyncTxRetry)
+			if err != nil {
+				return nil, errors.Wrap(err, "SyncTxRetry: failed to get signatures")
+			}
+
+			// 提取签名
+			shares := make([][]byte, 0, len(sigs))
+			for _, sig := range sigs {
+				shares = append(shares, sig.HubSig)
+			}
+
+			// 检查是否有足够的签名
+			if len(shares) < app.dkg.Threshold+1 {
+				// 签名不足，等待更多签名，不处理重试
+				LogWithTime("SyncTxRetry", "insufficient signatures", "txIndex:", p.SyncTxRetry, "got:", len(shares), "need:", app.dkg.Threshold+1)
+			} else {
+				// 重新调用 SyncToHub 提交到主链
+				err = app.SyncToHub(p.SyncTxRetry, shares)
+				if err != nil {
+					// 再次失败时 SyncToHub 会再次 SubmitTx(SyncTxRetry)，由下一块重试
+					LogWithTime("SyncTxRetry", "retry failed", "txIndex:", p.SyncTxRetry, "error:", err.Error())
+				}
+			}
 		case *model.Tx_HubCall: // add hub call
 			err := app.finalizeHubCall(p.HubCall, txn)
 			if err != nil {

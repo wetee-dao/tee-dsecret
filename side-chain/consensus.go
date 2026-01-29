@@ -98,6 +98,13 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 		finalProposal = append(finalProposal, epochTx)
 	}
 
+	// 如果有未提交到主链的交易（同步进行中），只打包 mempool 中的 SyncTxRetry 等非 HubCall 交易，不打包新 HubCall
+	if IsHubSyncRuning() {
+		util.LogWithYellow("PrepareProposal", "pending sync to main chain, only pack retry/non-hub txs")
+		app.PrepareTx(req.Txs, &finalProposal, req.Height, false)
+		return &abci.PrepareProposalResponse{Txs: finalProposal}, nil
+	}
+
 	epochStatus := app.GetEpochStatus()
 	// Check if it is in the epoch transition phase
 	if len(epochTx) == 0 && time.Now().Unix()-int64(epochStatus) > 120 {
