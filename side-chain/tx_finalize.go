@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -59,36 +60,27 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			}
 			// 所有节点在处理 SyncTxEnd 时统一清理 tx_index_ 储存
 			deleteTxIndexStore(p.SyncTxEnd)
-		case *model.Tx_SyncTxRetry: // retry hub sync tx
+		case *model.Tx_SyncTxRetry: // retry hub sync tx，重新收集签名
 			if app.dkg == nil {
-				// dkg 未初始化，无法处理重试
 				LogWithTime("SyncTxRetry", "dkg is nil, skipping retry for txIndex:", p.SyncTxRetry)
 				break
 			}
 
-			// 重新获取该交易的所有部分签名
-			sigs, err := app.SigListOfTx(p.SyncTxRetry)
+			// 从存储加载该交易的 hubCalls
+			baseKey := TxIndexPrefix + fmt.Sprint(p.SyncTxRetry)
+			stored, err := model.GetJson[hubCallsStore](GLOABL_STATE, baseKey+TxIndexHubCallsSuffix)
+			if err != nil || stored == nil || len(stored.HubCalls) == 0 {
+				LogWithTime("SyncTxRetry", "hubCalls not found for txIndex:", p.SyncTxRetry)
+				break
+			}
+
+			// 清除旧的部分签名，以便重新收集
+			_ = app.DeleteSigOfTx(p.SyncTxRetry)
+
+			// 重新发起部分签名收集：本节点向当前 proposer 发送部分签名，其他节点同样会在 FinalizeTx 中发送
+			err = app.sendPartialSign(stored.HubCalls[0].ChainId, p.SyncTxRetry, stored.HubCalls, app.ProposerAddressToNodeKey(proposer))
 			if err != nil {
-				return nil, errors.Wrap(err, "SyncTxRetry: failed to get signatures")
-			}
-
-			// 提取签名
-			shares := make([][]byte, 0, len(sigs))
-			for _, sig := range sigs {
-				shares = append(shares, sig.HubSig)
-			}
-
-			// 检查是否有足够的签名
-			if len(shares) < app.dkg.Threshold+1 {
-				// 签名不足，等待更多签名，不处理重试
-				LogWithTime("SyncTxRetry", "insufficient signatures", "txIndex:", p.SyncTxRetry, "got:", len(shares), "need:", app.dkg.Threshold+1)
-			} else {
-				// 重新调用 SyncToHub 提交到主链
-				err = app.SyncToHub(p.SyncTxRetry, shares)
-				if err != nil {
-					// 再次失败时 SyncToHub 会再次 SubmitTx(SyncTxRetry)，由下一块重试
-					LogWithTime("SyncTxRetry", "retry failed", "txIndex:", p.SyncTxRetry, "error:", err.Error())
-				}
+				return nil, errors.Wrap(err, "SyncTxRetry: sendPartialSign")
 			}
 		case *model.Tx_HubCall: // add hub call
 			err := app.finalizeHubCall(p.HubCall, txn)
