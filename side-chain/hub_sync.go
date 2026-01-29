@@ -1,3 +1,5 @@
+// tx_sync.go 用于记录提交到主链的交易：SyncToHub、tx_index_ 存储（call/hubCalls）、
+// SyncTxStart/End 状态（HubSyncIndexKey、HubSyncStep1/2/End、IsHubSyncRuning）及清理逻辑。
 package sidechain
 
 import (
@@ -14,7 +16,8 @@ import (
 
 // Submit sync tx to polkadot hub
 func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
-	call, err := model.GetCodec[types.Call](GLOABL_STATE, TxIndexPrefix+fmt.Sprint(txIndex))
+	baseKey := TxIndexPrefix + fmt.Sprint(txIndex)
+	call, err := model.GetCodec[types.Call](GLOABL_STATE, baseKey+TxIndexCallSuffix)
 	if err != nil || call == nil {
 		util.LogWithRed("Sync to polkadot hub", "error: call not found call data")
 		return errors.New("sync to polkadot hub error: call not found call data")
@@ -32,22 +35,26 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 		util.LogWithRed("Sync to polkadot hub", "error => ", err.Error())
 		fmt.Println("                    ", " SS58 => ", s.dkg.DkgPubKey.SS58())
 		fmt.Println("                    ", " SYNC at batch tx id", txIndex)
-	} else {
-		util.LogWithGreen("Sync to polkadot hub", "success at batch tx id", fmt.Sprint(txIndex))
+		return err
 	}
 
-	// stop sync transaction
+	util.LogWithGreen("Sync to polkadot hub", "success at batch tx id", fmt.Sprint(txIndex))
+	// 仅成功后提交 SyncHubEnd，使所有节点在 FinalizeTx 处理时统一清理 tx_index_ 储存
 	SubmitTx(&model.Tx{
 		Payload: &model.Tx_SyncTxEnd{
 			SyncTxEnd: txIndex,
 		},
 	})
+	return nil
+}
 
-	return err
+// deleteTxIndexStore 删除 tx_index_<id> 相关储存（call + hubCalls）。应在所有节点共识到提交成功（即处理 SyncTxEnd）时调用。
+func deleteTxIndexStore(txIndex int64) {
+	_ = model.DeletekeysByPrefix(GLOABL_STATE, TxIndexPrefix+fmt.Sprint(txIndex)+"_")
 }
 
 // sync transaction index
-var SyncTxIndexKey = "sync_transaction"
+var HubSyncIndexKey = "tx_sync_transaction"
 
 type AsyncBatchState struct {
 	Going    int64
@@ -56,8 +63,8 @@ type AsyncBatchState struct {
 }
 
 // check sync is running
-func IsSyncRuning() bool {
-	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
+func IsHubSyncRuning() bool {
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, HubSyncIndexKey)
 	if err != nil {
 		return true
 	}
@@ -72,8 +79,8 @@ func IsSyncRuning() bool {
 }
 
 // sync transaction step1
-func SyncStep1() ([]byte, error) {
-	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, SyncTxIndexKey)
+func HubSyncStep1() ([]byte, error) {
+	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, HubSyncIndexKey)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +104,8 @@ func SyncStep1() ([]byte, error) {
 }
 
 // sync transaction step2
-func SyncStep2(i int64, txn *model.Txn) error {
-	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey))
+func HubSyncStep2(i int64, txn *model.Txn) error {
+	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, HubSyncIndexKey))
 	if err != nil {
 		return err
 	}
@@ -116,12 +123,12 @@ func SyncStep2(i int64, txn *model.Txn) error {
 
 	tx.Going = i
 	tx.Done = i - 1
-	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey), tx)
+	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, HubSyncIndexKey), tx)
 }
 
 // sync transaction step3
-func SyncEnd(i int64, txn *model.Txn) error {
-	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey))
+func HubSyncEnd(i int64, txn *model.Txn) error {
+	tx, err := model.TxnGetJson[AsyncBatchState](txn, model.ComboNamespaceKey(GLOABL_STATE, HubSyncIndexKey))
 	if err != nil {
 		return err
 	}
@@ -132,5 +139,5 @@ func SyncEnd(i int64, txn *model.Txn) error {
 
 	tx.Done = tx.Going
 	tx.LastSync = time.Now().Unix()
-	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, SyncTxIndexKey), tx)
+	return model.TxnSetJson(txn, model.ComboNamespaceKey(GLOABL_STATE, HubSyncIndexKey), tx)
 }

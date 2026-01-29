@@ -13,7 +13,14 @@ import (
 )
 
 const TxIndexPrefix = "tx_index_"
+const TxIndexCallSuffix = "_call"
+const TxIndexHubCallsSuffix = "_hubcalls"
 const PartialSigPrefix = "partial_sig_"
+
+// hubCallsStore wraps []*model.HubCall for JSON persistence (tx_index_ hubcalls), used for retry after main-chain submit.
+type hubCallsStore struct {
+	HubCalls []*model.HubCall `json:"hub_calls"`
+}
 
 // sendPartialSign sends partial signatures of a batch call to a specified proposer.
 // It constructs a batch call from the provided hub calls, partially signs it,
@@ -88,13 +95,16 @@ func (s *SideChain) sendPartialSign(chainId uint32, tx_index int64, hubs []*mode
 		TxIndex: tx_index,
 	}
 
-	// Store the batch call in the global state with a key based on the transaction index.
-	err = model.SetCodec(GLOABL_STATE, TxIndexPrefix+fmt.Sprint(tx_index), *call)
+	baseKey := TxIndexPrefix + fmt.Sprint(tx_index)
+	// Store the batch call and hubCalls for retry after main-chain submit.
+	err = model.SetCodec(GLOABL_STATE, baseKey+TxIndexCallSuffix, *call)
 	if err != nil {
-		return errors.Wrap(err, "Set tx data error")
+		return errors.Wrap(err, "Set tx call error")
 	}
-
-	// Send the partial signature t
+	err = model.SetJson(GLOABL_STATE, baseKey+TxIndexHubCallsSuffix, &hubCallsStore{HubCalls: hubs})
+	if err != nil {
+		return errors.Wrap(err, "Set tx hubcalls error")
+	}
 
 	// Send the partial signature to the proposer vio the proposer via P2P.
 	err = s.p2p.Send(model.SendToNode(proposer), psig)

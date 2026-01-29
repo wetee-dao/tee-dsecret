@@ -48,15 +48,18 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			}
 		case *model.Tx_SyncTxStart: // start hub sync tx
 			txIndex = p.SyncTxStart
-			err = SyncStep2(p.SyncTxStart, txn)
+			err = HubSyncStep2(p.SyncTxStart, txn)
 			if err != nil {
 				return nil, err
 			}
 		case *model.Tx_SyncTxEnd: // end hub sync tx
-			err = SyncEnd(p.SyncTxEnd, txn)
+			err = HubSyncEnd(p.SyncTxEnd, txn)
 			if err != nil {
 				return nil, err
 			}
+
+			// 所有节点在处理 SyncTxEnd 时统一清理 tx_index_ 储存
+			deleteTxIndexStore(p.SyncTxEnd)
 		case *model.Tx_HubCall: // add hub call
 			err := app.finalizeHubCall(p.HubCall, txn)
 			if err != nil {

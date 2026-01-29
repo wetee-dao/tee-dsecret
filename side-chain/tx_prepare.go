@@ -53,7 +53,7 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 	hubtx = s.deduplicateCallersInBlock(hubtx, hubCalls)
 
 	if len(hubtx) > 0 {
-		tx, err := SyncStep1()
+		tx, err := HubSyncStep1()
 		if err != nil {
 			util.LogWithRed("PrepareTx", "TryTxStart err:", err)
 			time.Sleep(time.Second * 2)
