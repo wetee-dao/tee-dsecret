@@ -50,7 +50,6 @@ func NewContract(urls []string, pk *model.PrivKey) (*Contract, error) {
 
 	p := pk.ToSigner()
 
-	util.LogWithYellow("Mainchain Key", pk.GetPublic().SS58())
 	h160 := pk.GetPublic().H160()
 
 	// check account is mapaccount in revive
