@@ -14,12 +14,13 @@ message TxBox {
 // side chain transaction
 message Tx{
   oneof payload {
-    // string test = 99;
+    int64 empty = 99;
     EpochEnd epoch_end = 1;
     int64 epoch_start = 2;
     HubCall hub_call = 4;
     int64 sync_tx_start  = 5;
     int64 sync_tx_end = 6;
+    int64 sync_tx_retry = 7;
   }
 }
 
@@ -45,6 +46,7 @@ message Bridge {
 
 // Polkadot Hub Call
 message HubCall {
+  uint32 chain_id = 1;
   repeated TeeCall call = 2;
 }
 
@@ -92,6 +94,7 @@ message TeeCall{
     BridgeCall bridge_call = 7;
     bytes text = 8;
     UploadSecret upload_secret = 9;
+    InitDisk init_disk = 10;
   }
 }
 
@@ -101,7 +104,8 @@ message PodStart {
   bytes app_id = 2;
   bytes name_space = 3;
   bytes pub_key = 4;
-  repeated uint64 Indexs = 5;
+  repeated uint64 secrets = 5;
+  repeated uint64 disks = 6;
 }
 
 // polkadot hub pod mint call
@@ -129,7 +133,16 @@ message UploadSecret {
   uint64 index = 2;
   bytes data = 3;
   uint64 time = 4;
-  bytes sig = 5;
+  bytes hash = 5;
+}
+
+// Init disk
+message InitDisk {
+  bytes user = 1;
+  uint64 index = 2;
+  bytes data = 3;
+  uint64 time = 4;
+  bytes hash = 5;
 }
 
 message SecretBox{
@@ -159,13 +172,16 @@ message DecryptShare {
 // DecryptShares
 message DecryptSharesResp {
   PodStart req = 2;
-  map<uint64, DecryptShare> shares = 3;
+  map<uint64, DecryptShare> secret_shares = 3;
+  map<uint64, DecryptShare> disk_shares = 4;
+  bytes error = 5;
 }
 
 // Decrypt resp
 message DecryptResp {
   bytes dkg_key = 1;
-  map<uint64, Secret> lists = 3;
+  map<uint64, Secret> secrets = 3;
+  map<uint64, Secret> disk_keys = 4;
 }
 
 // Decrypted secret

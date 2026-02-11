@@ -6,10 +6,23 @@ package graph
 
 import (
 	"context"
+	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
+
+// StartEpoch is the resolver for the start_epoch field.
+func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
+	sidechain.SubmitTx(&model.Tx{
+		Payload: &model.Tx_Empty{
+			Empty: time.Now().Unix(),
+		},
+	})
+
+	return true, nil
+}
 
 // Validators is the resolver for the validators field.
 func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
@@ -26,7 +39,11 @@ func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
 	return list, nil
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

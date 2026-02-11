@@ -90,11 +90,13 @@ func (m *TxBox) GetTx() []byte {
 type Tx struct {
 	// Types that are valid to be assigned to Payload:
 	//
+	//	*Tx_Empty
 	//	*Tx_EpochEnd
 	//	*Tx_EpochStart
 	//	*Tx_HubCall
 	//	*Tx_SyncTxStart
 	//	*Tx_SyncTxEnd
+	//	*Tx_SyncTxRetry
 	Payload              isTx_Payload `protobuf_oneof:"payload"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
@@ -140,6 +142,9 @@ type isTx_Payload interface {
 	Size() int
 }
 
+type Tx_Empty struct {
+	Empty int64 `protobuf:"varint,99,opt,name=empty,proto3,oneof" json:"empty,omitempty"`
+}
 type Tx_EpochEnd struct {
 	EpochEnd *EpochEnd `protobuf:"bytes,1,opt,name=epoch_end,json=epochEnd,proto3,oneof" json:"epoch_end,omitempty"`
 }
@@ -155,18 +160,30 @@ type Tx_SyncTxStart struct {
 type Tx_SyncTxEnd struct {
 	SyncTxEnd int64 `protobuf:"varint,6,opt,name=sync_tx_end,json=syncTxEnd,proto3,oneof" json:"sync_tx_end,omitempty"`
 }
+type Tx_SyncTxRetry struct {
+	SyncTxRetry int64 `protobuf:"varint,7,opt,name=sync_tx_retry,json=syncTxRetry,proto3,oneof" json:"sync_tx_retry,omitempty"`
+}
 
+func (*Tx_Empty) isTx_Payload()       {}
 func (*Tx_EpochEnd) isTx_Payload()    {}
 func (*Tx_EpochStart) isTx_Payload()  {}
 func (*Tx_HubCall) isTx_Payload()     {}
 func (*Tx_SyncTxStart) isTx_Payload() {}
 func (*Tx_SyncTxEnd) isTx_Payload()   {}
+func (*Tx_SyncTxRetry) isTx_Payload() {}
 
 func (m *Tx) GetPayload() isTx_Payload {
 	if m != nil {
 		return m.Payload
 	}
 	return nil
+}
+
+func (m *Tx) GetEmpty() int64 {
+	if x, ok := m.GetPayload().(*Tx_Empty); ok {
+		return x.Empty
+	}
+	return 0
 }
 
 func (m *Tx) GetEpochEnd() *EpochEnd {
@@ -204,14 +221,23 @@ func (m *Tx) GetSyncTxEnd() int64 {
 	return 0
 }
 
+func (m *Tx) GetSyncTxRetry() int64 {
+	if x, ok := m.GetPayload().(*Tx_SyncTxRetry); ok {
+		return x.SyncTxRetry
+	}
+	return 0
+}
+
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*Tx) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
+		(*Tx_Empty)(nil),
 		(*Tx_EpochEnd)(nil),
 		(*Tx_EpochStart)(nil),
 		(*Tx_HubCall)(nil),
 		(*Tx_SyncTxStart)(nil),
 		(*Tx_SyncTxEnd)(nil),
+		(*Tx_SyncTxRetry)(nil),
 	}
 }
 
@@ -401,6 +427,7 @@ func (m *Bridge) GetPayload() []byte {
 
 // Polkadot Hub Call
 type HubCall struct {
+	ChainId              uint32     `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
 	Call                 []*TeeCall `protobuf:"bytes,2,rep,name=call,proto3" json:"call,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -439,6 +466,13 @@ func (m *HubCall) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_HubCall proto.InternalMessageInfo
+
+func (m *HubCall) GetChainId() uint32 {
+	if m != nil {
+		return m.ChainId
+	}
+	return 0
+}
 
 func (m *HubCall) GetCall() []*TeeCall {
 	if m != nil {
@@ -771,6 +805,7 @@ type TeeCall struct {
 	//	*TeeCall_BridgeCall
 	//	*TeeCall_Text
 	//	*TeeCall_UploadSecret
+	//	*TeeCall_InitDisk
 	Tx                   isTeeCall_Tx `protobuf_oneof:"tx"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
 	XXX_unrecognized     []byte       `json:"-"`
@@ -831,12 +866,16 @@ type TeeCall_Text struct {
 type TeeCall_UploadSecret struct {
 	UploadSecret *UploadSecret `protobuf:"bytes,9,opt,name=upload_secret,json=uploadSecret,proto3,oneof" json:"upload_secret,omitempty"`
 }
+type TeeCall_InitDisk struct {
+	InitDisk *InitDisk `protobuf:"bytes,10,opt,name=init_disk,json=initDisk,proto3,oneof" json:"init_disk,omitempty"`
+}
 
 func (*TeeCall_PodStart) isTeeCall_Tx()     {}
 func (*TeeCall_PodMint) isTeeCall_Tx()      {}
 func (*TeeCall_BridgeCall) isTeeCall_Tx()   {}
 func (*TeeCall_Text) isTeeCall_Tx()         {}
 func (*TeeCall_UploadSecret) isTeeCall_Tx() {}
+func (*TeeCall_InitDisk) isTeeCall_Tx()     {}
 
 func (m *TeeCall) GetTx() isTeeCall_Tx {
 	if m != nil {
@@ -908,6 +947,13 @@ func (m *TeeCall) GetUploadSecret() *UploadSecret {
 	return nil
 }
 
+func (m *TeeCall) GetInitDisk() *InitDisk {
+	if x, ok := m.GetTx().(*TeeCall_InitDisk); ok {
+		return x.InitDisk
+	}
+	return nil
+}
+
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*TeeCall) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
@@ -916,6 +962,7 @@ func (*TeeCall) XXX_OneofWrappers() []interface{} {
 		(*TeeCall_BridgeCall)(nil),
 		(*TeeCall_Text)(nil),
 		(*TeeCall_UploadSecret)(nil),
+		(*TeeCall_InitDisk)(nil),
 	}
 }
 
@@ -925,7 +972,8 @@ type PodStart struct {
 	AppId                []byte   `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	NameSpace            []byte   `protobuf:"bytes,3,opt,name=name_space,json=nameSpace,proto3" json:"name_space,omitempty"`
 	PubKey               []byte   `protobuf:"bytes,4,opt,name=pub_key,json=pubKey,proto3" json:"pub_key,omitempty"`
-	Indexs               []uint64 `protobuf:"varint,5,rep,packed,name=Indexs,proto3" json:"Indexs,omitempty"`
+	Secrets              []uint64 `protobuf:"varint,5,rep,packed,name=secrets,proto3" json:"secrets,omitempty"`
+	Disks                []uint64 `protobuf:"varint,6,rep,packed,name=disks,proto3" json:"disks,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -992,9 +1040,16 @@ func (m *PodStart) GetPubKey() []byte {
 	return nil
 }
 
-func (m *PodStart) GetIndexs() []uint64 {
+func (m *PodStart) GetSecrets() []uint64 {
 	if m != nil {
-		return m.Indexs
+		return m.Secrets
+	}
+	return nil
+}
+
+func (m *PodStart) GetDisks() []uint64 {
+	if m != nil {
+		return m.Disks
 	}
 	return nil
 }
@@ -1181,7 +1236,7 @@ type UploadSecret struct {
 	Index                uint64   `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
 	Data                 []byte   `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
 	Time                 uint64   `protobuf:"varint,4,opt,name=time,proto3" json:"time,omitempty"`
-	Sig                  []byte   `protobuf:"bytes,5,opt,name=sig,proto3" json:"sig,omitempty"`
+	Hash                 []byte   `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1248,9 +1303,89 @@ func (m *UploadSecret) GetTime() uint64 {
 	return 0
 }
 
-func (m *UploadSecret) GetSig() []byte {
+func (m *UploadSecret) GetHash() []byte {
 	if m != nil {
-		return m.Sig
+		return m.Hash
+	}
+	return nil
+}
+
+// Init disk
+type InitDisk struct {
+	User                 []byte   `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Index                uint64   `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
+	Data                 []byte   `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Time                 uint64   `protobuf:"varint,4,opt,name=time,proto3" json:"time,omitempty"`
+	Hash                 []byte   `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InitDisk) Reset()         { *m = InitDisk{} }
+func (m *InitDisk) String() string { return proto.CompactTextString(m) }
+func (*InitDisk) ProtoMessage()    {}
+func (*InitDisk) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0fd2153dc07d3b5c, []int{16}
+}
+func (m *InitDisk) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *InitDisk) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_InitDisk.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *InitDisk) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InitDisk.Merge(m, src)
+}
+func (m *InitDisk) XXX_Size() int {
+	return m.Size()
+}
+func (m *InitDisk) XXX_DiscardUnknown() {
+	xxx_messageInfo_InitDisk.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InitDisk proto.InternalMessageInfo
+
+func (m *InitDisk) GetUser() []byte {
+	if m != nil {
+		return m.User
+	}
+	return nil
+}
+
+func (m *InitDisk) GetIndex() uint64 {
+	if m != nil {
+		return m.Index
+	}
+	return 0
+}
+
+func (m *InitDisk) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
+func (m *InitDisk) GetTime() uint64 {
+	if m != nil {
+		return m.Time
+	}
+	return 0
+}
+
+func (m *InitDisk) GetHash() []byte {
+	if m != nil {
+		return m.Hash
 	}
 	return nil
 }
@@ -1273,7 +1408,7 @@ func (m *SecretBox) Reset()         { *m = SecretBox{} }
 func (m *SecretBox) String() string { return proto.CompactTextString(m) }
 func (*SecretBox) ProtoMessage()    {}
 func (*SecretBox) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{16}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{17}
 }
 func (m *SecretBox) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1386,7 +1521,7 @@ func (m *SecretStore) Reset()         { *m = SecretStore{} }
 func (m *SecretStore) String() string { return proto.CompactTextString(m) }
 func (*SecretStore) ProtoMessage()    {}
 func (*SecretStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{17}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{18}
 }
 func (m *SecretStore) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1444,7 +1579,7 @@ func (m *DecryptShare) Reset()         { *m = DecryptShare{} }
 func (m *DecryptShare) String() string { return proto.CompactTextString(m) }
 func (*DecryptShare) ProtoMessage()    {}
 func (*DecryptShare) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{18}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{19}
 }
 func (m *DecryptShare) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1504,7 +1639,9 @@ func (m *DecryptShare) GetProofi() []byte {
 // DecryptShares
 type DecryptSharesResp struct {
 	Req                  *PodStart                `protobuf:"bytes,2,opt,name=req,proto3" json:"req,omitempty"`
-	Shares               map[uint64]*DecryptShare `protobuf:"bytes,3,rep,name=shares,proto3" json:"shares,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	SecretShares         map[uint64]*DecryptShare `protobuf:"bytes,3,rep,name=secret_shares,json=secretShares,proto3" json:"secret_shares,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	DiskShares           map[uint64]*DecryptShare `protobuf:"bytes,4,rep,name=disk_shares,json=diskShares,proto3" json:"disk_shares,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Error                []byte                   `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
 	XXX_unrecognized     []byte                   `json:"-"`
 	XXX_sizecache        int32                    `json:"-"`
@@ -1514,7 +1651,7 @@ func (m *DecryptSharesResp) Reset()         { *m = DecryptSharesResp{} }
 func (m *DecryptSharesResp) String() string { return proto.CompactTextString(m) }
 func (*DecryptSharesResp) ProtoMessage()    {}
 func (*DecryptSharesResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{19}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{20}
 }
 func (m *DecryptSharesResp) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1550,9 +1687,23 @@ func (m *DecryptSharesResp) GetReq() *PodStart {
 	return nil
 }
 
-func (m *DecryptSharesResp) GetShares() map[uint64]*DecryptShare {
+func (m *DecryptSharesResp) GetSecretShares() map[uint64]*DecryptShare {
 	if m != nil {
-		return m.Shares
+		return m.SecretShares
+	}
+	return nil
+}
+
+func (m *DecryptSharesResp) GetDiskShares() map[uint64]*DecryptShare {
+	if m != nil {
+		return m.DiskShares
+	}
+	return nil
+}
+
+func (m *DecryptSharesResp) GetError() []byte {
+	if m != nil {
+		return m.Error
 	}
 	return nil
 }
@@ -1560,7 +1711,8 @@ func (m *DecryptSharesResp) GetShares() map[uint64]*DecryptShare {
 // Decrypt resp
 type DecryptResp struct {
 	DkgKey               []byte             `protobuf:"bytes,1,opt,name=dkg_key,json=dkgKey,proto3" json:"dkg_key,omitempty"`
-	Lists                map[uint64]*Secret `protobuf:"bytes,3,rep,name=lists,proto3" json:"lists,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	Secrets              map[uint64]*Secret `protobuf:"bytes,3,rep,name=secrets,proto3" json:"secrets,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	DiskKeys             map[uint64]*Secret `protobuf:"bytes,4,rep,name=disk_keys,json=diskKeys,proto3" json:"disk_keys,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -1570,7 +1722,7 @@ func (m *DecryptResp) Reset()         { *m = DecryptResp{} }
 func (m *DecryptResp) String() string { return proto.CompactTextString(m) }
 func (*DecryptResp) ProtoMessage()    {}
 func (*DecryptResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{20}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{21}
 }
 func (m *DecryptResp) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1606,9 +1758,16 @@ func (m *DecryptResp) GetDkgKey() []byte {
 	return nil
 }
 
-func (m *DecryptResp) GetLists() map[uint64]*Secret {
+func (m *DecryptResp) GetSecrets() map[uint64]*Secret {
 	if m != nil {
-		return m.Lists
+		return m.Secrets
+	}
+	return nil
+}
+
+func (m *DecryptResp) GetDiskKeys() map[uint64]*Secret {
+	if m != nil {
+		return m.DiskKeys
 	}
 	return nil
 }
@@ -1626,7 +1785,7 @@ func (m *Secret) Reset()         { *m = Secret{} }
 func (m *Secret) String() string { return proto.CompactTextString(m) }
 func (*Secret) ProtoMessage()    {}
 func (*Secret) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{21}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{22}
 }
 func (m *Secret) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1682,7 +1841,7 @@ func (m *TeeTrigger) Reset()         { *m = TeeTrigger{} }
 func (m *TeeTrigger) String() string { return proto.CompactTextString(m) }
 func (*TeeTrigger) ProtoMessage()    {}
 func (*TeeTrigger) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{22}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{23}
 }
 func (m *TeeTrigger) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1746,7 +1905,7 @@ func (m *ApiReq) Reset()         { *m = ApiReq{} }
 func (m *ApiReq) String() string { return proto.CompactTextString(m) }
 func (*ApiReq) ProtoMessage()    {}
 func (*ApiReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{23}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{24}
 }
 func (m *ApiReq) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1809,7 +1968,7 @@ func (m *ApiResp) Reset()         { *m = ApiResp{} }
 func (m *ApiResp) String() string { return proto.CompactTextString(m) }
 func (*ApiResp) ProtoMessage()    {}
 func (*ApiResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_0fd2153dc07d3b5c, []int{24}
+	return fileDescriptor_0fd2153dc07d3b5c, []int{25}
 }
 func (m *ApiResp) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -1869,13 +2028,16 @@ func init() {
 	proto.RegisterType((*BridgeCall)(nil), "model.BridgeCall")
 	proto.RegisterType((*TeeVerifyResult)(nil), "model.TeeVerifyResult")
 	proto.RegisterType((*UploadSecret)(nil), "model.UploadSecret")
+	proto.RegisterType((*InitDisk)(nil), "model.InitDisk")
 	proto.RegisterType((*SecretBox)(nil), "model.SecretBox")
 	proto.RegisterType((*SecretStore)(nil), "model.SecretStore")
 	proto.RegisterType((*DecryptShare)(nil), "model.DecryptShare")
 	proto.RegisterType((*DecryptSharesResp)(nil), "model.DecryptSharesResp")
-	proto.RegisterMapType((map[uint64]*DecryptShare)(nil), "model.DecryptSharesResp.SharesEntry")
+	proto.RegisterMapType((map[uint64]*DecryptShare)(nil), "model.DecryptSharesResp.DiskSharesEntry")
+	proto.RegisterMapType((map[uint64]*DecryptShare)(nil), "model.DecryptSharesResp.SecretSharesEntry")
 	proto.RegisterType((*DecryptResp)(nil), "model.DecryptResp")
-	proto.RegisterMapType((map[uint64]*Secret)(nil), "model.DecryptResp.ListsEntry")
+	proto.RegisterMapType((map[uint64]*Secret)(nil), "model.DecryptResp.DiskKeysEntry")
+	proto.RegisterMapType((map[uint64]*Secret)(nil), "model.DecryptResp.SecretsEntry")
 	proto.RegisterType((*Secret)(nil), "model.Secret")
 	proto.RegisterType((*TeeTrigger)(nil), "model.TeeTrigger")
 	proto.RegisterType((*ApiReq)(nil), "model.ApiReq")
@@ -1885,94 +2047,104 @@ func init() {
 func init() { proto.RegisterFile("tx.proto", fileDescriptor_0fd2153dc07d3b5c) }
 
 var fileDescriptor_0fd2153dc07d3b5c = []byte{
-	// 1388 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xcf, 0x92, 0xd3, 0x46,
-	0x13, 0x5f, 0xd9, 0xf2, 0xbf, 0x96, 0x77, 0x81, 0x01, 0xbe, 0xcf, 0x50, 0xc5, 0xb2, 0x08, 0x92,
-	0xda, 0x54, 0x2a, 0x5b, 0x15, 0xe0, 0x10, 0x08, 0x39, 0xc4, 0xb0, 0x15, 0x6f, 0x25, 0x90, 0xad,
-	0xb1, 0xc3, 0x21, 0x17, 0x95, 0x2c, 0x0d, 0xb2, 0xca, 0xb2, 0x46, 0x8c, 0x46, 0x60, 0x1f, 0xf3,
-	0x06, 0x39, 0xe5, 0x94, 0x63, 0x1e, 0x25, 0x87, 0x1c, 0x93, 0xca, 0x21, 0xd7, 0x14, 0x4f, 0x92,
-	0xea, 0x9e, 0x91, 0xed, 0x85, 0xe5, 0xc0, 0xad, 0xbb, 0xa7, 0xa7, 0xa7, 0xa7, 0x7f, 0xbf, 0xee,
-	0x19, 0xe8, 0xea, 0xe5, 0x51, 0xa1, 0xa4, 0x96, 0xac, 0xb5, 0x90, 0xb1, 0xc8, 0xfc, 0x21, 0xb4,
-	0x26, 0xcb, 0xa1, 0x5c, 0xb2, 0xff, 0x43, 0x47, 0x0b, 0x11, 0x94, 0x69, 0x32, 0x70, 0x0e, 0x9c,
-	0xc3, 0x3e, 0x6f, 0x6b, 0x21, 0xc6, 0x69, 0xc2, 0x2e, 0x42, 0x53, 0xaa, 0x64, 0xd0, 0x20, 0x23,
-	0x8a, 0x6c, 0x0f, 0x1a, 0x7a, 0x39, 0x68, 0x92, 0xa1, 0xa1, 0x97, 0xfe, 0x3f, 0x0e, 0x34, 0x26,
-	0x4b, 0x76, 0x04, 0x3d, 0x51, 0xc8, 0x68, 0x16, 0x88, 0x3c, 0xa6, 0x18, 0xde, 0xdd, 0x0b, 0x47,
-	0x74, 0xca, 0xd1, 0x31, 0xda, 0x8f, 0xf3, 0x78, 0xb4, 0xc3, 0xbb, 0xc2, 0xca, 0xec, 0x16, 0x78,
-	0xc6, 0xbf, 0xd4, 0xa1, 0xd2, 0x74, 0x40, 0x73, 0xb4, 0xc3, 0x81, 0x8c, 0x63, 0xb4, 0xb1, 0x4f,
-	0xa1, 0x3b, 0xab, 0xa6, 0x41, 0x14, 0x66, 0xd9, 0xc0, 0xa5, 0x88, 0x7b, 0x36, 0xe2, 0xa8, 0x9a,
-	0x3e, 0x0e, 0xb3, 0x6c, 0xb4, 0xc3, 0x3b, 0x33, 0x23, 0xb2, 0x3b, 0xb0, 0x5b, 0xae, 0xf2, 0x28,
-	0xd0, 0x4b, 0x1b, 0xb1, 0x65, 0x23, 0x7a, 0x68, 0x9e, 0x2c, 0x4d, 0xc8, 0x03, 0xf0, 0x6a, 0x2f,
-	0xcc, 0xb3, 0x6d, 0x7d, 0x7a, 0xc6, 0xe7, 0x38, 0x8f, 0x87, 0x3d, 0xe8, 0x14, 0xe1, 0x2a, 0x93,
-	0x61, 0xec, 0x7f, 0x05, 0xbb, 0xe3, 0x34, 0x16, 0xcf, 0xc3, 0x2c, 0x8d, 0x43, 0x2d, 0x15, 0xfb,
-	0x1f, 0xb4, 0x8b, 0x6a, 0x3a, 0x17, 0xab, 0xba, 0x48, 0x46, 0x63, 0x57, 0xa0, 0x55, 0xc8, 0xd7,
-	0x42, 0x99, 0x5b, 0x70, 0xa3, 0xf8, 0x3f, 0x3b, 0xd0, 0xad, 0xaf, 0x8e, 0x2e, 0x74, 0x33, 0xda,
-	0xb9, 0xcb, 0x8d, 0xc2, 0xee, 0x03, 0xbc, 0xaa, 0xa3, 0x97, 0x83, 0xc6, 0x41, 0xf3, 0xd0, 0xbb,
-	0x7b, 0xc5, 0xde, 0xf1, 0xcc, 0xd1, 0x7c, 0xcb, 0x0f, 0xc1, 0x8a, 0xe7, 0x49, 0x50, 0x54, 0x53,
-	0x0b, 0x43, 0x3b, 0x9e, 0x27, 0xa7, 0xd5, 0x94, 0xdd, 0x04, 0x0f, 0x17, 0x22, 0xb9, 0x58, 0xa4,
-	0xba, 0xa4, 0x9a, 0xf5, 0x39, 0xc4, 0xf3, 0xe4, 0xb1, 0xb1, 0xf8, 0x0f, 0xa0, 0x3d, 0x54, 0x69,
-	0x9c, 0x08, 0x76, 0x15, 0xda, 0x8b, 0x32, 0x09, 0x52, 0x83, 0x55, 0x8f, 0xb7, 0x16, 0x65, 0x72,
-	0x12, 0xb3, 0xc1, 0xfa, 0xf6, 0x16, 0xf2, 0x75, 0x31, 0x3e, 0x83, 0x8e, 0xad, 0x3a, 0xf3, 0xc1,
-	0x25, 0x4c, 0x4c, 0xbe, 0x35, 0x26, 0x13, 0x21, 0x70, 0x95, 0xd3, 0x9a, 0xff, 0x8b, 0x03, 0xf0,
-	0x64, 0x9e, 0x3c, 0x15, 0x65, 0x19, 0x26, 0x82, 0x31, 0x70, 0x5f, 0x28, 0xb9, 0xb0, 0x87, 0x91,
-	0xcc, 0xae, 0x41, 0x43, 0x4b, 0x3a, 0xc6, 0xbb, 0xdb, 0xab, 0x83, 0x48, 0xde, 0xd0, 0x72, 0x2b,
-	0xbb, 0xe6, 0x7b, 0xb2, 0x73, 0xcf, 0x64, 0x47, 0xe5, 0x55, 0x4a, 0x2a, 0x42, 0xbd, 0xc7, 0x8d,
-	0x82, 0xa7, 0xea, 0x55, 0x21, 0x08, 0xe6, 0x1e, 0x27, 0xd9, 0xaf, 0xe0, 0xe2, 0x30, 0x93, 0xd1,
-	0xfc, 0x34, 0x54, 0x3a, 0x0d, 0xb3, 0x71, 0x9a, 0xe4, 0x1f, 0x9a, 0xdd, 0x35, 0x6c, 0xa4, 0x20,
-	0xcd, 0x63, 0x61, 0xfa, 0xa0, 0xc9, 0x3b, 0x7a, 0x79, 0x82, 0x2a, 0x42, 0x83, 0x94, 0xc5, 0x3e,
-	0x32, 0x19, 0xb6, 0x67, 0xd5, 0x74, 0x9c, 0x26, 0xfe, 0x1c, 0x1a, 0x13, 0xc9, 0xf6, 0xa1, 0x37,
-	0x55, 0x32, 0x8c, 0xa3, 0xb0, 0xd4, 0x74, 0x5a, 0x17, 0xc9, 0xb7, 0x36, 0xb1, 0x3b, 0xd0, 0xca,
-	0x65, 0x2c, 0x4a, 0x7b, 0x6e, 0xdf, 0x9e, 0xfb, 0x0c, 0x6d, 0xa3, 0x1d, 0x6e, 0x16, 0xd9, 0x15,
-	0x70, 0x51, 0x30, 0xe0, 0x8f, 0x76, 0x38, 0x69, 0xdb, 0xc4, 0xbd, 0x0a, 0x2d, 0xda, 0xc2, 0xfa,
-	0xe0, 0x18, 0x98, 0xfa, 0xdc, 0xc9, 0xfc, 0xbf, 0x1b, 0xd0, 0xb1, 0x28, 0x21, 0x95, 0x11, 0x27,
-	0xa1, 0x6a, 0x2a, 0x1b, 0x8d, 0x4a, 0x96, 0x2e, 0x84, 0x65, 0x32, 0xc9, 0x74, 0x5f, 0x21, 0x02,
-	0x2a, 0x65, 0x93, 0xe8, 0x8b, 0xc3, 0x62, 0xb2, 0x2a, 0x04, 0x86, 0x51, 0xa2, 0x90, 0x4a, 0xd7,
-	0xd7, 0x35, 0x1a, 0x4e, 0x83, 0x42, 0xc6, 0x5b, 0x9d, 0xb8, 0x99, 0x06, 0xa7, 0x32, 0xa6, 0x5e,
-	0xc4, 0x69, 0x50, 0x58, 0x19, 0x5b, 0x1d, 0xfd, 0x17, 0x69, 0xae, 0x09, 0xad, 0x0d, 0xad, 0x4e,
-	0x65, 0xfc, 0x34, 0xcd, 0xd1, 0xbb, 0x53, 0x18, 0x91, 0xdd, 0x07, 0x6f, 0x4a, 0x2c, 0x36, 0xa3,
-	0xa1, 0x43, 0xfe, 0x97, 0xac, 0xbf, 0xe1, 0xb7, 0x9d, 0x0e, 0x30, 0x5d, 0x6b, 0x58, 0x35, 0x2d,
-	0x96, 0x7a, 0xd0, 0xad, 0xab, 0x86, 0x1a, 0x7b, 0x08, 0xbb, 0x55, 0x81, 0x45, 0x0b, 0x4a, 0x11,
-	0x29, 0xa1, 0x07, 0x3d, 0x8a, 0x76, 0xd9, 0x46, 0xfb, 0x81, 0xd6, 0xc6, 0xb4, 0x34, 0xda, 0xe1,
-	0xfd, 0x6a, 0x4b, 0x1f, 0xba, 0x38, 0x09, 0xfd, 0x9f, 0x1c, 0xe8, 0xd6, 0x77, 0xc2, 0xe1, 0x68,
-	0x5b, 0xca, 0xe5, 0x8d, 0x34, 0x46, 0x22, 0x87, 0x45, 0x81, 0x44, 0x36, 0xed, 0xd4, 0x0a, 0x8b,
-	0xe2, 0x24, 0x66, 0x37, 0x00, 0xf2, 0x70, 0x21, 0x82, 0xb2, 0x08, 0x23, 0x8b, 0x23, 0xef, 0xa1,
-	0x65, 0x8c, 0x06, 0x64, 0x51, 0x51, 0x4d, 0x03, 0x1c, 0x34, 0xee, 0x7a, 0xd0, 0x7c, 0x2b, 0x56,
-	0x58, 0x6e, 0xe2, 0x59, 0x39, 0x68, 0x1d, 0x34, 0x0f, 0x5d, 0x6e, 0x35, 0xff, 0x01, 0x74, 0x6c,
-	0x9d, 0x30, 0x83, 0x93, 0x75, 0x06, 0x27, 0x31, 0xdb, 0x07, 0x30, 0x98, 0x8c, 0xc2, 0x72, 0x66,
-	0x8f, 0xda, 0xb2, 0xf8, 0x07, 0x00, 0x9b, 0x92, 0xad, 0xe1, 0x77, 0x36, 0xf0, 0xfb, 0xbf, 0x3a,
-	0x70, 0x61, 0x22, 0xc4, 0x73, 0xa1, 0xd2, 0x17, 0x2b, 0x2e, 0xca, 0x2a, 0xd3, 0x67, 0x28, 0xe1,
-	0x9c, 0xa5, 0xc4, 0x4d, 0xf0, 0x22, 0x19, 0xd3, 0x5b, 0x92, 0xdb, 0x91, 0xd8, 0xe7, 0x80, 0xa6,
-	0x31, 0x59, 0xd8, 0x47, 0xb0, 0xb7, 0x76, 0x08, 0x75, 0xa5, 0xea, 0x02, 0xec, 0xd6, 0x3e, 0x64,
-	0x64, 0x1f, 0xc3, 0x05, 0x72, 0x2b, 0x94, 0x8c, 0xab, 0x48, 0x63, 0x0d, 0xdd, 0x8d, 0xdf, 0xa9,
-	0xb1, 0x9e, 0xc4, 0xbe, 0x82, 0xfe, 0x36, 0x4a, 0x78, 0x85, 0xaa, 0x5c, 0xf3, 0x9a, 0x64, 0x1c,
-	0x0f, 0xa6, 0x5d, 0x1b, 0x54, 0x17, 0xa3, 0xa0, 0x67, 0x1c, 0xea, 0xd0, 0x1e, 0x4f, 0xf2, 0xba,
-	0x00, 0x2e, 0x39, 0x1a, 0xfe, 0x5f, 0x84, 0x26, 0x36, 0x74, 0xcb, 0xbc, 0x81, 0x65, 0x9a, 0xf8,
-	0x7f, 0x39, 0xd0, 0xb3, 0x24, 0x90, 0xcb, 0x0f, 0x1d, 0x1f, 0xb7, 0xa1, 0xa9, 0xc4, 0x4b, 0xfb,
-	0xa2, 0x9d, 0xd3, 0x15, 0xb8, 0xca, 0xbe, 0x04, 0xaf, 0x9c, 0x85, 0x4a, 0x94, 0x81, 0x12, 0x65,
-	0x61, 0x5b, 0x68, 0x60, 0x9d, 0x9f, 0x88, 0x48, 0xad, 0x0a, 0x3d, 0x26, 0x07, 0x2e, 0xca, 0x02,
-	0xa9, 0x5e, 0xae, 0x35, 0x76, 0x08, 0x2e, 0xed, 0x32, 0x9d, 0xc4, 0xce, 0xee, 0xb2, 0xfe, 0xe4,
-	0xb1, 0x3d, 0x34, 0xbe, 0x07, 0xcf, 0x5c, 0x69, 0xac, 0xa5, 0x12, 0x6c, 0x1f, 0x3c, 0x15, 0xbe,
-	0x0e, 0x44, 0x1e, 0x05, 0xd1, 0x42, 0xdb, 0x6a, 0xf6, 0x54, 0xf8, 0xfa, 0x38, 0x8f, 0x1e, 0x2f,
-	0xf0, 0x25, 0xed, 0xd7, 0xeb, 0x65, 0x44, 0x0f, 0x78, 0x93, 0x98, 0x45, 0x0e, 0xe3, 0x48, 0x69,
-	0xff, 0x15, 0xf4, 0xb7, 0x13, 0x45, 0x62, 0x50, 0x8e, 0xc1, 0x06, 0x8a, 0x96, 0x4d, 0x7b, 0x3d,
-	0x3c, 0x97, 0x18, 0x6e, 0x9e, 0xd6, 0xef, 0xda, 0x32, 0x8f, 0xc6, 0xf3, 0x14, 0xe1, 0x8b, 0x66,
-	0x59, 0x92, 0x5a, 0x02, 0x18, 0x85, 0x5e, 0x63, 0x25, 0xe5, 0x8b, 0xd4, 0x22, 0x63, 0x35, 0xff,
-	0x77, 0x07, 0x2e, 0xbd, 0x53, 0x21, 0x76, 0xcb, 0x54, 0xbd, 0x71, 0x6e, 0xd5, 0x4d, 0xcd, 0x1f,
-	0x41, 0xdb, 0x14, 0x71, 0xd0, 0xa4, 0x97, 0xed, 0xce, 0xfb, 0xca, 0x7d, 0x64, 0xc4, 0xe3, 0x5c,
-	0xab, 0x15, 0xb7, 0x7b, 0xae, 0x3f, 0x03, 0x6f, 0xcb, 0x8c, 0xa4, 0xa9, 0x3f, 0x0a, 0x2e, 0x47,
-	0x91, 0x7d, 0x02, 0xad, 0x57, 0x61, 0x56, 0x09, 0x9b, 0xc3, 0xe5, 0x73, 0xa2, 0x73, 0xe3, 0xf1,
-	0xb0, 0xf1, 0x85, 0xe3, 0xff, 0xe6, 0x80, 0xb7, 0x05, 0x59, 0xfd, 0xea, 0x6f, 0xfd, 0x3e, 0xe2,
-	0x79, 0x82, 0x43, 0xe1, 0x1e, 0xb4, 0xb2, 0xb4, 0xd4, 0x75, 0xd6, 0x37, 0xde, 0x85, 0xfb, 0xe8,
-	0x3b, 0x5c, 0x37, 0xe9, 0x1a, 0xdf, 0xeb, 0xdf, 0x00, 0x6c, 0x8c, 0xe7, 0x24, 0x7b, 0xfb, 0x6c,
-	0xb2, 0xbb, 0xf5, 0xa7, 0x84, 0x18, 0xb2, 0x9d, 0xe6, 0x23, 0x68, 0xdb, 0xc6, 0xb3, 0xf0, 0x6d,
-	0xd8, 0x82, 0xf0, 0x21, 0x55, 0xae, 0x41, 0xf7, 0x2d, 0x9a, 0x74, 0x84, 0xe5, 0x48, 0x02, 0x30,
-	0x11, 0x62, 0xa2, 0xd2, 0x24, 0x11, 0x8a, 0x1d, 0x40, 0x53, 0x0b, 0x61, 0x7f, 0x8f, 0x6f, 0xff,
-	0x2b, 0x70, 0x09, 0x07, 0x67, 0x94, 0x55, 0xa5, 0x16, 0xaa, 0x9e, 0xa9, 0x2e, 0xef, 0x59, 0x8b,
-	0xf9, 0x20, 0xe0, 0x93, 0x90, 0xc6, 0xa6, 0x18, 0x2e, 0xaf, 0x55, 0x7f, 0x08, 0xed, 0xaf, 0x8b,
-	0x94, 0x8b, 0x97, 0x78, 0xd7, 0x4a, 0x65, 0xf5, 0x8f, 0xb6, 0x52, 0xd9, 0xba, 0x7f, 0xed, 0x1c,
-	0xa0, 0xfe, 0xad, 0x67, 0x83, 0xbb, 0x99, 0x0d, 0xfe, 0xe7, 0xd0, 0xa1, 0x18, 0x65, 0x81, 0xcb,
-	0x38, 0x85, 0x2c, 0x89, 0x49, 0x3e, 0x6f, 0x9c, 0x0c, 0xf7, 0xfe, 0x78, 0xb3, 0xef, 0xfc, 0xf9,
-	0x66, 0xdf, 0xf9, 0xf7, 0xcd, 0xbe, 0xf3, 0xe3, 0xce, 0xb4, 0x4d, 0xdf, 0xef, 0x7b, 0xff, 0x05,
-	0x00, 0x00, 0xff, 0xff, 0x68, 0xc9, 0x9d, 0x0f, 0x8a, 0x0b, 0x00, 0x00,
+	// 1543 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x57, 0xcd, 0x8e, 0xdb, 0x46,
+	0x12, 0x1e, 0x4a, 0xd4, 0x5f, 0x49, 0x9a, 0xb1, 0xdb, 0x3f, 0xab, 0x31, 0xb0, 0x63, 0x99, 0xf6,
+	0x2e, 0x66, 0x77, 0x81, 0x01, 0xd6, 0xeb, 0xc3, 0xda, 0xbb, 0x3e, 0xac, 0xec, 0x01, 0xa4, 0x35,
+	0x1c, 0x0f, 0x5a, 0x8a, 0x0f, 0xb9, 0x10, 0x14, 0xd9, 0xa6, 0x08, 0x51, 0x24, 0xdd, 0x6c, 0xda,
+	0xd2, 0x39, 0x2f, 0x10, 0x04, 0x48, 0x80, 0x00, 0x79, 0x8f, 0xbc, 0x42, 0x8e, 0xc9, 0x1b, 0x04,
+	0x7e, 0x92, 0xa0, 0xaa, 0x9b, 0x12, 0x65, 0x8f, 0x0f, 0x86, 0x81, 0xdc, 0xba, 0x8a, 0xd5, 0xd5,
+	0x55, 0x5f, 0x7d, 0x55, 0xdd, 0x84, 0xb6, 0x5a, 0x9f, 0x65, 0x32, 0x55, 0x29, 0x6b, 0xac, 0xd2,
+	0x40, 0xc4, 0xce, 0x08, 0x1a, 0xb3, 0xf5, 0x28, 0x5d, 0xb3, 0x3f, 0x41, 0x4b, 0x09, 0xe1, 0xe6,
+	0x51, 0x38, 0xb0, 0x86, 0xd6, 0x69, 0x8f, 0x37, 0x95, 0x10, 0xd3, 0x28, 0x64, 0x57, 0xa0, 0x9e,
+	0xca, 0x70, 0x50, 0x23, 0x25, 0x2e, 0xd9, 0x21, 0xd4, 0xd4, 0x7a, 0x50, 0x27, 0x45, 0x4d, 0xad,
+	0x9d, 0xef, 0x6a, 0x50, 0x9b, 0xad, 0xd9, 0x4d, 0x68, 0x88, 0x55, 0xa6, 0x36, 0x03, 0x7f, 0x68,
+	0x9d, 0xd6, 0xc7, 0x07, 0x5c, 0x8b, 0xec, 0x0c, 0x3a, 0x22, 0x4b, 0xfd, 0x85, 0x2b, 0x92, 0x80,
+	0x7c, 0x77, 0xef, 0x1f, 0x9d, 0xd1, 0xe9, 0x67, 0xe7, 0xa8, 0x3f, 0x4f, 0x82, 0xf1, 0x01, 0x6f,
+	0x0b, 0xb3, 0x66, 0x77, 0xa0, 0xab, 0xed, 0x73, 0xe5, 0x49, 0x45, 0x07, 0xa3, 0x37, 0x20, 0xe5,
+	0x14, 0x75, 0xec, 0x1f, 0xd0, 0x5e, 0x14, 0x73, 0xd7, 0xf7, 0xe2, 0x78, 0x60, 0x93, 0xc7, 0x43,
+	0xe3, 0x71, 0x5c, 0xcc, 0x9f, 0x78, 0x71, 0x3c, 0x3e, 0xe0, 0xad, 0x85, 0x5e, 0xb2, 0x7b, 0xd0,
+	0xcf, 0x37, 0x89, 0xef, 0xaa, 0xb5, 0xf1, 0xd8, 0x30, 0x1e, 0xbb, 0xa8, 0x9e, 0xad, 0xb5, 0xcb,
+	0x21, 0x74, 0x4b, 0x2b, 0x8c, 0xb3, 0x69, 0x6c, 0x3a, 0xda, 0x06, 0xe3, 0xaa, 0xf8, 0x91, 0x42,
+	0xc9, 0xcd, 0xa0, 0xb5, 0xef, 0x87, 0xa3, 0x72, 0xd4, 0x81, 0x56, 0xe6, 0x6d, 0xe2, 0xd4, 0x0b,
+	0x9c, 0xc7, 0xd0, 0x9f, 0x46, 0x81, 0x78, 0xe9, 0xc5, 0x51, 0xe0, 0xa9, 0x54, 0xb2, 0x9b, 0xd0,
+	0xcc, 0x8a, 0xf9, 0x52, 0x6c, 0x4a, 0x88, 0xb5, 0xc4, 0xae, 0x43, 0x23, 0x4b, 0xdf, 0x0a, 0xa9,
+	0x73, 0xe5, 0x5a, 0x70, 0xbe, 0xb1, 0xa0, 0x5d, 0x02, 0x84, 0x26, 0x94, 0x3f, 0xed, 0xec, 0x73,
+	0x2d, 0xb0, 0x07, 0x00, 0x6f, 0x4a, 0xef, 0xf9, 0xa0, 0x36, 0xac, 0x9f, 0x76, 0xef, 0x5f, 0x37,
+	0x48, 0xec, 0x1d, 0xcd, 0x2b, 0x76, 0x58, 0xea, 0x60, 0x19, 0xba, 0x59, 0x31, 0x37, 0x45, 0x6c,
+	0x06, 0xcb, 0xf0, 0xa2, 0x98, 0xb3, 0xdb, 0xd0, 0xc5, 0x0f, 0x7e, 0xba, 0x5a, 0x45, 0x2a, 0x27,
+	0x64, 0x7b, 0x1c, 0x82, 0x65, 0xf8, 0x44, 0x6b, 0x9c, 0x87, 0xd0, 0x1c, 0xc9, 0x28, 0x08, 0x05,
+	0xbb, 0x01, 0xcd, 0x55, 0x1e, 0xba, 0x91, 0xae, 0x68, 0x87, 0x37, 0x56, 0x79, 0x38, 0x09, 0xd8,
+	0x60, 0x9b, 0xbd, 0x21, 0xcc, 0x16, 0x8c, 0x31, 0xb4, 0x4c, 0x6d, 0xd8, 0x31, 0xb4, 0xfd, 0x85,
+	0x17, 0x25, 0xe5, 0xee, 0x3e, 0x6f, 0x91, 0x3c, 0x09, 0x98, 0x03, 0x36, 0x15, 0x55, 0xa7, 0x52,
+	0x16, 0x75, 0x26, 0x04, 0x6e, 0xe4, 0xf4, 0xcd, 0xf9, 0xde, 0x02, 0x78, 0xba, 0x0c, 0x9f, 0x8b,
+	0x3c, 0xf7, 0x42, 0xc1, 0x18, 0xd8, 0xaf, 0x64, 0xba, 0x32, 0x71, 0xd0, 0x9a, 0x1d, 0x43, 0x4d,
+	0xa5, 0x14, 0x41, 0xf7, 0x7e, 0xa7, 0x74, 0x92, 0xf2, 0x9a, 0x4a, 0x2b, 0x81, 0xd7, 0x3f, 0x12,
+	0xb8, 0xbd, 0x17, 0x38, 0x21, 0x2f, 0x65, 0x2a, 0x89, 0x36, 0x1d, 0xae, 0x05, 0x3c, 0x55, 0x6d,
+	0x32, 0x41, 0x3c, 0xe9, 0x70, 0x5a, 0x3b, 0x05, 0x5c, 0x19, 0xc5, 0xa9, 0xbf, 0xbc, 0xf0, 0xa4,
+	0x8a, 0xbc, 0x78, 0x1a, 0x85, 0xc9, 0xa7, 0x46, 0x77, 0x8c, 0x1d, 0xea, 0x46, 0x49, 0x20, 0x74,
+	0x83, 0xd5, 0x79, 0x4b, 0xad, 0x27, 0x28, 0x62, 0xd5, 0x90, 0xf3, 0xd8, 0xa0, 0x3a, 0xc2, 0xe6,
+	0xa2, 0x98, 0x4f, 0xa3, 0xd0, 0x59, 0x42, 0x6d, 0x96, 0xb2, 0x13, 0xe8, 0xcc, 0x65, 0xea, 0x05,
+	0xbe, 0x97, 0x2b, 0x3a, 0xad, 0x8d, 0xec, 0xdd, 0xaa, 0xd8, 0x3d, 0x68, 0x24, 0x69, 0x20, 0x72,
+	0x73, 0x6e, 0xcf, 0x9c, 0xfb, 0x05, 0xea, 0xb0, 0x57, 0xe9, 0x23, 0xbb, 0x0e, 0x36, 0x2e, 0x34,
+	0x2f, 0xc6, 0x07, 0x9c, 0xa4, 0x2a, 0xa7, 0x6f, 0x40, 0x83, 0xb6, 0xb0, 0x1e, 0x58, 0xba, 0x4c,
+	0x3d, 0x6e, 0xc5, 0xce, 0xd7, 0x75, 0x68, 0x99, 0x2a, 0x21, 0xcb, 0xb1, 0x4e, 0x42, 0x96, 0x2c,
+	0xd7, 0x12, 0x41, 0x16, 0xad, 0x84, 0x21, 0x39, 0xad, 0x29, 0x5f, 0x21, 0x5c, 0x82, 0xb2, 0xae,
+	0xa9, 0xa0, 0x84, 0x98, 0x6d, 0x32, 0x81, 0x6e, 0xa4, 0xc8, 0x52, 0xa9, 0xca, 0x74, 0xb5, 0x84,
+	0xe3, 0x24, 0x4b, 0x83, 0x4a, 0x2b, 0xef, 0xc6, 0xc9, 0x45, 0x1a, 0x50, 0x33, 0xe3, 0x38, 0xc9,
+	0xcc, 0x1a, 0x67, 0x05, 0xda, 0xaf, 0xa2, 0x44, 0x51, 0xb5, 0x76, 0xb4, 0xba, 0x48, 0x83, 0xe7,
+	0x51, 0x82, 0xd6, 0xad, 0x4c, 0x2f, 0xd9, 0x03, 0xe8, 0xce, 0x89, 0xe0, 0x7a, 0xb6, 0xb4, 0xc8,
+	0xfe, 0xaa, 0xb1, 0xd7, 0xd4, 0x37, 0xe3, 0x05, 0xe6, 0x5b, 0x09, 0x51, 0x53, 0x62, 0xad, 0x06,
+	0xed, 0x12, 0x35, 0x94, 0xd8, 0x23, 0xe8, 0x17, 0x19, 0x82, 0xe6, 0xe6, 0xc2, 0x97, 0x42, 0x0d,
+	0x3a, 0xe4, 0xed, 0x9a, 0xf1, 0xf6, 0x25, 0x7d, 0x9b, 0xd2, 0xa7, 0xf1, 0x01, 0xef, 0x15, 0x15,
+	0x19, 0x93, 0x8c, 0x92, 0x48, 0xb9, 0x41, 0x94, 0x2f, 0x07, 0xb0, 0x97, 0xe4, 0x24, 0x89, 0xd4,
+	0xd3, 0x28, 0x5f, 0x62, 0x92, 0x91, 0x59, 0x8f, 0x6c, 0x1c, 0xc9, 0xce, 0x0f, 0x16, 0xb4, 0x4b,
+	0x0c, 0x70, 0x4a, 0x9b, 0xfe, 0xb2, 0x79, 0x2d, 0x0a, 0x90, 0xf8, 0x5e, 0x96, 0x21, 0xf1, 0x75,
+	0x67, 0x36, 0xbc, 0x2c, 0x9b, 0x04, 0xec, 0xcf, 0x00, 0x89, 0xb7, 0x12, 0x6e, 0x9e, 0x79, 0xbe,
+	0xa9, 0x3b, 0xef, 0xa0, 0x66, 0x8a, 0x0a, 0x64, 0x5d, 0x56, 0xcc, 0x5d, 0x9c, 0x59, 0xf6, 0x76,
+	0x66, 0x3d, 0x13, 0x1b, 0x6c, 0x18, 0x9d, 0x56, 0x3e, 0x68, 0x0c, 0xeb, 0xa7, 0x36, 0x2f, 0x45,
+	0x6c, 0x18, 0x0c, 0x3b, 0x1f, 0x34, 0x49, 0xaf, 0x05, 0xe7, 0x21, 0xb4, 0x0c, 0xde, 0x18, 0xd9,
+	0x64, 0x1b, 0xd9, 0x24, 0x60, 0x27, 0x00, 0xba, 0xb6, 0x63, 0x2f, 0x5f, 0x98, 0x10, 0x2a, 0x1a,
+	0x67, 0x08, 0xb0, 0x83, 0x7e, 0x4b, 0x23, 0x6b, 0x47, 0x23, 0xe7, 0x47, 0x0b, 0x8e, 0x66, 0x42,
+	0xbc, 0x14, 0x32, 0x7a, 0xb5, 0xe1, 0x22, 0x2f, 0x62, 0xb5, 0x47, 0x2d, 0x6b, 0x9f, 0x5a, 0xb7,
+	0xa1, 0xeb, 0xa7, 0x01, 0x5d, 0x76, 0x89, 0x99, 0xba, 0x3d, 0x0e, 0xa8, 0x9a, 0x92, 0x86, 0xfd,
+	0x05, 0x0e, 0xb7, 0x06, 0x9e, 0x2a, 0x64, 0x09, 0x4c, 0xbf, 0xb4, 0x21, 0x25, 0xfb, 0x2b, 0x1c,
+	0x91, 0x59, 0x26, 0xd3, 0xa0, 0xf0, 0x15, 0x62, 0x6b, 0xef, 0xec, 0x2e, 0xb4, 0x76, 0x12, 0x38,
+	0x0a, 0x7a, 0xd5, 0x6a, 0x63, 0x0a, 0x45, 0xbe, 0xed, 0x0f, 0x5a, 0x23, 0x6a, 0xba, 0xed, 0x6b,
+	0x84, 0x8b, 0x16, 0xd0, 0x32, 0xf0, 0x94, 0x67, 0x8e, 0xa7, 0xf5, 0x16, 0x00, 0x9b, 0x0c, 0x75,
+	0x1f, 0x31, 0xb0, 0x17, 0x08, 0x5e, 0x43, 0xdb, 0xe1, 0xda, 0xc9, 0xa0, 0x5d, 0x72, 0xe5, 0x0f,
+	0x3a, 0xf1, 0x57, 0x0b, 0x3a, 0x3a, 0x45, 0x7c, 0x51, 0x7c, 0xe2, 0xe8, 0xbb, 0x0b, 0x75, 0x29,
+	0x5e, 0x9b, 0xeb, 0xfc, 0x92, 0x8e, 0xc6, 0xaf, 0xec, 0x3f, 0xd0, 0xcd, 0x17, 0x9e, 0x14, 0xb9,
+	0x2b, 0x45, 0x9e, 0x99, 0xf6, 0x1f, 0x18, 0xe3, 0xa7, 0xc2, 0x97, 0x9b, 0x4c, 0x4d, 0xc9, 0x80,
+	0x8b, 0x3c, 0xc3, 0x36, 0xcd, 0xb7, 0x12, 0x3b, 0x05, 0x9b, 0x76, 0xe9, 0x29, 0xc0, 0xf6, 0x77,
+	0x19, 0x7b, 0xb2, 0xa8, 0x0e, 0xbc, 0x17, 0xd0, 0xd5, 0x29, 0x4d, 0x55, 0x2a, 0x05, 0x3b, 0x81,
+	0xae, 0xf4, 0xde, 0xba, 0x22, 0xf1, 0x5d, 0x7f, 0xa5, 0x0c, 0x9e, 0x1d, 0xe9, 0xbd, 0x3d, 0x4f,
+	0xfc, 0x27, 0x2b, 0x7c, 0x46, 0xf4, 0xca, 0xef, 0xb9, 0x4f, 0xaf, 0x97, 0x3a, 0xb1, 0x99, 0x0c,
+	0xa6, 0xbe, 0x54, 0xce, 0x1b, 0xe8, 0x55, 0x03, 0x45, 0x32, 0x52, 0x8c, 0xee, 0xae, 0x18, 0x0d,
+	0x13, 0xf6, 0x76, 0xf0, 0xaf, 0xd1, 0xdd, 0x32, 0x2a, 0xaf, 0xeb, 0x75, 0xe2, 0x4f, 0x97, 0x11,
+	0x16, 0xd0, 0x5f, 0xc4, 0x61, 0x64, 0x48, 0xa7, 0x05, 0x7a, 0x64, 0xc8, 0x34, 0x7d, 0x15, 0x99,
+	0xd2, 0x18, 0xc9, 0xf9, 0xb6, 0x0e, 0x57, 0x3f, 0x40, 0x88, 0xdd, 0xd1, 0xa8, 0xd7, 0x2e, 0x45,
+	0x5d, 0x63, 0xfe, 0x02, 0xfa, 0xba, 0xb5, 0x5d, 0x8d, 0xe5, 0xa0, 0x4e, 0x97, 0xf3, 0xdf, 0x3f,
+	0x86, 0xfa, 0x99, 0xc1, 0x8b, 0x14, 0xe7, 0x89, 0x92, 0x1b, 0xde, 0xcb, 0x2b, 0x2a, 0x36, 0x81,
+	0x2e, 0xce, 0x84, 0xd2, 0x9d, 0x4d, 0xee, 0x4e, 0x3f, 0xea, 0x0e, 0x09, 0x5c, 0x75, 0x06, 0xc1,
+	0x56, 0xb1, 0x7f, 0x39, 0xf7, 0xcc, 0xe5, 0x7c, 0x6b, 0x06, 0x57, 0x3f, 0x88, 0x01, 0xdf, 0xb1,
+	0xe5, 0xcb, 0xcb, 0xe6, 0xb8, 0x64, 0x7f, 0x83, 0xc6, 0x1b, 0x2f, 0x2e, 0x84, 0xc9, 0xfe, 0xda,
+	0x25, 0x11, 0x70, 0x6d, 0xf1, 0xa8, 0xf6, 0x6f, 0xeb, 0x16, 0x87, 0xa3, 0xf7, 0x42, 0xf9, 0x6c,
+	0x9f, 0xce, 0x4f, 0x35, 0xe8, 0x56, 0x08, 0x58, 0x3e, 0xcd, 0x2a, 0x4f, 0xc4, 0x60, 0x19, 0xe2,
+	0xb8, 0x7d, 0xb8, 0x1b, 0xb7, 0x1a, 0xfe, 0xdb, 0x1f, 0xd2, 0xd7, 0x00, 0x6f, 0x60, 0xda, 0xce,
+	0xe3, 0xc7, 0xd0, 0x21, 0xb8, 0x97, 0x62, 0x53, 0x82, 0x3d, 0xbc, 0x64, 0x33, 0xe6, 0xf6, 0x4c,
+	0x6c, 0xcc, 0xee, 0x76, 0x60, 0xc4, 0x5b, 0x13, 0xe8, 0x55, 0xfd, 0x5e, 0x92, 0xf3, 0xdd, 0xfd,
+	0x9c, 0xfb, 0xe5, 0x03, 0x94, 0x76, 0x55, 0x11, 0xfc, 0x3f, 0xf4, 0xf7, 0x4e, 0xf9, 0x0c, 0x5f,
+	0xce, 0x7f, 0xa1, 0x69, 0xa6, 0xa9, 0xe9, 0x8f, 0x5d, 0x3b, 0x62, 0x7f, 0x60, 0x2f, 0x1e, 0x43,
+	0xfb, 0xbd, 0x3e, 0x6c, 0x09, 0xd3, 0x84, 0x21, 0xc0, 0x4c, 0x88, 0x99, 0x8c, 0xc2, 0x50, 0x48,
+	0x36, 0x84, 0xba, 0x12, 0xc2, 0xfc, 0x9b, 0xbc, 0xff, 0xe8, 0xc4, 0x4f, 0x78, 0x4b, 0xfa, 0x71,
+	0x91, 0x2b, 0x21, 0xcb, 0x0b, 0xd4, 0xe6, 0x1d, 0xa3, 0xd1, 0xaf, 0x47, 0x7c, 0x2f, 0x44, 0x81,
+	0xae, 0x8e, 0xcd, 0x4b, 0xd1, 0x19, 0x41, 0xf3, 0x7f, 0x59, 0xc4, 0xc5, 0x6b, 0xcc, 0xb5, 0x90,
+	0x71, 0xf9, 0x1f, 0x55, 0xc8, 0x78, 0x3b, 0x20, 0xcd, 0xa8, 0xa5, 0x01, 0x59, 0x8e, 0x5f, 0x7b,
+	0x37, 0x7e, 0x9d, 0x7f, 0x42, 0x8b, 0x7c, 0xe4, 0x19, 0x7e, 0xc6, 0xab, 0xc5, 0x4c, 0x09, 0x5a,
+	0x5f, 0x36, 0xb1, 0x47, 0x87, 0x3f, 0xbf, 0x3b, 0xb1, 0x7e, 0x79, 0x77, 0x62, 0xfd, 0xf6, 0xee,
+	0xc4, 0xfa, 0xea, 0x60, 0xde, 0xa4, 0x9f, 0xbe, 0x7f, 0xfd, 0x1e, 0x00, 0x00, 0xff, 0xff, 0xb2,
+	0x7c, 0x07, 0x4d, 0x00, 0x0e, 0x00, 0x00,
 }
 
 func (m *TxBox) Marshal() (dAtA []byte, err error) {
@@ -2135,6 +2307,32 @@ func (m *Tx_SyncTxEnd) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i = encodeVarintTx(dAtA, i, uint64(m.SyncTxEnd))
 	i--
 	dAtA[i] = 0x30
+	return len(dAtA) - i, nil
+}
+func (m *Tx_SyncTxRetry) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Tx_SyncTxRetry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = encodeVarintTx(dAtA, i, uint64(m.SyncTxRetry))
+	i--
+	dAtA[i] = 0x38
+	return len(dAtA) - i, nil
+}
+func (m *Tx_Empty) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Tx_Empty) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i = encodeVarintTx(dAtA, i, uint64(m.Empty))
+	i--
+	dAtA[i] = 0x6
+	i--
+	dAtA[i] = 0x98
 	return len(dAtA) - i, nil
 }
 func (m *SideValidator) Marshal() (dAtA []byte, err error) {
@@ -2314,6 +2512,11 @@ func (m *HubCall) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x12
 		}
+	}
+	if m.ChainId != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.ChainId))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -2736,6 +2939,27 @@ func (m *TeeCall_UploadSecret) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
+func (m *TeeCall_InitDisk) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TeeCall_InitDisk) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.InitDisk != nil {
+		{
+			size, err := m.InitDisk.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintTx(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x52
+	}
+	return len(dAtA) - i, nil
+}
 func (m *PodStart) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2760,21 +2984,39 @@ func (m *PodStart) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.Indexs) > 0 {
-		dAtA11 := make([]byte, len(m.Indexs)*10)
-		var j10 int
-		for _, num := range m.Indexs {
+	if len(m.Disks) > 0 {
+		dAtA12 := make([]byte, len(m.Disks)*10)
+		var j11 int
+		for _, num := range m.Disks {
 			for num >= 1<<7 {
-				dAtA11[j10] = uint8(uint64(num)&0x7f | 0x80)
+				dAtA12[j11] = uint8(uint64(num)&0x7f | 0x80)
 				num >>= 7
-				j10++
+				j11++
 			}
-			dAtA11[j10] = uint8(num)
-			j10++
+			dAtA12[j11] = uint8(num)
+			j11++
 		}
-		i -= j10
-		copy(dAtA[i:], dAtA11[:j10])
-		i = encodeVarintTx(dAtA, i, uint64(j10))
+		i -= j11
+		copy(dAtA[i:], dAtA12[:j11])
+		i = encodeVarintTx(dAtA, i, uint64(j11))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.Secrets) > 0 {
+		dAtA14 := make([]byte, len(m.Secrets)*10)
+		var j13 int
+		for _, num := range m.Secrets {
+			for num >= 1<<7 {
+				dAtA14[j13] = uint8(uint64(num)&0x7f | 0x80)
+				num >>= 7
+				j13++
+			}
+			dAtA14[j13] = uint8(num)
+			j13++
+		}
+		i -= j13
+		copy(dAtA[i:], dAtA14[:j13])
+		i = encodeVarintTx(dAtA, i, uint64(j13))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -2955,10 +3197,68 @@ func (m *UploadSecret) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.Sig) > 0 {
-		i -= len(m.Sig)
-		copy(dAtA[i:], m.Sig)
-		i = encodeVarintTx(dAtA, i, uint64(len(m.Sig)))
+	if len(m.Hash) > 0 {
+		i -= len(m.Hash)
+		copy(dAtA[i:], m.Hash)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Hash)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Time != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Time))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.Data) > 0 {
+		i -= len(m.Data)
+		copy(dAtA[i:], m.Data)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Data)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Index != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.Index))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.User) > 0 {
+		i -= len(m.User)
+		copy(dAtA[i:], m.User)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.User)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InitDisk) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitDisk) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *InitDisk) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.Hash) > 0 {
+		i -= len(m.Hash)
+		copy(dAtA[i:], m.Hash)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Hash)))
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -3227,9 +3527,40 @@ func (m *DecryptSharesResp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.Shares) > 0 {
-		for k := range m.Shares {
-			v := m.Shares[k]
+	if len(m.Error) > 0 {
+		i -= len(m.Error)
+		copy(dAtA[i:], m.Error)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Error)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.DiskShares) > 0 {
+		for k := range m.DiskShares {
+			v := m.DiskShares[k]
+			baseI := i
+			if v != nil {
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintTx(dAtA, i, uint64(size))
+				}
+				i--
+				dAtA[i] = 0x12
+			}
+			i = encodeVarintTx(dAtA, i, uint64(k))
+			i--
+			dAtA[i] = 0x8
+			i = encodeVarintTx(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.SecretShares) > 0 {
+		for k := range m.SecretShares {
+			v := m.SecretShares[k]
 			baseI := i
 			if v != nil {
 				{
@@ -3290,9 +3621,33 @@ func (m *DecryptResp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.XXX_unrecognized)
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if len(m.Lists) > 0 {
-		for k := range m.Lists {
-			v := m.Lists[k]
+	if len(m.DiskKeys) > 0 {
+		for k := range m.DiskKeys {
+			v := m.DiskKeys[k]
+			baseI := i
+			if v != nil {
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintTx(dAtA, i, uint64(size))
+				}
+				i--
+				dAtA[i] = 0x12
+			}
+			i = encodeVarintTx(dAtA, i, uint64(k))
+			i--
+			dAtA[i] = 0x8
+			i = encodeVarintTx(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.Secrets) > 0 {
+		for k := range m.Secrets {
+			v := m.Secrets[k]
 			baseI := i
 			if v != nil {
 				{
@@ -3392,20 +3747,20 @@ func (m *TeeTrigger) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		copy(dAtA[i:], m.XXX_unrecognized)
 	}
 	if len(m.Callids) > 0 {
-		dAtA20 := make([]byte, len(m.Callids)*10)
-		var j19 int
+		dAtA25 := make([]byte, len(m.Callids)*10)
+		var j24 int
 		for _, num := range m.Callids {
 			for num >= 1<<7 {
-				dAtA20[j19] = uint8(uint64(num)&0x7f | 0x80)
+				dAtA25[j24] = uint8(uint64(num)&0x7f | 0x80)
 				num >>= 7
-				j19++
+				j24++
 			}
-			dAtA20[j19] = uint8(num)
-			j19++
+			dAtA25[j24] = uint8(num)
+			j24++
 		}
-		i -= j19
-		copy(dAtA[i:], dAtA20[:j19])
-		i = encodeVarintTx(dAtA, i, uint64(j19))
+		i -= j24
+		copy(dAtA[i:], dAtA25[:j24])
+		i = encodeVarintTx(dAtA, i, uint64(j24))
 		i--
 		dAtA[i] = 0x1a
 	}
@@ -3617,6 +3972,24 @@ func (m *Tx_SyncTxEnd) Size() (n int) {
 	n += 1 + sovTx(uint64(m.SyncTxEnd))
 	return n
 }
+func (m *Tx_SyncTxRetry) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 1 + sovTx(uint64(m.SyncTxRetry))
+	return n
+}
+func (m *Tx_Empty) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovTx(uint64(m.Empty))
+	return n
+}
 func (m *SideValidator) Size() (n int) {
 	if m == nil {
 		return 0
@@ -3691,6 +4064,9 @@ func (m *HubCall) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.ChainId != 0 {
+		n += 1 + sovTx(uint64(m.ChainId))
+	}
 	if len(m.Call) > 0 {
 		for _, e := range m.Call {
 			l = e.Size()
@@ -3921,6 +4297,18 @@ func (m *TeeCall_UploadSecret) Size() (n int) {
 	}
 	return n
 }
+func (m *TeeCall_InitDisk) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.InitDisk != nil {
+		l = m.InitDisk.Size()
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
 func (m *PodStart) Size() (n int) {
 	if m == nil {
 		return 0
@@ -3942,9 +4330,16 @@ func (m *PodStart) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTx(uint64(l))
 	}
-	if len(m.Indexs) > 0 {
+	if len(m.Secrets) > 0 {
 		l = 0
-		for _, e := range m.Indexs {
+		for _, e := range m.Secrets {
+			l += sovTx(uint64(e))
+		}
+		n += 1 + sovTx(uint64(l)) + l
+	}
+	if len(m.Disks) > 0 {
+		l = 0
+		for _, e := range m.Disks {
 			l += sovTx(uint64(e))
 		}
 		n += 1 + sovTx(uint64(l)) + l
@@ -4036,7 +4431,37 @@ func (m *UploadSecret) Size() (n int) {
 	if m.Time != 0 {
 		n += 1 + sovTx(uint64(m.Time))
 	}
-	l = len(m.Sig)
+	l = len(m.Hash)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *InitDisk) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.User)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.Index != 0 {
+		n += 1 + sovTx(uint64(m.Index))
+	}
+	l = len(m.Data)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if m.Time != 0 {
+		n += 1 + sovTx(uint64(m.Time))
+	}
+	l = len(m.Hash)
 	if l > 0 {
 		n += 1 + l + sovTx(uint64(l))
 	}
@@ -4164,8 +4589,8 @@ func (m *DecryptSharesResp) Size() (n int) {
 		l = m.Req.Size()
 		n += 1 + l + sovTx(uint64(l))
 	}
-	if len(m.Shares) > 0 {
-		for k, v := range m.Shares {
+	if len(m.SecretShares) > 0 {
+		for k, v := range m.SecretShares {
 			_ = k
 			_ = v
 			l = 0
@@ -4176,6 +4601,23 @@ func (m *DecryptSharesResp) Size() (n int) {
 			mapEntrySize := 1 + sovTx(uint64(k)) + l
 			n += mapEntrySize + 1 + sovTx(uint64(mapEntrySize))
 		}
+	}
+	if len(m.DiskShares) > 0 {
+		for k, v := range m.DiskShares {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.Size()
+				l += 1 + sovTx(uint64(l))
+			}
+			mapEntrySize := 1 + sovTx(uint64(k)) + l
+			n += mapEntrySize + 1 + sovTx(uint64(mapEntrySize))
+		}
+	}
+	l = len(m.Error)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -4193,8 +4635,21 @@ func (m *DecryptResp) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovTx(uint64(l))
 	}
-	if len(m.Lists) > 0 {
-		for k, v := range m.Lists {
+	if len(m.Secrets) > 0 {
+		for k, v := range m.Secrets {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.Size()
+				l += 1 + sovTx(uint64(l))
+			}
+			mapEntrySize := 1 + sovTx(uint64(k)) + l
+			n += mapEntrySize + 1 + sovTx(uint64(mapEntrySize))
+		}
+	}
+	if len(m.DiskKeys) > 0 {
+		for k, v := range m.DiskKeys {
 			_ = k
 			_ = v
 			l = 0
@@ -4621,6 +5076,46 @@ func (m *Tx) Unmarshal(dAtA []byte) error {
 				}
 			}
 			m.Payload = &Tx_SyncTxEnd{v}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SyncTxRetry", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Payload = &Tx_SyncTxRetry{v}
+		case 99:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Empty", wireType)
+			}
+			var v int64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Payload = &Tx_Empty{v}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])
@@ -5065,6 +5560,25 @@ func (m *HubCall) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: HubCall: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
+			}
+			m.ChainId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChainId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Call", wireType)
@@ -6073,6 +6587,41 @@ func (m *TeeCall) Unmarshal(dAtA []byte) error {
 			}
 			m.Tx = &TeeCall_UploadSecret{v}
 			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitDisk", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			v := &InitDisk{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Tx = &TeeCall_InitDisk{v}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])
@@ -6262,7 +6811,7 @@ func (m *PodStart) Unmarshal(dAtA []byte) error {
 						break
 					}
 				}
-				m.Indexs = append(m.Indexs, v)
+				m.Secrets = append(m.Secrets, v)
 			} else if wireType == 2 {
 				var packedLen int
 				for shift := uint(0); ; shift += 7 {
@@ -6297,8 +6846,8 @@ func (m *PodStart) Unmarshal(dAtA []byte) error {
 					}
 				}
 				elementCount = count
-				if elementCount != 0 && len(m.Indexs) == 0 {
-					m.Indexs = make([]uint64, 0, elementCount)
+				if elementCount != 0 && len(m.Secrets) == 0 {
+					m.Secrets = make([]uint64, 0, elementCount)
 				}
 				for iNdEx < postIndex {
 					var v uint64
@@ -6316,10 +6865,86 @@ func (m *PodStart) Unmarshal(dAtA []byte) error {
 							break
 						}
 					}
-					m.Indexs = append(m.Indexs, v)
+					m.Secrets = append(m.Secrets, v)
 				}
 			} else {
-				return fmt.Errorf("proto: wrong wireType = %d for field Indexs", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Secrets", wireType)
+			}
+		case 6:
+			if wireType == 0 {
+				var v uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				m.Disks = append(m.Disks, v)
+			} else if wireType == 2 {
+				var packedLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					packedLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if packedLen < 0 {
+					return ErrInvalidLengthTx
+				}
+				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthTx
+				}
+				if postIndex > l {
+					return io.ErrUnexpectedEOF
+				}
+				var elementCount int
+				var count int
+				for _, integer := range dAtA[iNdEx:postIndex] {
+					if integer < 128 {
+						count++
+					}
+				}
+				elementCount = count
+				if elementCount != 0 && len(m.Disks) == 0 {
+					m.Disks = make([]uint64, 0, elementCount)
+				}
+				for iNdEx < postIndex {
+					var v uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						v |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					m.Disks = append(m.Disks, v)
+				}
+			} else {
+				return fmt.Errorf("proto: wrong wireType = %d for field Disks", wireType)
 			}
 		default:
 			iNdEx = preIndex
@@ -6826,7 +7451,7 @@ func (m *UploadSecret) Unmarshal(dAtA []byte) error {
 			}
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Sig", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -6853,9 +7478,200 @@ func (m *UploadSecret) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Sig = append(m.Sig[:0], dAtA[iNdEx:postIndex]...)
-			if m.Sig == nil {
-				m.Sig = []byte{}
+			m.Hash = append(m.Hash[:0], dAtA[iNdEx:postIndex]...)
+			if m.Hash == nil {
+				m.Hash = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InitDisk) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitDisk: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitDisk: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field User", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.User = append(m.User[:0], dAtA[iNdEx:postIndex]...)
+			if m.User == nil {
+				m.User = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
+			}
+			m.Index = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Index |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
+			if m.Data == nil {
+				m.Data = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
+			}
+			m.Time = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Time |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hash = append(m.Hash[:0], dAtA[iNdEx:postIndex]...)
+			if m.Hash == nil {
+				m.Hash = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -7460,7 +8276,7 @@ func (m *DecryptSharesResp) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Shares", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretShares", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -7487,8 +8303,8 @@ func (m *DecryptSharesResp) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Shares == nil {
-				m.Shares = make(map[uint64]*DecryptShare)
+			if m.SecretShares == nil {
+				m.SecretShares = make(map[uint64]*DecryptShare)
 			}
 			var mapkey uint64
 			var mapvalue *DecryptShare
@@ -7571,7 +8387,156 @@ func (m *DecryptSharesResp) Unmarshal(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Shares[mapkey] = mapvalue
+			m.SecretShares[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiskShares", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DiskShares == nil {
+				m.DiskShares = make(map[uint64]*DecryptShare)
+			}
+			var mapkey uint64
+			var mapvalue *DecryptShare
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLengthTx
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLengthTx
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &DecryptShare{}
+					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipTx(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLengthTx
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.DiskShares[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Error = append(m.Error[:0], dAtA[iNdEx:postIndex]...)
+			if m.Error == nil {
+				m.Error = []byte{}
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -7660,7 +8625,7 @@ func (m *DecryptResp) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Lists", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Secrets", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -7687,8 +8652,8 @@ func (m *DecryptResp) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.Lists == nil {
-				m.Lists = make(map[uint64]*Secret)
+			if m.Secrets == nil {
+				m.Secrets = make(map[uint64]*Secret)
 			}
 			var mapkey uint64
 			var mapvalue *Secret
@@ -7771,7 +8736,122 @@ func (m *DecryptResp) Unmarshal(dAtA []byte) error {
 					iNdEx += skippy
 				}
 			}
-			m.Lists[mapkey] = mapvalue
+			m.Secrets[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DiskKeys", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.DiskKeys == nil {
+				m.DiskKeys = make(map[uint64]*Secret)
+			}
+			var mapkey uint64
+			var mapvalue *Secret
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowTx
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowTx
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLengthTx
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLengthTx
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &Secret{}
+					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipTx(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLengthTx
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.DiskKeys[mapkey] = mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

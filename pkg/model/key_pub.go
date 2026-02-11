@@ -13,6 +13,7 @@ import (
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/suites"
 
+	"github.com/wetee-dao/ink.go/util"
 	inkutil "github.com/wetee-dao/ink.go/util"
 )
 
@@ -59,6 +60,11 @@ func (p *PubKey) SS58() string {
 	}
 
 	return SS58Encode(k.(ed25519.PublicKey), 42)
+}
+
+func (p *PubKey) H160Address() types.H160 {
+	h160, _ := util.H160FromPublicKey(p.Byte())
+	return h160
 }
 
 func (p PubKey) MarshalJSON() ([]byte, error) {

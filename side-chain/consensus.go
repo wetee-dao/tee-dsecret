@@ -8,6 +8,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/version"
 
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	bftbrigde "github.com/wetee-dao/tee-dsecret/pkg/network/bft-brigde"
@@ -18,16 +19,18 @@ const ApplicationVersion = 1
 
 type SideChain struct {
 	abci.BaseApplication
+	state AppState
 
 	dkg *dkg.DKG
 	p2p *bftbrigde.BTFReactor
 
 	txCh *model.PersistChan[*model.BlockPartialSign]
 
-	state               AppState
 	onGoingBlock        *model.Txn
 	onGoingValidators   []abci.ValidatorUpdate
 	currProposerAddress []byte
+
+	chains map[uint32]*chains.ChainApi
 }
 
 func NewSideChain(light bool) (*SideChain, error) {
@@ -93,6 +96,13 @@ func (app *SideChain) PrepareProposal(_ context.Context, req *abci.PreparePropos
 	finalProposal := make([][]byte, 0, len(req.Txs)+2)
 	if len(epochTx) > 0 {
 		finalProposal = append(finalProposal, epochTx)
+	}
+
+	// 如果有未提交到主链的交易（同步进行中），只打包 mempool 中的 SyncTxRetry 等非 HubCall 交易，不打包新 HubCall
+	if IsHubSyncRuning() {
+		util.LogWithYellow("PrepareProposal", "pending sync to main chain, only pack retry/non-hub txs")
+		app.PrepareTx(req.Txs, &finalProposal, req.Height, false)
+		return &abci.PrepareProposalResponse{Txs: finalProposal}, nil
 	}
 
 	epochStatus := app.GetEpochStatus()

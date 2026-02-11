@@ -6,53 +6,127 @@ package graph
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	ink "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
+	"golang.org/x/crypto/blake2b"
 )
 
 // UploadSecret is the resolver for the upload_secret field.
-func (r *mutationResolver) UploadSecret(ctx context.Context, secret string) (bool, error) {
-	pk, err := ink.Sr25519PairFromSecret("//Alice", 42)
+func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secret string, hash string, user string) (bool, error) {
+	pubkey, err := model.PubKeyFromSS58(user)
 	if err != nil {
-		util.LogWithPurple("Sr25519PairFromSecret", err)
-		panic(err)
+		return false, gqlerror.Errorf("PubKeyFromSS58 error:" + err.Error())
 	}
-	user := pk.H160Address()
+	pubAddr := pubkey.H160Address()
 
-	encData, err := sideChain.EncryptSecret([]byte(secret))
+	// parse index
+	indexNum, err := strconv.ParseUint(index, 10, 64)
+	if err != nil {
+		return false, gqlerror.Errorf("ParseUint error:" + err.Error())
+	}
+
+	// decrypt sign data
+	msg, err := rsaDecryptWithKey(rsaKey, secret)
+	if err != nil {
+		return false, gqlerror.Errorf("RsaDecryptWithKey error:" + err.Error())
+	}
+
+	h := blake2b.Sum256(msg)
+	hashStr := fmt.Sprintf("0x%x", h)
+	if hashStr != hash {
+		fmt.Printf("hashStr: %s, hash: %s\n", hashStr, hash)
+		return false, gqlerror.Errorf("Hash not match")
+	}
+
+	// encrypt secret
+	encData, err := sideChain.Encrypt(msg)
 	if err != nil {
 		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
 	}
 
-	call := model.TeeCall{
-		Tx: &model.TeeCall_UploadSecret{
-			UploadSecret: &model.UploadSecret{
-				User:  user[:],
-				Index: 0,
-				Data:  encData,
-				Time:  uint64(time.Now().Unix()),
-				Sig:   []byte(""),
-			},
-		},
-	}
-
+	// build side chain call
+	call := model.TeeCall{Tx: &model.TeeCall_UploadSecret{UploadSecret: &model.UploadSecret{
+		User:  pubAddr[:],
+		Index: indexNum,
+		Data:  encData,
+		Hash:  h[:],
+		Time:  uint64(time.Now().Unix()),
+	}}}
 	err = model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
 	if err != nil {
 		return false, gqlerror.Errorf("GetReport error:" + err.Error())
 	}
 
+	// send upload secret call to side chain
 	_, err = sidechain.SubmitTx(&model.Tx{
 		Payload: &model.Tx_HubCall{
 			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
 		},
 	})
+	if err != nil {
+		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
+	}
 
+	return true, nil
+}
+
+// InitDiskKey is the resolver for the init_disk_key field.
+func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user string) (bool, error) {
+	pubkey, err := model.PubKeyFromSS58(user)
+	if err != nil {
+		return false, gqlerror.Errorf("PubKeyFromSS58 error:" + err.Error())
+	}
+	pubAddr := pubkey.H160Address()
+
+	// parse index
+	indexNum, err := strconv.ParseUint(index, 10, 64)
+	if err != nil {
+		return false, gqlerror.Errorf("ParseUint error:" + err.Error())
+	}
+
+	// 创建一个 32 字节的切片
+	key := make([]byte, 32)
+	_, err = rand.Read(key)
+	if err != nil {
+		return false, gqlerror.Errorf("生成随机数据失败: %v", err)
+	}
+
+	// encrypt secret
+	encData, err := sideChain.Encrypt(key)
+	if err != nil {
+		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
+	}
+
+	h := blake2b.Sum256(key)
+
+	// build side chain call
+	call := model.TeeCall{Tx: &model.TeeCall_InitDisk{InitDisk: &model.InitDisk{
+		User:  pubAddr[:],
+		Index: indexNum,
+		Data:  encData,
+		Hash:  h[:],
+		Time:  uint64(time.Now().Unix()),
+	}}}
+	err = model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
+	if err != nil {
+		return false, gqlerror.Errorf("GetReport error:" + err.Error())
+	}
+
+	// send upload secret call to side chain
+	_, err = sidechain.SubmitTx(&model.Tx{
+		Payload: &model.Tx_HubCall{
+			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
+		},
+	})
 	if err != nil {
 		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
 	}
@@ -74,7 +148,16 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 	return string(bt), nil
 }
 
-// Mutation returns MutationResolver implementation.
-func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+// SecretRsa is the resolver for the secret_rsa field.
+func (r *queryResolver) SecretRsa(ctx context.Context) (string, error) {
+	publicKey := &rsaKey.PublicKey
 
-type mutationResolver struct{ *Resolver }
+	publicKeyBytes := x509.MarshalPKCS1PublicKey(publicKey)
+	publicBlock := &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+
+	bt := pem.EncodeToMemory(publicBlock)
+	return string(bt), nil
+}

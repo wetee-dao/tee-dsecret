@@ -24,7 +24,6 @@ func main() {
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
 	chainAddr := strings.Split(util.GetEnv("CHAIN_ADDR", DefaultChainUrl), ",")
 	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
-	// password := util.GetEnv("PASSWORD", "")
 
 	// Init app db
 	db, err := model.NewDB()
@@ -55,6 +54,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	util.LogWithYellow("Mainchain Key", nodePriv.GetPublic().SS58())
+	util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
+
 	// Link to polkadot
 	_, err = chain.ConnectMainChain(chainAddr, nodePriv)
 	if err != nil {
@@ -65,8 +67,6 @@ func main() {
 	// Init node
 	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
 		util.LogWithYellow("Main Chain", chainAddr)
-		util.LogWithYellow("Validator Key", nodePriv.GetPublic().SS58())
-		util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
@@ -99,6 +99,13 @@ func main() {
 
 	// Set DKG to sideChain
 	sideChain.SetDKG(dkgIns)
+
+	// load chains
+	err = sideChain.LoadChains()
+	if err != nil {
+		log.Fatalf("loadChains error: %v", err)
+		os.Exit(1)
+	}
 
 	// 启动 graphql 服务器
 	go graph.StartServer(sideChain, gqlPort)

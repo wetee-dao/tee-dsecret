@@ -53,8 +53,11 @@ func InitSideChain(
 	consensusConf.CreateEmptyBlocks = false
 
 	rpcConf := cfg.DefaultRPCConfig()
-	// rpcConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort+1)
-	rpcConf.ListenAddress = ""
+	rpcConf.CORSAllowedOrigins = []string{"*"}
+	rpcConf.ListenAddress = "tcp://0.0.0.0:" + fmt.Sprint(chainPort+1)
+	// rpcConf.ListenAddress = ""
+	rpcConf.TLSCertFile = "/chain_data/ssl/ser.pem"
+	rpcConf.TLSKeyFile = "/chain_data/ssl/ser.key"
 
 	// init BFT node config
 	config := &cfg.Config{
@@ -140,6 +143,7 @@ func InitSideChain(
 		return nil, nil, nil, errors.New("init BFT node error: " + err.Error())
 	}
 
+	// call callback function
 	callback()
 
 	sideChain.p2p = p2pReactor

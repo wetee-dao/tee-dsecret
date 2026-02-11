@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -29,6 +30,8 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		}
 
 		switch p := tx.Payload.(type) {
+		case *model.Tx_Empty:
+			LogWithTime("Empty TX:", p.Empty)
 		case *model.Tx_EpochStart: // set epoch last time
 			err := app.SetEpochStatus(p.EpochStart)
 			if err != nil {
@@ -46,14 +49,38 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			}
 		case *model.Tx_SyncTxStart: // start hub sync tx
 			txIndex = p.SyncTxStart
-			err = SyncStep2(p.SyncTxStart, txn)
+			err = HubSyncStep2(p.SyncTxStart, txn)
 			if err != nil {
 				return nil, err
 			}
 		case *model.Tx_SyncTxEnd: // end hub sync tx
-			err = SyncEnd(p.SyncTxEnd, txn)
+			err = HubSyncEnd(p.SyncTxEnd, txn)
 			if err != nil {
 				return nil, err
+			}
+			// 所有节点在处理 SyncTxEnd 时统一清理 tx_index_ 储存
+			deleteTxIndexStore(p.SyncTxEnd)
+		case *model.Tx_SyncTxRetry: // retry hub sync tx，重新收集签名
+			if app.dkg == nil {
+				LogWithTime("SyncTxRetry", "dkg is nil, skipping retry for txIndex:", p.SyncTxRetry)
+				break
+			}
+
+			// 从存储加载该交易的 hubCalls
+			baseKey := TxIndexPrefix + fmt.Sprint(p.SyncTxRetry)
+			stored, err := model.GetJson[hubCallsStore](GLOABL_STATE, baseKey+TxIndexHubCallsSuffix)
+			if err != nil || stored == nil || len(stored.HubCalls) == 0 {
+				LogWithTime("SyncTxRetry", "hubCalls not found for txIndex:", p.SyncTxRetry)
+				break
+			}
+
+			// 清除旧的部分签名，以便重新收集
+			_ = app.DeleteSigOfTx(p.SyncTxRetry)
+
+			// 重新发起部分签名收集：本节点向当前 proposer 发送部分签名，其他节点同样会在 FinalizeTx 中发送
+			err = app.sendPartialSign(stored.HubCalls[0].ChainId, p.SyncTxRetry, stored.HubCalls, app.ProposerAddressToNodeKey(proposer))
+			if err != nil {
+				return nil, errors.Wrap(err, "SyncTxRetry: sendPartialSign")
 			}
 		case *model.Tx_HubCall: // add hub call
 			err := app.finalizeHubCall(p.HubCall, txn)
@@ -70,7 +97,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 
 	// if hub tx, send partial sign
 	if txIndex > 0 && len(hubCalls) > 0 && app.dkg != nil {
-		err := app.sendPartialSign(txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
+		err := app.sendPartialSign(hubCalls[0].ChainId, txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
 		if err != nil {
 			return nil, err
 		}
@@ -91,6 +118,13 @@ func (app *SideChain) finalizeHubCall(hub *model.HubCall, txn *model.Txn) error 
 			err := app.SaveSecret(user, upload.Index, upload.Data, txn)
 			if err != nil {
 				return errors.Wrap(err, "finalizeHubCall SaveSecret")
+			}
+		case *model.TeeCall_InitDisk:
+			initDisk := tx.InitDisk
+			user := types.H160(initDisk.User)
+			err := app.SaveDiskKey(user, initDisk.Index, initDisk.Data, txn)
+			if err != nil {
+				return errors.Wrap(err, "finalizeHubCall InitDisk")
 			}
 		default:
 			return errors.New("finalizeHubCall invalid tx type")
