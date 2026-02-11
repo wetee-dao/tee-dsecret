@@ -65,6 +65,58 @@ func TestQueryCloudStage(t *testing.T) {
 	fmt.Println(*stage)
 }
 
+func TestQueryWorkers(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	workers, _, err := subnetIns.QueryWorkers(util.NewNone[uint64](), 100, chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QueryWorkers", err)
+		panic(err)
+	}
+	fmt.Println(workers)
+}
+
+func TestQueryPods(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitCloudContract", err)
+		panic(err)
+	}
+
+	pods, _, err := cloudIns.QueryPods(util.NewNone[uint64](), 100, chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QueryPods", err)
+		panic(err)
+	}
+	fmt.Println(pods)
+}
+
 func TestSetCloudStage(t *testing.T) {
 	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
