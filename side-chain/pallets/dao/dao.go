@@ -4,7 +4,6 @@ package dao
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -17,34 +16,7 @@ type U128 = model.U128
 
 const (
 	DaoNamespace = "dao"
-)
-
-// DaoCallPayload 为 dao_call 的 JSON 载荷，与 ink DAO 消息一一对应。
-type DaoCallPayload struct {
-	Op string `json:"op"` // 见下 OpXxx
-	// 以下按 op 使用
-	InitialMembers []DaoMember     `json:"initial_members,omitempty"`
-	PublicJoin     *bool           `json:"public_join,omitempty"`
-	SudoAccount    []byte          `json:"sudo_account,omitempty"`
-	DefaultTrack   *DaoTrackData   `json:"default_track,omitempty"`
-	NewUser        []byte          `json:"new_user,omitempty"`
-	Balance        U128            `json:"balance,omitempty"`
-	ProposalId     uint32          `json:"proposal_id,omitempty"`
-	TrackId        uint32          `json:"track_id,omitempty"`
-	Call           *DaoCallContent `json:"call,omitempty"`
-	Amount         U128            `json:"amount,omitempty"`
-	OpinionYes     bool            `json:"opinion_yes,omitempty"`
-	LockAmount     U128            `json:"lock_amount,omitempty"`
-	VoteId         uint64          `json:"vote_id,omitempty"`
-	To             []byte          `json:"to,omitempty"`
-	Value          U128            `json:"value,omitempty"`
-	Spender        []byte          `json:"spender,omitempty"`
-	From           []byte          `json:"from,omitempty"`
-	SpendId        uint64          `json:"spend_id,omitempty"`
-	Track          *DaoTrackData   `json:"track,omitempty"`
-}
-
-const (
+	// 以下 Op 常量仅用于文档/daogen，实际分发由 model.DaoCall 的 oneof 决定。
 	OpDaoInit            = "dao_init"
 	OpDaoPublicJoin      = "dao_public_join"
 	OpDaoJoin            = "dao_join"
@@ -67,11 +39,7 @@ const (
 	OpDaoSetDefaultTrack = "dao_set_default_track"
 )
 
-type DaoMember struct {
-	Account []byte `json:"account"`
-	Balance U128   `json:"balance"`
-}
-
+// DaoTrackData、DaoCallContent 用于存储层 JSON 序列化（含 U128），与 model 的 proto 类型对应。
 type DaoTrackData struct {
 	Name               string `json:"name"`
 	PreparePeriod      uint32 `json:"prepare_period"`
@@ -90,6 +58,37 @@ type DaoCallContent struct {
 	Amount       U128   `json:"amount,omitempty"`
 	RefTimeLimit uint64 `json:"ref_time_limit,omitempty"`
 	AllowReentry bool   `json:"allow_reentry,omitempty"`
+}
+
+// model 的 proto 转为存储用类型（u128 用 bytes 表示）
+func trackFromProto(m *model.DaoTrackData) *DaoTrackData {
+	if m == nil {
+		return nil
+	}
+	return &DaoTrackData{
+		Name:               m.Name,
+		PreparePeriod:      m.PreparePeriod,
+		MaxDeciding:        m.MaxDeciding,
+		ConfirmPeriod:      m.ConfirmPeriod,
+		DecisionPeriod:     m.DecisionPeriod,
+		MinEnactmentPeriod: m.MinEnactmentPeriod,
+		DecisionDeposit:    model.NewU128(model.BytesToU128(m.DecisionDeposit)),
+		MaxBalance:         model.NewU128(model.BytesToU128(m.MaxBalance)),
+	}
+}
+
+func callContentFromProto(m *model.DaoCallContent) *DaoCallContent {
+	if m == nil {
+		return nil
+	}
+	return &DaoCallContent{
+		Contract:     m.Contract,
+		Selector:     m.Selector,
+		Input:        m.Input,
+		Amount:       model.NewU128(model.BytesToU128(m.Amount)),
+		RefTimeLimit: m.RefTimeLimit,
+		AllowReentry: m.AllowReentry,
+	}
 }
 
 type daoState struct {
@@ -144,58 +143,58 @@ type spendRecord struct {
 
 func addrKey(a []byte) string { return hex.EncodeToString(a) }
 
-// ApplyDaoCall 解析 payload 并执行对应 DAO 操作，由 sidechain 在 FinalizeTx 中调用。
+// ApplyDaoCall 解析 payload（protobuf model.DaoCall）并执行对应 DAO 操作，由 sidechain 在 FinalizeTx 中调用。
 func ApplyDaoCall(caller []byte, payload []byte, height int64, txn *model.Txn) error {
 	if len(payload) == 0 {
 		return errors.New("dao_call: empty payload")
 	}
-	var p DaoCallPayload
-	if err := json.Unmarshal(payload, &p); err != nil {
-		return fmt.Errorf("dao_call: invalid json: %w", err)
+	var dc model.DaoCall
+	if err := dc.Unmarshal(payload); err != nil {
+		return fmt.Errorf("dao_call: invalid proto: %w", err)
 	}
-	switch p.Op {
-	case OpDaoInit:
-		return daoInit(caller, &p, height, txn)
-	case OpDaoPublicJoin:
+	switch v := dc.Call.(type) {
+	case *model.DaoCall_Init:
+		return daoInit(caller, v.Init, height, txn)
+	case *model.DaoCall_PublicJoin:
 		return daoPublicJoin(caller, txn)
-	case OpDaoJoin:
-		return daoJoin(caller, &p, txn)
-	case OpDaoLeave:
+	case *model.DaoCall_Join:
+		return daoJoin(caller, v.Join, txn)
+	case *model.DaoCall_Leave:
 		return daoLeave(caller, txn)
-	case OpDaoLeaveWithBurn:
+	case *model.DaoCall_LeaveWithBurn:
 		return daoLeaveWithBurn(caller, txn)
-	case OpDaoSubmitProposal:
-		return daoSubmitProposal(caller, &p, height, txn)
-	case OpDaoDepositProposal:
-		return daoDepositProposal(caller, &p, height, txn)
-	case OpDaoSubmitVote:
-		return daoSubmitVote(caller, &p, height, txn)
-	case OpDaoCancelVote:
-		return daoCancelVote(caller, &p, height, txn)
-	case OpDaoUnlock:
-		return daoUnlock(caller, &p, height, txn)
-	case OpDaoExecProposal:
-		return daoExecProposal(caller, &p, height, txn)
-	case OpDaoCancelProposal:
-		return daoCancelProposal(caller, &p, height, txn)
-	case OpDaoTransfer:
-		return daoTransfer(caller, &p, txn)
-	case OpDaoApprove:
-		return daoApprove(caller, &p, txn)
-	case OpDaoTransferFrom:
-		return daoTransferFrom(caller, &p, txn)
-	case OpDaoSpend:
-		return daoSpend(caller, &p, txn)
-	case OpDaoPayout:
-		return daoPayout(caller, &p, txn)
-	case OpDaoSetPublicJoin:
-		return daoSetPublicJoin(caller, &p, txn)
-	case OpDaoAddTrack:
-		return daoAddTrack(caller, &p, txn)
-	case OpDaoSetDefaultTrack:
-		return daoSetDefaultTrack(caller, &p, txn)
+	case *model.DaoCall_SubmitProposal:
+		return daoSubmitProposal(caller, v.SubmitProposal, height, txn)
+	case *model.DaoCall_DepositProposal:
+		return daoDepositProposal(caller, v.DepositProposal, height, txn)
+	case *model.DaoCall_SubmitVote:
+		return daoSubmitVote(caller, v.SubmitVote, height, txn)
+	case *model.DaoCall_CancelVote:
+		return daoCancelVote(caller, v.CancelVote, height, txn)
+	case *model.DaoCall_Unlock:
+		return daoUnlock(caller, v.Unlock, height, txn)
+	case *model.DaoCall_ExecProposal:
+		return daoExecProposal(caller, v.ExecProposal, height, txn)
+	case *model.DaoCall_CancelProposal:
+		return daoCancelProposal(caller, v.CancelProposal, height, txn)
+	case *model.DaoCall_Transfer:
+		return daoTransfer(caller, v.Transfer, txn)
+	case *model.DaoCall_Approve:
+		return daoApprove(caller, v.Approve, txn)
+	case *model.DaoCall_TransferFrom:
+		return daoTransferFrom(caller, v.TransferFrom, txn)
+	case *model.DaoCall_Spend:
+		return daoSpend(caller, v.Spend, txn)
+	case *model.DaoCall_Payout:
+		return daoPayout(caller, v.Payout, txn)
+	case *model.DaoCall_SetPublicJoin:
+		return daoSetPublicJoin(caller, v.SetPublicJoin, txn)
+	case *model.DaoCall_AddTrack:
+		return daoAddTrack(caller, v.AddTrack, txn)
+	case *model.DaoCall_SetDefaultTrack:
+		return daoSetDefaultTrack(caller, v.SetDefaultTrack, txn)
 	default:
-		return fmt.Errorf("dao_call: unknown op %s", p.Op)
+		return errors.New("dao_call: unknown call type")
 	}
 }
 

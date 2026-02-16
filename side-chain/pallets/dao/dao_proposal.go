@@ -8,7 +8,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func daoSubmitProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoSubmitProposal(caller []byte, m *model.DaoSubmitProposal, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, caller)
 	if model.BytesToU128(b).Sign() == 0 {
@@ -18,40 +18,43 @@ func daoSubmitProposal(caller []byte, p *DaoCallPayload, height int64, txn *mode
 	if err != nil || st == nil {
 		return errors.New("dao not initialized")
 	}
-	if p.Call == nil {
+	if m.GetCall() == nil {
 		return errors.New("call required")
 	}
-	if int(p.TrackId) >= len(getDaoTracks(txn)) {
+	trackId := m.GetTrackId()
+	if int(trackId) >= len(getDaoTracks(txn)) {
 		return errors.New("no track or invalid track")
 	}
-	track, _ := model.GetMappingJson[uint32, DaoTrackData](state.Tracks, txn, p.TrackId)
-	if track != nil && p.Call.Amount.Sign() != 0 {
-		if p.Call.Amount.ToBigInt().Cmp(track.MaxBalance.ToBigInt()) > 0 {
+	track, _ := model.GetMappingJson[uint32, DaoTrackData](state.Tracks, txn, trackId)
+	callAmount := model.BytesToU128(m.Call.Amount)
+	if track != nil && callAmount.Sign() != 0 {
+		if callAmount.Cmp(track.MaxBalance.ToBigInt()) > 0 {
 			return errors.New("max balance overflow")
 		}
 	}
 	proposalId := state.NextProposalId()
 	_ = state.SetNextProposalId(proposalId + 1)
-	_ = model.SetMappingJson(state.Proposals, txn, proposalId, p.Call)
+	_ = model.SetMappingJson(state.Proposals, txn, proposalId, callContentFromProto(m.Call))
 	_ = state.ProposalStatus.Set(txn, proposalId, []byte("pending"))
-	_ = state.ProposalTrack.Set(txn, proposalId, []byte(strconv.FormatUint(uint64(p.TrackId), 10)))
+	_ = state.ProposalTrack.Set(txn, proposalId, []byte(strconv.FormatUint(uint64(trackId), 10)))
 	_ = state.ProposalCaller.Set(txn, proposalId, caller)
 	_ = state.SubmitBlock.Set(txn, proposalId, []byte(strconv.FormatInt(height, 10)))
 	return nil
 }
 
-func daoDepositProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoDepositProposal(caller []byte, m *model.DaoDepositProposal, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
-	b, _ := state.ProposalStatus.Get(txn, p.ProposalId)
+	proposalId := m.GetProposalId()
+	b, _ := state.ProposalStatus.Get(txn, proposalId)
 	if string(b) != "pending" {
 		return errors.New("invalid proposal status")
 	}
-	sb, _ := state.SubmitBlock.Get(txn, p.ProposalId)
+	sb, _ := state.SubmitBlock.Get(txn, proposalId)
 	submitBlock := int64(0)
 	if len(sb) > 0 {
 		submitBlock, _ = strconv.ParseInt(string(sb), 10, 64)
 	}
-	trB, _ := state.ProposalTrack.Get(txn, p.ProposalId)
+	trB, _ := state.ProposalTrack.Get(txn, proposalId)
 	trackId := uint32(0)
 	if len(trB) > 0 {
 		u, _ := strconv.ParseUint(string(trB), 10, 32)
@@ -65,11 +68,12 @@ func daoDepositProposal(caller []byte, p *DaoCallPayload, height int64, txn *mod
 		return errors.New("invalid deposit time")
 	}
 	depositNeed := track.DecisionDeposit.ToBigInt()
-	if p.Amount.ToBigInt().Cmp(depositNeed) < 0 {
+	amount := model.BytesToU128(m.GetAmount())
+	if amount.Cmp(depositNeed) < 0 {
 		return errors.New("invalid deposit")
 	}
-	_ = model.SetMappingJson(state.Deposits, txn, p.ProposalId, &proposalDeposit{Depositor: caller, Amount: p.Amount, Block: height})
-	_ = state.ProposalStatus.Set(txn, p.ProposalId, []byte("ongoing"))
+	_ = model.SetMappingJson(state.Deposits, txn, proposalId, &proposalDeposit{Depositor: caller, Amount: model.NewU128(amount), Block: height})
+	_ = state.ProposalStatus.Set(txn, proposalId, []byte("ongoing"))
 	return nil
 }
 
@@ -92,14 +96,15 @@ func daoProposalEndBlock(txn *model.Txn, proposalId uint32) int64 {
 	return dep.Block + int64(track.MaxDeciding)
 }
 
-func daoExecProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoExecProposal(caller []byte, m *model.DaoExecProposal, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
-	stB, _ := state.ProposalStatus.Get(txn, p.ProposalId)
+	proposalId := m.GetProposalId()
+	stB, _ := state.ProposalStatus.Get(txn, proposalId)
 	if string(stB) != "ongoing" {
 		return errors.New("proposal not ongoing")
 	}
-	endBlock := daoProposalEndBlock(txn, p.ProposalId)
-	trB, _ := state.ProposalTrack.Get(txn, p.ProposalId)
+	endBlock := daoProposalEndBlock(txn, proposalId)
+	trB, _ := state.ProposalTrack.Get(txn, proposalId)
 	trackId := uint32(0)
 	if len(trB) > 0 {
 		u, _ := strconv.ParseUint(string(trB), 10, 32)
@@ -112,11 +117,11 @@ func daoExecProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.
 	if height <= endBlock+int64(track.ConfirmPeriod) {
 		return errors.New("proposal in decision")
 	}
-	call, _ := model.GetMappingJson[uint32, DaoCallContent](state.Proposals, txn, p.ProposalId)
+	call, _ := model.GetMappingJson[uint32, DaoCallContent](state.Proposals, txn, proposalId)
 	if call == nil {
 		return errors.New("invalid proposal")
 	}
-	_ = state.ProposalStatus.Set(txn, p.ProposalId, []byte("approved"))
+	_ = state.ProposalStatus.Set(txn, proposalId, []byte("approved"))
 	if len(call.Selector) >= 4 && len(call.Input) >= 8 {
 		var spendId uint64
 		for i := 0; i < 8; i++ {
@@ -136,16 +141,17 @@ func daoExecProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.
 	return nil
 }
 
-func daoCancelProposal(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoCancelProposal(caller []byte, m *model.DaoCancelProposal, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
-	statusB, _ := state.ProposalStatus.Get(txn, p.ProposalId)
+	proposalId := m.GetProposalId()
+	statusB, _ := state.ProposalStatus.Get(txn, proposalId)
 	if string(statusB) != "pending" {
 		return errors.New("invalid proposal status")
 	}
-	callerB, _ := state.ProposalCaller.Get(txn, p.ProposalId)
+	callerB, _ := state.ProposalCaller.Get(txn, proposalId)
 	if !bytesEqual(callerB, caller) {
 		return errors.New("invalid proposal caller")
 	}
-	_ = state.ProposalStatus.Set(txn, p.ProposalId, []byte("canceled"))
+	_ = state.ProposalStatus.Set(txn, proposalId, []byte("canceled"))
 	return nil
 }

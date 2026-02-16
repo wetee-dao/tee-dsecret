@@ -6,7 +6,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func daoAddTrack(caller []byte, p *DaoCallPayload, txn *model.Txn) error {
+func daoAddTrack(caller []byte, m *model.DaoAddTrack, txn *model.Txn) error {
 	st, err := loadDaoState(txn)
 	if err != nil || st == nil {
 		return errors.New("dao not initialized")
@@ -14,15 +14,15 @@ func daoAddTrack(caller []byte, p *DaoCallPayload, txn *model.Txn) error {
 	if !isSudo(caller, st) {
 		return errors.New("must call by gov/sudo")
 	}
-	if p.Track == nil {
+	if m.GetTrack() == nil {
 		return errors.New("track required")
 	}
 	state := newDaoStateState(txn)
 	trackID := uint32(len(getDaoTracks(txn)))
-	return model.SetMappingJson(state.Tracks, txn, trackID, p.Track)
+	return model.SetMappingJson(state.Tracks, txn, trackID, trackFromProto(m.Track))
 }
 
-func daoSetDefaultTrack(caller []byte, p *DaoCallPayload, txn *model.Txn) error {
+func daoSetDefaultTrack(caller []byte, m *model.DaoSetDefaultTrack, txn *model.Txn) error {
 	st, err := loadDaoState(txn)
 	if err != nil || st == nil {
 		return errors.New("dao not initialized")
@@ -30,7 +30,8 @@ func daoSetDefaultTrack(caller []byte, p *DaoCallPayload, txn *model.Txn) error 
 	if !isSudo(caller, st) {
 		return errors.New("must call by gov/sudo")
 	}
-	st.DefaultTrack = &p.TrackId
+	trackId := m.GetTrackId()
+	st.DefaultTrack = &trackId
 	state := newDaoStateState(txn)
 	return state.SetDefaultTrack(st.DefaultTrack)
 }

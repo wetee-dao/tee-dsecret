@@ -12,10 +12,3 @@ type Pallet interface {
 	// ApplyCall 在给定 txn 与区块高度下执行一次调用：caller 为发起方，payload 为合约自定义载荷（如 JSON）。
 	ApplyCall(caller, payload []byte, height int64, txn *model.Txn) error
 }
-
-// CallFunc 将函数适配为 Pallet，便于将 dao.ApplyDaoCall 等函数作为 Pallet 导出。
-type CallFunc func(caller, payload []byte, height int64, txn *model.Txn) error
-
-func (f CallFunc) ApplyCall(caller, payload []byte, height int64, txn *model.Txn) error {
-	return f(caller, payload, height, txn)
-}

@@ -7,7 +7,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func daoInit(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoInit(caller []byte, m *model.DaoInit, height int64, txn *model.Txn) error {
 	st, err := loadDaoState(txn)
 	if err != nil {
 		return err
@@ -17,29 +17,28 @@ func daoInit(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) err
 	}
 	state := newDaoStateState(txn)
 	total := big.NewInt(0)
-	members := make([][]byte, 0, len(p.InitialMembers))
-	for _, m := range p.InitialMembers {
-		if len(m.Account) == 0 {
+	members := make([][]byte, 0, len(m.GetInitialMembers()))
+	for _, mem := range m.GetInitialMembers() {
+		if len(mem.Account) == 0 {
 			continue
 		}
-		members = append(members, m.Account)
-		if err := state.MemberBalance.Set(txn, m.Account, model.U128ToBytes(m.Balance.ToBigInt())); err != nil {
+		members = append(members, mem.Account)
+		bal := model.BytesToU128(mem.Balance)
+		if err := state.MemberBalance.Set(txn, mem.Account, model.U128ToBytes(bal)); err != nil {
 			return err
 		}
-		total.Add(total, m.Balance.ToBigInt())
+		total.Add(total, bal)
 	}
 	st.Members = members
 	st.TotalIssuance = total
-	if p.PublicJoin != nil {
-		st.PublicJoin = *p.PublicJoin
-	}
-	if len(p.SudoAccount) > 0 {
-		st.SudoAccount = p.SudoAccount
+	st.PublicJoin = m.GetPublicJoin()
+	if len(m.GetSudoAccount()) > 0 {
+		st.SudoAccount = m.SudoAccount
 	}
 	st.Transfer = false
-	if p.DefaultTrack != nil {
+	if m.GetDefaultTrack() != nil {
 		trackID := uint32(0)
-		if err := model.SetMappingJson(state.Tracks, txn, trackID, p.DefaultTrack); err != nil {
+		if err := model.SetMappingJson(state.Tracks, txn, trackID, trackFromProto(m.GetDefaultTrack())); err != nil {
 			return err
 		}
 		st.DefaultTrack = &trackID
@@ -79,7 +78,7 @@ func daoPublicJoin(caller []byte, txn *model.Txn) error {
 	return state.SetMembers(st.Members)
 }
 
-func daoJoin(caller []byte, p *DaoCallPayload, txn *model.Txn) error {
+func daoJoin(caller []byte, m *model.DaoJoin, txn *model.Txn) error {
 	st, err := loadDaoState(txn)
 	if err != nil {
 		return err
@@ -87,20 +86,22 @@ func daoJoin(caller []byte, p *DaoCallPayload, txn *model.Txn) error {
 	if !isSudo(caller, st) {
 		return errors.New("must call by gov/sudo")
 	}
-	if len(p.NewUser) == 0 || p.Balance.Sign() == 0 {
+	newUser := m.GetNewUser()
+	balance := model.BytesToU128(m.GetBalance())
+	if len(newUser) == 0 || balance.Sign() == 0 {
 		return errors.New("new_user and balance required")
 	}
 	state := newDaoStateState(txn)
-	b, _ := state.MemberBalance.Get(txn, p.NewUser)
+	b, _ := state.MemberBalance.Get(txn, newUser)
 	if model.BytesToU128(b).Sign() != 0 {
 		return errors.New("member existed")
 	}
-	if err := state.MemberBalance.Set(txn, p.NewUser, model.U128ToBytes(p.Balance.ToBigInt())); err != nil {
+	if err := state.MemberBalance.Set(txn, newUser, model.U128ToBytes(balance)); err != nil {
 		return err
 	}
-	st.Members = append(st.Members, p.NewUser)
+	st.Members = append(st.Members, newUser)
 	total := new(big.Int).Set(st.TotalIssuance)
-	total.Add(total, p.Balance.ToBigInt())
+	total.Add(total, balance)
 	st.TotalIssuance = total
 	_ = state.SetMembers(st.Members)
 	return state.SetTotalIssuance(st.TotalIssuance)

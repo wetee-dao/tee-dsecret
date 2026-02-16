@@ -8,7 +8,7 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func daoSubmitVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoSubmitVote(caller []byte, m *model.DaoSubmitVote, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, caller)
 	bal := model.BytesToU128(b)
@@ -18,19 +18,21 @@ func daoSubmitVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Tx
 	lockB, _ := state.MemberLock.Get(txn, caller)
 	lock := model.BytesToU128(lockB)
 	free := new(big.Int).Sub(bal, lock)
-	if free.Cmp(p.LockAmount.ToBigInt()) < 0 {
+	lockAmount := model.BytesToU128(m.GetLockAmount())
+	if free.Cmp(lockAmount) < 0 {
 		return errors.New("low balance")
 	}
-	stB, _ := state.ProposalStatus.Get(txn, p.ProposalId)
+	proposalId := m.GetProposalId()
+	stB, _ := state.ProposalStatus.Get(txn, proposalId)
 	if string(stB) != "ongoing" {
 		return errors.New("proposal not ongoing")
 	}
-	sb, _ := state.SubmitBlock.Get(txn, p.ProposalId)
+	sb, _ := state.SubmitBlock.Get(txn, proposalId)
 	submitBlock := int64(0)
 	if len(sb) > 0 {
 		submitBlock, _ = strconv.ParseInt(string(sb), 10, 64)
 	}
-	trB, _ := state.ProposalTrack.Get(txn, p.ProposalId)
+	trB, _ := state.ProposalTrack.Get(txn, proposalId)
 	trackId := uint32(0)
 	if len(trB) > 0 {
 		u, _ := strconv.ParseUint(string(trB), 10, 32)
@@ -43,9 +45,9 @@ func daoSubmitVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Tx
 	vid := state.NextVoteId()
 	_ = state.SetNextVoteId(vid + 1)
 	v := &voteInfo{
-		Pledge:      p.LockAmount,
-		OpinionYes:  p.OpinionYes,
-		CallId:      p.ProposalId,
+		Pledge:      model.NewU128(lockAmount),
+		OpinionYes:  m.GetOpinionYes(),
+		CallId:      proposalId,
 		Caller:      caller,
 		VoteBlock:   height,
 		UnlockBlock: int64(1),
@@ -54,13 +56,14 @@ func daoSubmitVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Tx
 	_ = model.SetMappingJson(state.Votes, txn, vid, v)
 	_ = state.VoteOfMember.Set(txn, caller, []byte(strconv.FormatUint(vid, 10)))
 	curLock, _ := state.MemberLock.Get(txn, caller)
-	_ = state.MemberLock.Set(txn, caller, model.U128ToBytes(new(big.Int).Add(model.BytesToU128(curLock), p.LockAmount.ToBigInt())))
+	_ = state.MemberLock.Set(txn, caller, model.U128ToBytes(new(big.Int).Add(model.BytesToU128(curLock), lockAmount)))
 	return nil
 }
 
-func daoCancelVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoCancelVote(caller []byte, m *model.DaoCancelVote, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
-	v, _ := model.GetMappingJson[uint64, voteInfo](state.Votes, txn, p.VoteId)
+	voteId := m.GetVoteId()
+	v, _ := model.GetMappingJson[uint64, voteInfo](state.Votes, txn, voteId)
 	if v == nil {
 		return errors.New("invalid vote")
 	}
@@ -72,19 +75,20 @@ func daoCancelVote(caller []byte, p *DaoCallPayload, height int64, txn *model.Tx
 		return errors.New("proposal not ongoing")
 	}
 	v.Deleted = true
-	_ = model.SetMappingJson(state.Votes, txn, p.VoteId, v)
+	_ = model.SetMappingJson(state.Votes, txn, voteId, v)
 	curLock, _ := state.MemberLock.Get(txn, caller)
 	_ = state.MemberLock.Set(txn, caller, model.U128ToBytes(new(big.Int).Sub(model.BytesToU128(curLock), v.Pledge.ToBigInt())))
 	return nil
 }
 
-func daoUnlock(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) error {
+func daoUnlock(caller []byte, m *model.DaoUnlock, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
-	unlockB, _ := state.Unlock.Get(txn, p.VoteId)
+	voteId := m.GetVoteId()
+	unlockB, _ := state.Unlock.Get(txn, voteId)
 	if len(unlockB) > 0 {
 		return errors.New("vote already unlocked")
 	}
-	v, _ := model.GetMappingJson[uint64, voteInfo](state.Votes, txn, p.VoteId)
+	v, _ := model.GetMappingJson[uint64, voteInfo](state.Votes, txn, voteId)
 	if v == nil || v.Deleted {
 		return errors.New("invalid vote")
 	}
@@ -98,7 +102,7 @@ func daoUnlock(caller []byte, p *DaoCallPayload, height int64, txn *model.Txn) e
 	if height < endBlock+v.UnlockBlock {
 		return errors.New("invalid vote unlock time")
 	}
-	_ = state.Unlock.Set(txn, p.VoteId, []byte("1"))
+	_ = state.Unlock.Set(txn, voteId, []byte("1"))
 	curLock, _ := state.MemberLock.Get(txn, caller)
 	_ = state.MemberLock.Set(txn, caller, model.U128ToBytes(new(big.Int).Sub(model.BytesToU128(curLock), v.Pledge.ToBigInt())))
 	return nil
