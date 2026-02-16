@@ -21,7 +21,10 @@ message Tx{
     int64 sync_tx_start  = 5;
     int64 sync_tx_end = 6;
     int64 sync_tx_retry = 7;
+    bytes dao_call = 8;  // 序列化后的 DaoCallPayload（见 side-chain/dao_store.go）
   }
+  bytes caller = 10;   // 交易发起方（公钥，用于验证签名）
+  bytes signature = 11; // 对 Tx 的签名（签名为空时签名字段不参与序列化，即对 payload+caller 的序列化结果签名）
 }
 
 // side validator

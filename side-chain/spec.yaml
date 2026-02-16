@@ -1,0 +1,7 @@
+gen:
+  - pkg: dao
+    file: ./side-chain/pallets/dao/dao.go
+    struct: daoState
+    namespace: dao
+    prefix: state
+    out: ./side-chain/pallets/dao/dao_state_gen.go

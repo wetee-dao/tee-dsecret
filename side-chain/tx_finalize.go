@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/dao"
 )
 
 func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, proposer []byte) ([]*abci.ExecTxResult, error) {
@@ -27,6 +28,11 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
 		if err != nil {
 			return nil, err
+		}
+
+		// 所有交易必须验证签名
+		if err := model.VerifyTxSigner(tx); err != nil {
+			return nil, errors.Wrap(err, "verify tx signer")
 		}
 
 		switch p := tx.Payload.(type) {
@@ -88,6 +94,18 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 				return nil, err
 			}
 			hubCalls = append(hubCalls, p.HubCall)
+		case *model.Tx_DaoCall: // DAO 治理/成员/代币/提案/国库
+			caller := tx.GetCaller()
+			if len(caller) == 0 {
+				caller = txbox.Org
+			}
+			if len(caller) == 0 {
+				return nil, errors.New("dao_call: missing caller (tx.caller or txbox.org)")
+			}
+			err := dao.ApplyDaoCall(caller, p.DaoCall, height, txn)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, errors.New("invalid tx type")
 		}

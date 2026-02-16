@@ -1,0 +1,18 @@
+# stategen 示例配置：对多个 struct 批量生成「按字段存取」代码
+# 运行: go run ./tools/stategen -config=./tools/stategen/spec.example.yaml
+
+gen:
+  - pkg: sidechain
+    file: ./side-chain/dao.go
+    struct: daoState
+    namespace: dao
+    prefix: state
+    out: ./side-chain/dao_state_gen.go
+
+  # 可继续添加更多 struct，例如:
+  # - pkg: sidechain
+  #   file: ./side-chain/epoch.go
+  #   struct: EpochState
+  #   namespace: epoch
+  #   prefix: state
+  #   out: ./side-chain/epoch_state_gen.go

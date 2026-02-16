@@ -46,6 +46,8 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 				hubCalls = append(hubCalls, hubCall)
 				hubtx = append(hubtx, txbt)
 			}
+		case *model.Tx_DaoCall:
+			*finaltx = append(*finaltx, txbt)
 		default:
 			break
 		}

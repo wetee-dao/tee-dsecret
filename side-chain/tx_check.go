@@ -9,13 +9,24 @@ import (
 )
 
 func (app *SideChain) checkTx(txbt []byte) uint32 {
-	tx := new(model.TxBox)
-	err := protoio.ReadMessage(bytes.NewBuffer(txbt), tx)
+	txbox := new(model.TxBox)
+	err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
 	if err != nil {
 		return CodeTypeEncodingError
 	}
 
-	if len(tx.Org) == 0 {
+	innerTx := new(model.Tx)
+	err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), innerTx)
+	if err != nil {
+		return CodeTypeEncodingError
+	}
+
+	// 验证交易签名
+	if err := model.VerifyTxSigner(innerTx); err != nil {
+		return CodeTypeInvalidTxFormat
+	}
+
+	if len(txbox.Org) == 0 {
 		fmt.Println("invalid node1")
 		return CodeInvalidNode
 	}
@@ -23,7 +34,7 @@ func (app *SideChain) checkTx(txbt []byte) uint32 {
 	keys := app.p2p.AllNodes()
 	isIn := false
 	for _, key := range keys {
-		if bytes.Equal(tx.Org, key.Byte()) {
+		if bytes.Equal(txbox.Org, key.Byte()) {
 			isIn = true
 			break
 		}
