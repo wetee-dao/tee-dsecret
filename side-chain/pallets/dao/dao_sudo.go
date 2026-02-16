@@ -7,14 +7,12 @@ import (
 )
 
 func daoSetPublicJoin(caller []byte, m *model.DaoSetPublicJoin, txn *model.Txn) error {
-	st, err := loadDaoState(txn)
-	if err != nil || st == nil {
+	state := newDaoStateState(txn)
+	if len(state.Members()) == 0 {
 		return errors.New("dao not initialized")
 	}
-	if !isSudo(caller, st) {
+	if !isSudo(caller, state) {
 		return errors.New("must call by gov/sudo")
 	}
-	st.PublicJoin = m.GetPublicJoin()
-	state := newDaoStateState(txn)
-	return state.SetPublicJoin(st.PublicJoin)
+	return state.SetPublicJoin(m.GetPublicJoin())
 }

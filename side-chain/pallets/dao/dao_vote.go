@@ -107,3 +107,25 @@ func daoUnlock(caller []byte, m *model.DaoUnlock, height int64, txn *model.Txn) 
 	_ = state.MemberLock.Set(txn, caller, model.U128ToBytes(new(big.Int).Sub(model.BytesToU128(curLock), v.Pledge.ToBigInt())))
 	return nil
 }
+
+// VoteList 返回某提案下的投票列表（对应 ink vote_list(proposal_id)）。
+func VoteList(proposalId uint32) []*voteInfo {
+	list, _, _ := model.GetJsonList[voteInfo]("dao", stateKeydaoStateVotes)
+	if list == nil {
+		return nil
+	}
+	var out []*voteInfo
+	for _, v := range list {
+		if v != nil && v.CallId == proposalId && !v.Deleted {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// Vote 按 vote_id 返回投票信息（对应 ink vote(vote_id)）。
+func Vote(voteId uint64) *voteInfo {
+	key := stateKeydaoStateVotes + strconv.FormatUint(voteId, 10)
+	val, _ := model.GetJson[voteInfo]("dao", key)
+	return val
+}

@@ -3,19 +3,16 @@ package dao
 import (
 	"errors"
 	"math/big"
+	"strconv"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 func daoInit(caller []byte, m *model.DaoInit, height int64, txn *model.Txn) error {
-	st, err := loadDaoState(txn)
-	if err != nil {
-		return err
-	}
-	if len(st.Members) > 0 {
+	state := newDaoStateState(txn)
+	if len(state.Members()) > 0 {
 		return errors.New("dao already initialized")
 	}
-	state := newDaoStateState(txn)
 	total := big.NewInt(0)
 	members := make([][]byte, 0, len(m.GetInitialMembers()))
 	for _, mem := range m.GetInitialMembers() {
@@ -29,29 +26,20 @@ func daoInit(caller []byte, m *model.DaoInit, height int64, txn *model.Txn) erro
 		}
 		total.Add(total, bal)
 	}
-	st.Members = members
-	st.TotalIssuance = total
-	st.PublicJoin = m.GetPublicJoin()
+	_ = state.SetMembers(members)
+	_ = state.SetTotalIssuance(total)
+	_ = state.SetPublicJoin(m.GetPublicJoin())
 	if len(m.GetSudoAccount()) > 0 {
-		st.SudoAccount = m.SudoAccount
+		_ = state.SetSudoAccount(m.SudoAccount)
 	}
-	st.Transfer = false
+	_ = state.SetTransfer(false)
 	if m.GetDefaultTrack() != nil {
 		trackID := uint32(0)
 		if err := model.SetMappingJson(state.Tracks, txn, trackID, trackFromProto(m.GetDefaultTrack())); err != nil {
 			return err
 		}
-		st.DefaultTrack = &trackID
+		_ = state.SetDefaultTrack(&trackID)
 	}
-	st.NextProposalId = 0
-	st.NextVoteId = 0
-	st.NextSpendId = 0
-	_ = state.SetMembers(st.Members)
-	_ = state.SetTotalIssuance(st.TotalIssuance)
-	_ = state.SetPublicJoin(st.PublicJoin)
-	_ = state.SetSudoAccount(st.SudoAccount)
-	_ = state.SetTransfer(st.Transfer)
-	_ = state.SetDefaultTrack(st.DefaultTrack)
 	_ = state.SetNextProposalId(0)
 	_ = state.SetNextVoteId(0)
 	_ = state.SetNextSpendId(0)
@@ -59,14 +47,10 @@ func daoInit(caller []byte, m *model.DaoInit, height int64, txn *model.Txn) erro
 }
 
 func daoPublicJoin(caller []byte, txn *model.Txn) error {
-	st, err := loadDaoState(txn)
-	if err != nil {
-		return err
-	}
-	if !st.PublicJoin {
+	state := newDaoStateState(txn)
+	if !state.PublicJoin() {
 		return errors.New("public join not allowed")
 	}
-	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, caller)
 	if model.BytesToU128(b).Sign() != 0 {
 		return errors.New("member existed")
@@ -74,16 +58,13 @@ func daoPublicJoin(caller []byte, txn *model.Txn) error {
 	if err := state.MemberBalance.Set(txn, caller, model.U128ToBytes(big.NewInt(0))); err != nil {
 		return err
 	}
-	st.Members = append(st.Members, caller)
-	return state.SetMembers(st.Members)
+	members := append(state.Members(), caller)
+	return state.SetMembers(members)
 }
 
 func daoJoin(caller []byte, m *model.DaoJoin, txn *model.Txn) error {
-	st, err := loadDaoState(txn)
-	if err != nil {
-		return err
-	}
-	if !isSudo(caller, st) {
+	state := newDaoStateState(txn)
+	if !isSudo(caller, state) {
 		return errors.New("must call by gov/sudo")
 	}
 	newUser := m.GetNewUser()
@@ -91,7 +72,6 @@ func daoJoin(caller []byte, m *model.DaoJoin, txn *model.Txn) error {
 	if len(newUser) == 0 || balance.Sign() == 0 {
 		return errors.New("new_user and balance required")
 	}
-	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, newUser)
 	if model.BytesToU128(b).Sign() != 0 {
 		return errors.New("member existed")
@@ -99,23 +79,22 @@ func daoJoin(caller []byte, m *model.DaoJoin, txn *model.Txn) error {
 	if err := state.MemberBalance.Set(txn, newUser, model.U128ToBytes(balance)); err != nil {
 		return err
 	}
-	st.Members = append(st.Members, newUser)
-	total := new(big.Int).Set(st.TotalIssuance)
-	total.Add(total, balance)
-	st.TotalIssuance = total
-	_ = state.SetMembers(st.Members)
-	return state.SetTotalIssuance(st.TotalIssuance)
+	members := append(state.Members(), newUser)
+	_ = state.SetMembers(members)
+	total := state.TotalIssuance()
+	if total == nil {
+		total = big.NewInt(0)
+	}
+	total = new(big.Int).Add(total, balance)
+	return state.SetTotalIssuance(total)
 }
 
 func daoLeave(caller []byte, txn *model.Txn) error {
-	st, _ := loadDaoState(txn)
-	if st == nil {
-		return errors.New("dao state not found")
-	}
-	if !memberInList(st.Members, caller) {
+	state := newDaoStateState(txn)
+	members := state.Members()
+	if !memberInList(members, caller) {
 		return errors.New("member not existed")
 	}
-	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, caller)
 	if model.BytesToU128(b).Sign() != 0 {
 		return errors.New("member balance not zero")
@@ -124,35 +103,66 @@ func daoLeave(caller []byte, txn *model.Txn) error {
 	if model.BytesToU128(lockB).Sign() != 0 {
 		return errors.New("member lock not zero")
 	}
-	st.Members = removeMember(st.Members, caller)
-	_ = state.SetMembers(st.Members)
+	_ = state.SetMembers(removeMember(members, caller))
 	_ = state.MemberBalance.Delete(txn, caller)
 	_ = state.MemberLock.Delete(txn, caller)
 	return nil
 }
 
 func daoLeaveWithBurn(caller []byte, txn *model.Txn) error {
-	st, err := loadDaoState(txn)
-	if err != nil || st == nil {
-		return errors.New("dao state not found")
-	}
-	if !memberInList(st.Members, caller) {
+	state := newDaoStateState(txn)
+	members := state.Members()
+	if !memberInList(members, caller) {
 		return errors.New("member not existed")
 	}
-	state := newDaoStateState(txn)
 	b, _ := state.MemberBalance.Get(txn, caller)
 	lockB, _ := state.MemberLock.Get(txn, caller)
 	total := new(big.Int).Add(model.BytesToU128(b), model.BytesToU128(lockB))
-	if st.TotalIssuance.Cmp(total) < 0 {
+	issuance := state.TotalIssuance()
+	if issuance == nil || issuance.Cmp(total) < 0 {
 		return errors.New("low balance")
 	}
-	st.TotalIssuance = new(big.Int).Sub(st.TotalIssuance, total)
-	st.Members = removeMember(st.Members, caller)
-	_ = state.SetMembers(st.Members)
-	if err := state.SetTotalIssuance(st.TotalIssuance); err != nil {
-		return err
-	}
+	_ = state.SetTotalIssuance(new(big.Int).Sub(issuance, total))
+	_ = state.SetMembers(removeMember(members, caller))
 	_ = state.MemberBalance.Delete(txn, caller)
 	_ = state.MemberLock.Delete(txn, caller)
 	return nil
+}
+
+// MemberList 返回所有成员地址列表（对应 ink list()）。
+func MemberList() [][]byte {
+	v, _ := model.GetJson[[][]byte]("dao", stateKeydaoStateMembers)
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+// GetPublicJoin 返回是否允许公开加入（对应 ink get_public_join()）。
+func GetPublicJoin() bool {
+	b, _ := model.GetKey("dao", stateKeydaoStatePublicJoin)
+	if len(b) == 0 {
+		return false
+	}
+	v, _ := strconv.ParseBool(string(b))
+	return v
+}
+
+func memberInList(members [][]byte, k []byte) bool {
+	for _, m := range members {
+		if bytesEqual(m, k) {
+			return true
+		}
+	}
+	return false
+}
+
+func removeMember(members [][]byte, k []byte) [][]byte {
+	out := make([][]byte, 0, len(members))
+	for _, m := range members {
+		if !bytesEqual(m, k) {
+			out = append(out, m)
+		}
+	}
+	return out
 }

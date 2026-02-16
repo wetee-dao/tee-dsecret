@@ -10,12 +10,12 @@ import (
 
 func daoSpend(caller []byte, m *model.DaoSpend, txn *model.Txn) error {
 	state := newDaoStateState(txn)
+	if len(state.Members()) == 0 {
+		return errors.New("dao not initialized")
+	}
 	b, _ := state.MemberBalance.Get(txn, caller)
 	if model.BytesToU128(b).Sign() == 0 {
 		return errors.New("member not existed")
-	}
-	if _, err := loadDaoState(txn); err != nil {
-		return errors.New("dao not initialized")
 	}
 	spendId := state.NextSpendId()
 	proposalId := state.NextProposalId()
@@ -36,14 +36,13 @@ func daoSpend(caller []byte, m *model.DaoSpend, txn *model.Txn) error {
 }
 
 func daoPayout(caller []byte, m *model.DaoPayout, txn *model.Txn) error {
-	st, _ := loadDaoState(txn)
-	if st == nil {
+	state := newDaoStateState(txn)
+	if len(state.Members()) == 0 {
 		return errors.New("dao not initialized")
 	}
-	if !isSudo(caller, st) {
+	if !isSudo(caller, state) {
 		return errors.New("must call by gov/sudo")
 	}
-	state := newDaoStateState(txn)
 	spendId := m.GetSpendId()
 	s, _ := model.GetMappingJson[uint64, spendRecord](state.Spends, txn, spendId)
 	if s == nil {

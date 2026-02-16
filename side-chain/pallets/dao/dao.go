@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -91,33 +90,6 @@ func callContentFromProto(m *model.DaoCallContent) *DaoCallContent {
 	}
 }
 
-type daoState struct {
-	Members        [][]byte `json:"members"`
-	TotalIssuance  *big.Int `json:"-"` // u128，不参与 JSON
-	PublicJoin     bool     `json:"public_join"`
-	SudoAccount    []byte   `json:"sudo_account,omitempty"`
-	Transfer       bool     `json:"transfer"`
-	DefaultTrack   *uint32  `json:"default_track,omitempty"`
-	NextProposalId uint32   `json:"next_proposal_id"`
-	NextVoteId     uint64   `json:"next_vote_id"`
-	NextSpendId    uint64   `json:"next_spend_id"`
-
-	Tracks         *model.StoreMapping[uint32] `state:"key=track_"`
-	Proposals      *model.StoreMapping[uint32] `state:"key=proposal_"`
-	ProposalStatus *model.StoreMapping[uint32] `state:"key=proposal_status_"`
-	ProposalTrack  *model.StoreMapping[uint32] `state:"key=proposal_track_"`
-	ProposalCaller *model.StoreMapping[uint32] `state:"key=proposal_caller_"`
-	SubmitBlock    *model.StoreMapping[uint32] `state:"key=submit_block_"`
-	Deposits       *model.StoreMapping[uint32] `state:"key=deposit_"`
-	Votes          *model.StoreMapping[uint64] `state:"key=vote_"`
-	VoteOfMember   *model.StoreMapping[[]byte] `state:"key=vote_of_member_"`
-	Unlock         *model.StoreMapping[uint64] `state:"key=unlock_"`
-	Spends         *model.StoreMapping[uint64] `state:"key=spend_"`
-	MemberBalance  *model.StoreMapping[[]byte] `state:"key=member_balance_"`
-	MemberLock     *model.StoreMapping[[]byte] `state:"key=member_lock_"`
-	Allowance      *model.StoreMapping[string] `state:"key=allowance_"`
-}
-
 type proposalDeposit struct {
 	Depositor []byte `json:"depositor"`
 	Amount    U128   `json:"amount"`
@@ -198,44 +170,12 @@ func ApplyDaoCall(caller []byte, payload []byte, height int64, txn *model.Txn) e
 	}
 }
 
-func loadDaoState(txn *model.Txn) (*daoState, error) {
-	state := newDaoStateState(txn)
-	total := state.TotalIssuance()
-	if total == nil {
-		total = big.NewInt(0)
-	}
-	return &daoState{
-		Members:        state.Members(),
-		TotalIssuance:  total,
-		PublicJoin:     state.PublicJoin(),
-		SudoAccount:    state.SudoAccount(),
-		Transfer:       state.Transfer(),
-		DefaultTrack:   state.DefaultTrack(),
-		NextProposalId: state.NextProposalId(),
-		NextVoteId:     state.NextVoteId(),
-		NextSpendId:    state.NextSpendId(),
-		Tracks:         state.Tracks,
-		Proposals:      state.Proposals,
-		ProposalStatus: state.ProposalStatus,
-		ProposalTrack:  state.ProposalTrack,
-		ProposalCaller: state.ProposalCaller,
-		SubmitBlock:    state.SubmitBlock,
-		Deposits:       state.Deposits,
-		Votes:          state.Votes,
-		VoteOfMember:   state.VoteOfMember,
-		Unlock:         state.Unlock,
-		Spends:         state.Spends,
-		MemberBalance:  state.MemberBalance,
-		MemberLock:     state.MemberLock,
-		Allowance:      state.Allowance,
-	}, nil
-}
-
-func isSudo(caller []byte, st *daoState) bool {
-	if len(st.SudoAccount) == 0 {
+func isSudo(caller []byte, state *daoStateState) bool {
+	acc := state.SudoAccount()
+	if len(acc) == 0 {
 		return false
 	}
-	return bytesEqual(caller, st.SudoAccount)
+	return bytesEqual(caller, acc)
 }
 
 func bytesEqual(a, b []byte) bool {
@@ -248,23 +188,4 @@ func bytesEqual(a, b []byte) bool {
 		}
 	}
 	return true
-}
-
-func memberInList(members [][]byte, k []byte) bool {
-	for _, m := range members {
-		if bytesEqual(m, k) {
-			return true
-		}
-	}
-	return false
-}
-
-func removeMember(members [][]byte, k []byte) [][]byte {
-	out := make([][]byte, 0, len(members))
-	for _, m := range members {
-		if !bytesEqual(m, k) {
-			out = append(out, m)
-		}
-	}
-	return out
 }

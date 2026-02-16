@@ -2,12 +2,20 @@
 
 extend type Query {
   """
-  查询指定合约状态，返回 JSON 字符串。
-  支持: dao（DAO 成员/轨道/提案等）
+  按合约与方法单独查询，返回 JSON 字符串。
+  contract 如 dao；method 为查询方法名；args 为可选 JSON 参数（如 {"owner":"0x..."}）。
+  dao 支持: member_list, get_public_join, name, symbol, decimals, total_supply,
+  balance_of(owner), allowance(owner,spender), lock_balance_of(owner), default_track,
+  track_list(page,size), track(id), proposals(page,size), proposal(id),
+  vote_list(proposal_id), vote(vote_id), proposal_status(proposal_id)
   """
-  contractState(
+  contractQuery(
     """ 合约名，如 dao """
     contract: String!
+    """ 方法名，如 balance_of """
+    method: String!
+    """ 可选 JSON 参数，如 {"owner":"0x..."} """
+    args: String
   ): String!
 }
 

@@ -22,7 +22,7 @@ func (r *mutationResolver) ContractCall(ctx context.Context, caller string, cont
 	return true, nil
 }
 
-// ContractState is the resolver for the contractState field.
-func (r *queryResolver) ContractState(ctx context.Context, contract string) (string, error) {
-	return GetContractState(contract)
+// ContractQuery is the resolver for the contractQuery field.
+func (r *queryResolver) ContractQuery(ctx context.Context, contract string, method string, args *string) (string, error) {
+	return ContractQuery(contract, method, args)
 }

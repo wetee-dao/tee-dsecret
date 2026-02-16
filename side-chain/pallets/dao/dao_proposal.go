@@ -10,13 +10,12 @@ import (
 
 func daoSubmitProposal(caller []byte, m *model.DaoSubmitProposal, height int64, txn *model.Txn) error {
 	state := newDaoStateState(txn)
+	if len(state.Members()) == 0 {
+		return errors.New("dao not initialized")
+	}
 	b, _ := state.MemberBalance.Get(txn, caller)
 	if model.BytesToU128(b).Sign() == 0 {
 		return errors.New("member not existed")
-	}
-	st, err := loadDaoState(txn)
-	if err != nil || st == nil {
-		return errors.New("dao not initialized")
 	}
 	if m.GetCall() == nil {
 		return errors.New("call required")
@@ -154,4 +153,40 @@ func daoCancelProposal(caller []byte, m *model.DaoCancelProposal, height int64, 
 	}
 	_ = state.ProposalStatus.Set(txn, proposalId, []byte("canceled"))
 	return nil
+}
+
+// Proposals 分页返回提案内容列表（对应 ink proposals(page, size)）。
+func Proposals(page, size uint32) []*DaoCallContent {
+	return proposalsFromDB(page, size)
+}
+
+// Proposal 按 ID 返回提案内容（对应 ink proposal(id)）。
+func Proposal(id uint32) *DaoCallContent {
+	key := stateKeydaoStateProposals + strconv.FormatUint(uint64(id), 10)
+	c, _ := model.GetJson[DaoCallContent]("dao", key)
+	return c
+}
+
+// ProposalStatus 返回提案状态（对应 ink proposal_status(proposal_id)）。
+func ProposalStatus(proposalId uint32) string {
+	key := stateKeydaoStateProposalStatus + strconv.FormatUint(uint64(proposalId), 10)
+	b, _ := model.GetKey("dao", key)
+	return string(b)
+}
+
+func proposalsFromDB(page, size uint32) []*DaoCallContent {
+	if page < 1 {
+		page = 1
+	}
+	start := (page - 1) * size
+	var out []*DaoCallContent
+	for i := uint32(0); i < size; i++ {
+		id := start + i
+		c := Proposal(id)
+		if c == nil {
+			break
+		}
+		out = append(out, c)
+	}
+	return out
 }
