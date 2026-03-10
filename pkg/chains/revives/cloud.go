@@ -5,7 +5,7 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/ink/cloud"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/revives/cloud"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 

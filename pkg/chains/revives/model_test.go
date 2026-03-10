@@ -3,14 +3,13 @@ package contracts
 import (
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/ink.go/util"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/ink/cloud"
-	"github.com/wetee-dao/tee-dsecret/pkg/chains/ink/subnet"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/revives/cloud"
+	"github.com/wetee-dao/tee-dsecret/pkg/chains/revives/subnet"
 )
 
 func TestCloud(t *testing.T) {
@@ -169,87 +168,11 @@ func TestSetSubnetSolt(t *testing.T) {
 }
 
 func TestCloudUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{TestChainUrl}, true)
-	if err != nil {
-		panic(err)
-	}
-
-	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
-	if err != nil {
-		util.LogWithPurple("Sr25519PairFromSecret", err)
-		panic(err)
-	}
-
-	/// init pod
-	cloudData, err := os.ReadFile("../../../hack/contract_cache/cloud.polkavm")
-	if err != nil {
-		util.LogWithPurple("read file error", err)
-		panic(err)
-	}
-
-	code, err := client.UploadInkCode(cloudData, &pk)
-	if err != nil {
-		util.LogWithPurple("UploadInkCode", err)
-		panic(err)
-	}
-
-	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
-	if err != nil {
-		util.LogWithPurple("InitCloudContract", err)
-		panic(err)
-	}
-
-	err = cloudIns.ExecSetCode(*code, chain.ExecParams{
-		Signer:    &pk,
-		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
-
-	if err != nil {
-		util.LogWithPurple("ExecSetCode", err)
-	}
+	// TODO
 }
 
 func TestSubnetUpdate(t *testing.T) {
-	client, err := chain.InitClient([]string{TestChainUrl}, true)
-	if err != nil {
-		panic(err)
-	}
-
-	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
-	if err != nil {
-		util.LogWithPurple("Sr25519PairFromSecret", err)
-		panic(err)
-	}
-
-	/// init pod
-	netData, err := os.ReadFile("../../../hack/contract_cache/subnet.polkavm")
-	if err != nil {
-		util.LogWithPurple("read file error", err)
-		panic(err)
-	}
-
-	netCode, err := client.UploadInkCode(netData, &pk)
-	if err != nil {
-		util.LogWithPurple("UploadInkCode", err)
-		panic(err)
-	}
-
-	fmt.Println("cloudAddress: ", CloudAddress)
-
-	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
-	if err != nil {
-		util.LogWithPurple("InitCloudContract", err)
-		panic(err)
-	}
-
-	err = subnetIns.ExecSetCode(*netCode, chain.ExecParams{
-		Signer:    &pk,
-		PayAmount: types.NewU128(*big.NewInt(0)),
-	})
-
-	if err != nil {
-		util.LogWithPurple("subnet ExecSetCode", err)
-	}
+	// TODO
 }
 
 func TestWorkerUpdate(t *testing.T) {

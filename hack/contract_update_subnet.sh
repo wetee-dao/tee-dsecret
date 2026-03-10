@@ -9,7 +9,7 @@ DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
 cd $DIR
 
-cp ./contract_cache/subnet.json ../pkg/chains/contracts/
+cp ./contract_cache/subnet.json ../pkg/chains/revives/
 
-cd $DIR/../pkg/chains/contracts/
+cd $DIR/../pkg/chains/revives/
 go-ink-gen -json subnet.json
