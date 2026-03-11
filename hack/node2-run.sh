@@ -7,17 +7,23 @@ while [ -h "$SOURCE"  ]; do
 done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
+# Get image version from .version file
+img=$(cat $DIR/.version)
+
 cd $DIR/node2
 
-export SIDE_CHAIN_PORT=30030
-export GQL_PORT=30035
-export CHAIN_ADDR=ws://192.168.110.205:30002/ws
+# Ensure chain_data directory exists
+mkdir -p $DIR/node2/chain_data
 
-ego-go build -o dsecret ../../main.go
-ego sign dsecret
-
-rm nohup.out
-
-ego sign dsecret && ego run dsecret
-# nohup ego run dsecret &
-# ./dsecret
+# Run dsecret using Docker
+docker run --name dsecret-2 \
+  --rm \
+  -p 30030:30130 \
+  -p 30035:30135 \
+  -e SIDE_CHAIN_PORT=30130 \
+  -e GQL_PORT=30135 \
+  -e CHAIN_ADDR=ws://192.168.110.205:30002/ws \
+  -v $DIR/node2/chain_data:/chain_data \
+  --device /dev/sgx_enclave \
+  --device /dev/sgx_provision \
+  $img
