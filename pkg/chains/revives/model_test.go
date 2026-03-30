@@ -143,6 +143,78 @@ func TestSetCloudStage(t *testing.T) {
 	}
 }
 
+func TestGetSecrets(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		panic(err)
+	}
+
+	secrets, _, err := subnetIns.QuerySecrets(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QuerySecrets", err)
+		panic(err)
+	}
+	fmt.Println(secrets)
+}
+
+func TestQuerySubnetSideChainKey(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	cloudIns, err := cloud.InitCloudContract(client, CloudAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		panic(err)
+	}
+
+	subnetAddress, _, err := cloudIns.QuerySubnetAddress(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QuerySubnetAddress", err)
+		panic(err)
+	}
+	fmt.Println(subnetAddress.Hex())
+
+	subnetSideChainKey, _, err := cloudIns.QuerySubnetSideChainKey(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QuerySubnetSideChainKey", err)
+		panic(err)
+	}
+	fmt.Println(subnetSideChainKey.Hex())
+
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		panic(err)
+	}
+
+	subnetSideChainKey, _, err = subnetIns.QuerySideChainKey(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QuerySideChainKey", err)
+		panic(err)
+	}
+	fmt.Println(subnetSideChainKey.Hex())
+}
+
 func TestSetSubnetSolt(t *testing.T) {
 	client, err := chain.InitClient([]string{TestChainUrl}, true)
 	if err != nil {
@@ -161,7 +233,7 @@ func TestSetSubnetSolt(t *testing.T) {
 		panic(err)
 	}
 
-	subnetIns.ExecSetEpochSolt(2, chain.ExecParams{
+	subnetIns.ExecSetEpochSolt(100, chain.ExecParams{
 		Signer:    &pk,
 		PayAmount: types.NewU128(*big.NewInt(0)),
 	})

@@ -1298,6 +1298,21 @@
           "type": 9
         },
         "selector": "0x52051579"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "subnet_side_chain_key",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 14
+        },
+        "selector": "0xd99d60f8"
       }
     ]
   },
@@ -1320,87 +1335,92 @@
               {
                 "fields": [],
                 "index": 0,
-                "name": "NotEnoughBalance"
-              },
-              {
-                "fields": [],
-                "index": 1,
-                "name": "MustCallByMainContract"
-              },
-              {
-                "fields": [],
-                "index": 2,
-                "name": "WorkerNotExist"
-              },
-              {
-                "fields": [],
-                "index": 3,
-                "name": "WorkerNotOwnedByCaller"
-              },
-              {
-                "fields": [],
-                "index": 4,
-                "name": "WorkerStatusNotReady"
-              },
-              {
-                "fields": [],
-                "index": 5,
-                "name": "WorkerMortgageNotExist"
-              },
-              {
-                "fields": [],
-                "index": 6,
-                "name": "TransferFailed"
-              },
-              {
-                "fields": [],
-                "index": 7,
-                "name": "WorkerIsUseByUser"
-              },
-              {
-                "fields": [],
-                "index": 8,
-                "name": "NodeNotExist"
-              },
-              {
-                "fields": [],
-                "index": 9,
-                "name": "SecretNodeAlreadyExists"
-              },
-              {
-                "fields": [],
-                "index": 10,
                 "name": "SetCodeFailed"
               },
               {
                 "fields": [],
-                "index": 11,
-                "name": "EpochNotExpired"
+                "index": 1,
+                "name": "MustCallByGovContract"
               },
               {
                 "fields": [],
-                "index": 12,
-                "name": "InvalidSideChainSignature"
+                "index": 2,
+                "name": "WorkerLevelNotEnough"
               },
               {
                 "fields": [],
-                "index": 13,
-                "name": "NodeIsRunning"
+                "index": 3,
+                "name": "RegionNotMatch"
               },
               {
                 "fields": [],
-                "index": 14,
+                "index": 4,
+                "name": "WorkerNotOnline"
+              },
+              {
+                "fields": [],
+                "index": 5,
+                "name": "NotPodOwner"
+              },
+              {
+                "fields": [],
+                "index": 6,
+                "name": "PodKeyNotExist"
+              },
+              {
+                "fields": [],
+                "index": 7,
+                "name": "PodStatusError"
+              },
+              {
+                "fields": [],
+                "index": 8,
                 "name": "InvalidSideChainCaller"
               },
               {
                 "fields": [],
+                "index": 9,
+                "name": "DelFailed"
+              },
+              {
+                "fields": [],
+                "index": 10,
+                "name": "NotFound"
+              },
+              {
+                "fields": [],
+                "index": 11,
+                "name": "PodNotFound"
+              },
+              {
+                "fields": [],
+                "index": 12,
+                "name": "WorkerIdNotFound"
+              },
+              {
+                "fields": [],
+                "index": 13,
+                "name": "WorkerNotFound"
+              },
+              {
+                "fields": [],
+                "index": 14,
+                "name": "LevelPriceNotFound"
+              },
+              {
+                "fields": [],
                 "index": 15,
-                "name": "RegionNotExist"
+                "name": "AssetNotFound"
               },
               {
                 "fields": [],
                 "index": 16,
-                "name": "AssetNotExist"
+                "name": "BalanceNotEnough"
+              },
+              {
+                "fields": [],
+                "index": 17,
+                "name": "PayFailed"
               }
             ]
           }

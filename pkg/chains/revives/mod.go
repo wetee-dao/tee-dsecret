@@ -1,5 +1,8 @@
 package contracts
 
+//go:generate go-ink-gen -json cloud.json
+//go:generate go-ink-gen -json subnet.json
+
 import (
 	"math/big"
 
