@@ -11,18 +11,18 @@ import (
 )
 
 // ContractCall is the resolver for the contractCall field.
-func (r *mutationResolver) ContractCall(ctx context.Context, caller string, contract string, payload string) (bool, error) {
+func (r *mutationResolver) ContractCall(ctx context.Context, caller string, contract string, method string, args []string, signatureType int, signature string) (bool, error) {
 	callerBytes, err := DecodeCaller(caller)
 	if err != nil {
 		return false, gqlerror.Errorf("caller: %v", err)
 	}
-	if err := SubmitContractCall(callerBytes, contract, payload); err != nil {
+	if err := SubmitContractCall(callerBytes, contract, method, args, uint32(signatureType), signature); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 	return true, nil
 }
 
 // ContractQuery is the resolver for the contractQuery field.
-func (r *queryResolver) ContractQuery(ctx context.Context, contract string, method string, args *string) (string, error) {
-	return ContractQuery(contract, method, args)
+func (r *queryResolver) ContractQuery(ctx context.Context, caller string, contract string, method string, args []string) (string, error) {
+	return ContractQuery(caller, contract, method, args)
 }

@@ -46,6 +46,27 @@ func (txn *Txn) Get(key []byte) ([]byte, error) {
 	return util.Unseal(v, nil)
 }
 
+func (txn *Txn) ListByPrefix(prefix []byte) ([][]byte, error) {
+	iter, err := txn.in.NewIter(&pebble.IterOptions{
+		LowerBound: prefix,
+		UpperBound: keyUpperBound(prefix),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+
+	var list [][]byte
+	for iter.First(); iter.Valid(); iter.Next() {
+		v := iter.Value()
+		buf := make([]byte, len(v))
+		copy(buf, v)
+		list = append(list, buf)
+	}
+
+	return list, nil
+}
+
 func (txn *Txn) Delete(key []byte) error {
 	return txn.in.Delete(key, pebble.Sync)
 }

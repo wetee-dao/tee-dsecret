@@ -11,6 +11,6 @@ cd $DIR/../pkg/model
 
 protoc --proto_path=. --gogofast_out=. tx.proto
 
-rm ../../../libos-entry/model/tx.pb.go
+rm -f ../../../libos-entry/model/tx.pb.go
 cp tx.pb.go ../../../libos-entry/model/
 cp -r protoio ../../../libos-entry/model/

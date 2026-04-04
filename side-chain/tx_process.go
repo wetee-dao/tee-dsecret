@@ -32,7 +32,7 @@ func (app *SideChain) ProcessTx(txs [][]byte) abci.ProcessProposalStatus {
 		case *model.Tx_SyncTxRetry:
 		case *model.Tx_Empty:
 		case *model.Tx_HubCall:
-		case *model.Tx_DaoCall:
+		case *model.Tx_Contract:
 		default:
 			fmt.Println("Payload is not set")
 		}

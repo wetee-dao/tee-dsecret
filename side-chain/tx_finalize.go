@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/pkg/errors"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/dao"
 )
 
 func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, proposer []byte) ([]*abci.ExecTxResult, error) {
@@ -93,18 +93,21 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			if err != nil {
 				return nil, err
 			}
+
 			hubCalls = append(hubCalls, p.HubCall)
-		case *model.Tx_DaoCall: // DAO 治理/成员/代币/提案/国库
-			caller := tx.GetCaller()
-			if len(caller) == 0 {
-				caller = txbox.Org
+		case *model.Tx_Contract:
+			if len(tx.GetCaller()) == 0 {
+				tx.Caller = txbox.Org
 			}
-			if len(caller) == 0 {
-				return nil, errors.New("dao_call: missing caller (tx.caller or txbox.org)")
+
+			call := &model.ContractCall{}
+			if err := codec.Decode(tx.GetContract(), call); err != nil {
+				return nil, errors.Wrap(err, "decode contract call")
 			}
-			err := dao.ApplyDaoCall(caller, p.DaoCall, height, txn)
+
+			err = app.ContractMutation(tx.GetCaller(), call)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "contract mutation")
 			}
 		default:
 			return nil, errors.New("invalid tx type")
