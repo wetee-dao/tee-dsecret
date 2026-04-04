@@ -246,10 +246,13 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 }
 
 // ExecuteQuery 按 method 将字符串参数解析为合约查询实参，返回 SCALE 编码结果。
-func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
-	if method == "" {
+func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
+	if call.Method == "" {
 		return nil, errors.New("dao: empty query method")
 	}
+
+	args := call.Args
+	method := call.Method
 
 	switch method {
 	case "members":
@@ -275,7 +278,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArg[[]byte](args[0])
+		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("balance_of: owner: %w", err)
 		}
@@ -288,7 +291,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArg[[]byte](args[0])
+		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("lock_balance_of: owner: %w", err)
 		}
@@ -301,11 +304,11 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 2, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArg[[]byte](args[0])
+		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("allowance: owner: %w", err)
 		}
-		spender, err := base.DecodeScaleArg[[]byte](args[1])
+		spender, err := base.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return nil, fmt.Errorf("allowance: spender: %w", err)
 		}
@@ -325,7 +328,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArg[uint32](args[0])
+		id, err := base.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("track: id: %w", err)
 		}
@@ -345,7 +348,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArg[uint32](args[0])
+		id, err := base.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("proposal: id: %w", err)
 		}
@@ -365,7 +368,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArg[uint32](args[0])
+		id, err := base.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("proposal_status: id: %w", err)
 		}
@@ -378,7 +381,7 @@ func (q DaoQuery) ExecuteQuery(method string, args []string) ([]byte, error) {
 		if err := base.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArg[uint64](args[0])
+		id, err := base.DecodeScaleArgBytes[uint64](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("vote: id: %w", err)
 		}
