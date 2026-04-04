@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets"
+	"github.com/wetee-dao/tee-dsecret/side-chain/contracts"
 )
 
 // ContractQuery 只读合约查询。contract=dao 时 method 为查询方法名，args 为字符串参数列表（与 ExecuteQuery 约定一致）。
@@ -13,7 +13,7 @@ func (app *SideChain) ContractQuery(caller []byte, contract, method string, args
 	height := app.state.Height
 	txn := app.onGoingBlock
 
-	runtime := pallets.NewRuntime(height, txn, caller)
+	runtime := contracts.NewRuntime(height, txn, caller)
 	argsBytes := make([][]byte, len(args))
 	for i, arg := range args {
 		argBytes, err := hex.DecodeString(arg)
@@ -23,7 +23,7 @@ func (app *SideChain) ContractQuery(caller []byte, contract, method string, args
 		argsBytes[i] = argBytes
 	}
 
-	return pallets.Query(&model.ContractCall{
+	return contracts.Query(&model.ContractCall{
 		Contract: contract,
 		Method:   method,
 		Args:     argsBytes,
@@ -34,6 +34,6 @@ func (app *SideChain) ContractMutation(caller []byte, call *model.ContractCall) 
 	height := app.state.Height
 	txn := app.onGoingBlock
 
-	runtime := pallets.NewRuntime(height, txn, caller)
-	return pallets.Mutation(call, runtime)
+	runtime := contracts.NewRuntime(height, txn, caller)
+	return contracts.Mutation(call, runtime)
 }

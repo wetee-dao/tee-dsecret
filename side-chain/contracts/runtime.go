@@ -1,8 +1,7 @@
-package pallets
+package contracts
 
 import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/base"
 )
 
 // Runtime 实现 base.ContractApi，在 FinalizeTx / Query 等路径传入高度、txn 与调用方。
@@ -12,7 +11,7 @@ type Runtime struct {
 	caller []byte
 }
 
-var _ base.ContractApi = Runtime{}
+var _ model.ContractApi = Runtime{}
 
 func NewRuntime(height int64, txn *model.Txn, caller []byte) Runtime {
 	return Runtime{height: height, txn: txn, caller: caller}

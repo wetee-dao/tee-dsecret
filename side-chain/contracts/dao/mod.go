@@ -2,11 +2,10 @@ package dao
 
 import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/base"
 )
 
 type DAO struct {
-	api base.ContractApi
+	api model.ContractApi
 
 	members             *model.StoreMapping[[]byte, Member]
 	publicJoin          *model.StoreMapping[string, bool]
@@ -27,7 +26,7 @@ type DAO struct {
 	spends              *model.StoreMapping[uint64, Spend]
 }
 
-func NewDAO(api base.ContractApi) *DAO {
+func NewDAO(api model.ContractApi) *DAO {
 	return &DAO{
 		api:                 api,
 		members:             &model.StoreMapping[[]byte, Member]{Namespace: "dao", KeyPrefix: "member_"},

@@ -6,7 +6,6 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/base"
 )
 
 // ExecCall 解析 Tx.contract，再按 Method 与字符串参数列表调用对应变更。
@@ -22,24 +21,24 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	args := call.Args
 	switch method {
 	case "init":
-		if err := base.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
-		members, err := base.DecodeScaleArgBytes[[]Member](args[0])
+		members, err := model.DecodeScaleArgBytes[[]Member](args[0])
 		if err != nil {
 			return fmt.Errorf("init: members: %w", err)
 		}
-		pub, err := base.DecodeScaleArgBytes[bool](args[1])
+		pub, err := model.DecodeScaleArgBytes[bool](args[1])
 		if err != nil {
 			return fmt.Errorf("init: publicJoin: %w", err)
 		}
-		sudo, err := base.DecodeScaleArgBytes[[]byte](args[2])
+		sudo, err := model.DecodeScaleArgBytes[[]byte](args[2])
 		if err != nil {
 			return fmt.Errorf("init: sudoAccount: %w", err)
 		}
 		var dt *TrackData
 		if len(args) >= 4 {
-			t, err := base.DecodeScaleArgBytes[TrackData](args[3])
+			t, err := model.DecodeScaleArgBytes[TrackData](args[3])
 			if err != nil {
 				return fmt.Errorf("init: defaultTrack: %w", err)
 			}
@@ -49,14 +48,14 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	case "public_join":
 		return m.PublicJoin()
 	case "join":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
-		newUser, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		newUser, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return fmt.Errorf("join: newUser: %w", err)
 		}
-		bal, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		bal, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("join: balance: %w", err)
 		}
@@ -66,176 +65,176 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	case "leave_with_burn":
 		return m.LeaveWithBurn()
 	case "submit_proposal":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
-		call, err := base.DecodeScaleArgBytes[CallContent](args[0])
+		call, err := model.DecodeScaleArgBytes[CallContent](args[0])
 		if err != nil {
 			return fmt.Errorf("submit_proposal: call: %w", err)
 		}
-		tid, err := base.DecodeScaleArgBytes[uint32](args[1])
+		tid, err := model.DecodeScaleArgBytes[uint32](args[1])
 		if err != nil {
 			return fmt.Errorf("submit_proposal: trackId: %w", err)
 		}
 		return m.SubmitProposal(call, tid)
 	case "deposit_proposal":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
-		pid, err := base.DecodeScaleArgBytes[uint32](args[0])
+		pid, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return fmt.Errorf("deposit_proposal: proposalId: %w", err)
 		}
-		amt, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		amt, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("deposit_proposal: amount: %w", err)
 		}
 		return m.DepositProposal(pid, amt)
 	case "submit_vote":
-		if err := base.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
-		pid, err := base.DecodeScaleArgBytes[uint32](args[0])
+		pid, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return fmt.Errorf("submit_vote: proposalId: %w", err)
 		}
-		yes, err := base.DecodeScaleArgBytes[bool](args[1])
+		yes, err := model.DecodeScaleArgBytes[bool](args[1])
 		if err != nil {
 			return fmt.Errorf("submit_vote: opinionYes: %w", err)
 		}
-		lock, err := base.DecodeScaleArgBytes[[]byte](args[2])
+		lock, err := model.DecodeScaleArgBytes[[]byte](args[2])
 		if err != nil {
 			return fmt.Errorf("submit_vote: lockAmount: %w", err)
 		}
 		return m.SubmitVote(pid, yes, lock)
 	case "cancel_vote":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		vid, err := base.DecodeScaleArgBytes[uint64](args[0])
+		vid, err := model.DecodeScaleArgBytes[uint64](args[0])
 		if err != nil {
 			return fmt.Errorf("cancel_vote: voteId: %w", err)
 		}
 		return m.CancelVote(vid)
 	case "unlock":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		vid, err := base.DecodeScaleArgBytes[uint64](args[0])
+		vid, err := model.DecodeScaleArgBytes[uint64](args[0])
 		if err != nil {
 			return fmt.Errorf("unlock: voteId: %w", err)
 		}
 		return m.Unlock(vid)
 	case "exec_proposal":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		pid, err := base.DecodeScaleArgBytes[uint32](args[0])
+		pid, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return fmt.Errorf("exec_proposal: proposalId: %w", err)
 		}
 		return m.ExecProposal(pid)
 	case "cancel_proposal":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		pid, err := base.DecodeScaleArgBytes[uint32](args[0])
+		pid, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return fmt.Errorf("cancel_proposal: proposalId: %w", err)
 		}
 		return m.CancelProposal(pid)
 	case "transfer":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
-		to, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		to, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return fmt.Errorf("transfer: to: %w", err)
 		}
-		val, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		val, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("transfer: value: %w", err)
 		}
 		return m.Transfer(to, val)
 	case "approve":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
-		sp, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		sp, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return fmt.Errorf("approve: spender: %w", err)
 		}
-		val, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		val, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("approve: value: %w", err)
 		}
 		return m.Approve(sp, val)
 	case "transfer_from":
-		if err := base.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
-		from, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		from, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return fmt.Errorf("transfer_from: from: %w", err)
 		}
-		to, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		to, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("transfer_from: to: %w", err)
 		}
-		val, err := base.DecodeScaleArgBytes[[]byte](args[2])
+		val, err := model.DecodeScaleArgBytes[[]byte](args[2])
 		if err != nil {
 			return fmt.Errorf("transfer_from: value: %w", err)
 		}
 		return m.TransferFrom(from, to, val)
 	case "spend":
-		if err := base.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
-		to, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		to, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return fmt.Errorf("spend: to: %w", err)
 		}
-		amt, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		amt, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return fmt.Errorf("spend: amount: %w", err)
 		}
-		tid, err := base.DecodeScaleArgBytes[uint32](args[2])
+		tid, err := model.DecodeScaleArgBytes[uint32](args[2])
 		if err != nil {
 			return fmt.Errorf("spend: trackId: %w", err)
 		}
 		return m.Spend(to, amt, tid)
 	case "payout":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		sid, err := base.DecodeScaleArgBytes[uint64](args[0])
+		sid, err := model.DecodeScaleArgBytes[uint64](args[0])
 		if err != nil {
 			return fmt.Errorf("payout: spendId: %w", err)
 		}
 		return m.Payout(sid)
 	case "set_public_join":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		pj, err := base.DecodeScaleArgBytes[bool](args[0])
+		pj, err := model.DecodeScaleArgBytes[bool](args[0])
 		if err != nil {
 			return fmt.Errorf("set_public_join: %w", err)
 		}
 		return m.SetPublicJoin(pj)
 	case "add_track":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		td, err := base.DecodeScaleArgBytes[TrackData](args[0])
+		td, err := model.DecodeScaleArgBytes[TrackData](args[0])
 		if err != nil {
 			return fmt.Errorf("add_track: %w", err)
 		}
 		return m.AddTrack(td)
 	case "set_default_track":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
-		tid, err := base.DecodeScaleArgBytes[uint32](args[0])
+		tid, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return fmt.Errorf("set_default_track: trackId: %w", err)
 		}
@@ -275,10 +274,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(b)
 	case "balance_of":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("balance_of: owner: %w", err)
 		}
@@ -288,10 +287,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(b)
 	case "lock_balance_of":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("lock_balance_of: owner: %w", err)
 		}
@@ -301,14 +300,14 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(b)
 	case "allowance":
-		if err := base.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return nil, err
 		}
-		owner, err := base.DecodeScaleArgBytes[[]byte](args[0])
+		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("allowance: owner: %w", err)
 		}
-		spender, err := base.DecodeScaleArgBytes[[]byte](args[1])
+		spender, err := model.DecodeScaleArgBytes[[]byte](args[1])
 		if err != nil {
 			return nil, fmt.Errorf("allowance: spender: %w", err)
 		}
@@ -325,10 +324,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 
 		return codec.Encode(tracks)
 	case "track":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArgBytes[uint32](args[0])
+		id, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("track: id: %w", err)
 		}
@@ -345,10 +344,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(id)
 	case "proposal":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArgBytes[uint32](args[0])
+		id, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("proposal: id: %w", err)
 		}
@@ -365,10 +364,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(ps)
 	case "proposal_status":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArgBytes[uint32](args[0])
+		id, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("proposal_status: id: %w", err)
 		}
@@ -378,10 +377,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(st)
 	case "vote":
-		if err := base.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
-		id, err := base.DecodeScaleArgBytes[uint64](args[0])
+		id, err := model.DecodeScaleArgBytes[uint64](args[0])
 		if err != nil {
 			return nil, fmt.Errorf("vote: id: %w", err)
 		}
