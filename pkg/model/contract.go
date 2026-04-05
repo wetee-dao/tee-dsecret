@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"golang.org/x/crypto/blake2b"
 )
 
 // -----------------------------------------------------------------------------
@@ -204,4 +205,27 @@ func DecodeScaleArgBytes[T any](s []byte) (T, error) {
 		return z, fmt.Errorf("scale: %w", err)
 	}
 	return z, nil
+}
+
+// MethodToSelector 将 method 字符串转换为 4 字节 selector
+// 支持两种格式：
+// 1. 十六进制字符串（如 "0x1d623327" 或 "1d623327"）→ 直接解析
+// 2. 普通字符串（如 "add_track"）→ 计算 blake2b 哈希取前 4 字节
+// 注意：普通字符串默认使用 mutates=true，因为无法从字符串判断是 mutation 还是 query
+// 如果需要区分，客户端应直接传入十六进制 selector
+func MethodToSelector(method string) [4]byte {
+	// 尝试解析十六进制格式
+	s := strings.TrimPrefix(method, "0x")
+	if len(s) == 8 {
+		if b, err := hex.DecodeString(s); err == nil && len(b) == 4 {
+			return [4]byte(b)
+		}
+	}
+	// 计算 blake2b 哈希（默认 mutates=true）
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "wetee/contractgen/v1:%s:mutates=true", method)
+	h := blake2b.Sum256([]byte(buf.String()))
+	var sel [4]byte
+	copy(sel[:], h[:4])
+	return sel
 }

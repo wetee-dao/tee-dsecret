@@ -21,8 +21,10 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 
 	method := call.Method
 	args := call.Args
-	switch method {
-	case "add_track":
+	// 将 method 转换为 selector 进行匹配
+	methodSel := model.MethodToSelector(method)
+	switch methodSel {
+	case [4]byte{0xdf, 0x60, 0xa5, 0x15}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -31,7 +33,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("add_track: %w", err)
 		}
 		return m.AddTrack(track)
-	case "approve":
+	case [4]byte{0x13, 0x96, 0x0e, 0xb8}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
@@ -44,7 +46,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("approve: value: %w", err)
 		}
 		return m.Approve(spender, value)
-	case "cancel_proposal":
+	case [4]byte{0x46, 0xc4, 0x21, 0xdb}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -53,7 +55,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("cancel_proposal: proposalID: %w", err)
 		}
 		return m.CancelProposal(proposalID)
-	case "cancel_vote":
+	case [4]byte{0x06, 0x99, 0x1e, 0x89}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -62,7 +64,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("cancel_vote: voteID: %w", err)
 		}
 		return m.CancelVote(voteID)
-	case "deposit_proposal":
+	case [4]byte{0xea, 0x58, 0xb3, 0x1d}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
@@ -75,7 +77,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("deposit_proposal: amount: %w", err)
 		}
 		return m.DepositProposal(proposalID, amount)
-	case "exec_proposal":
+	case [4]byte{0x3e, 0x44, 0x34, 0x0e}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -84,7 +86,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("exec_proposal: proposalID: %w", err)
 		}
 		return m.ExecProposal(proposalID)
-	case "init":
+	case [4]byte{0x53, 0xe3, 0x90, 0x03}:
 		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
@@ -109,7 +111,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			dt = &t
 		}
 		return m.Init(members, pub, sudo, dt)
-	case "join":
+	case [4]byte{0xc6, 0xc8, 0x3a, 0xf9}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
@@ -122,11 +124,11 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("join: balance: %w", err)
 		}
 		return m.Join(newUser, balance)
-	case "leave":
+	case [4]byte{0x1f, 0xac, 0x3d, 0xd3}:
 		return m.Leave()
-	case "leave_with_burn":
+	case [4]byte{0x8d, 0x6e, 0x0f, 0x8c}:
 		return m.LeaveWithBurn()
-	case "payout":
+	case [4]byte{0xa4, 0xf0, 0x19, 0x6c}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -135,9 +137,9 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("payout: spendID: %w", err)
 		}
 		return m.Payout(spendID)
-	case "public_join":
+	case [4]byte{0x6d, 0x6f, 0x07, 0x72}:
 		return m.PublicJoin()
-	case "set_default_track":
+	case [4]byte{0x29, 0x87, 0xd4, 0xba}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -146,7 +148,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("set_default_track: trackID: %w", err)
 		}
 		return m.SetDefaultTrack(trackID)
-	case "set_public_join":
+	case [4]byte{0x13, 0x64, 0x75, 0x15}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -155,7 +157,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("set_public_join: %w", err)
 		}
 		return m.SetPublicJoin(publicJoin)
-	case "spend":
+	case [4]byte{0x87, 0x2c, 0x40, 0xe9}:
 		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
@@ -172,7 +174,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("spend: trackID: %w", err)
 		}
 		return m.Spend(to, amount, trackID)
-	case "submit_proposal":
+	case [4]byte{0x1c, 0x04, 0x71, 0xc4}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
@@ -185,7 +187,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("submit_proposal: trackID: %w", err)
 		}
 		return m.SubmitProposal(call, trackID)
-	case "submit_vote":
+	case [4]byte{0xbb, 0x5c, 0xa1, 0x28}:
 		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
@@ -202,7 +204,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("submit_vote: lockAmount: %w", err)
 		}
 		return m.SubmitVote(proposalID, opinionYes, lockAmount)
-	case "transfer":
+	case [4]byte{0xad, 0xa0, 0x64, 0x62}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
 		}
@@ -215,7 +217,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("transfer: value: %w", err)
 		}
 		return m.Transfer(to, value)
-	case "transfer_from":
+	case [4]byte{0xee, 0x3b, 0xc6, 0x85}:
 		if err := model.RequireArgLen(args, 3, method); err != nil {
 			return err
 		}
@@ -232,7 +234,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("transfer_from: value: %w", err)
 		}
 		return m.TransferFrom(from, to, value)
-	case "unlock":
+	case [4]byte{0x2a, 0xb8, 0x1d, 0xd1}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return err
 		}
@@ -254,9 +256,10 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 
 	args := call.Args
 	method := call.Method
-
-	switch method {
-	case "allowance":
+	// 将 method 转换为 selector 进行匹配
+	methodSel := model.MethodToSelector(method)
+	switch methodSel {
+	case [4]byte{0x1d, 0x62, 0x33, 0x27}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return nil, err
 		}
@@ -273,7 +276,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "balance_of":
+	case [4]byte{0x87, 0xe0, 0xff, 0x32}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -286,13 +289,13 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "default_track":
+	case [4]byte{0x36, 0x26, 0xe9, 0xbf}:
 		out, err := q.DefaultTrack()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "lock_balance_of":
+	case [4]byte{0x3c, 0xd4, 0x96, 0x6d}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -305,13 +308,13 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "members":
+	case [4]byte{0x53, 0x55, 0x0f, 0x05}:
 		out, err := q.Members()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "proposal":
+	case [4]byte{0x79, 0x9f, 0xe2, 0xdd}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -324,7 +327,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "proposal_status":
+	case [4]byte{0xfd, 0x88, 0x90, 0x7b}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -337,25 +340,25 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "proposals":
+	case [4]byte{0xfe, 0x26, 0xfd, 0x17}:
 		out, err := q.Proposals()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "public_join":
+	case [4]byte{0x1c, 0x8d, 0x04, 0x96}:
 		out, err := q.PublicJoin()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "total_supply":
+	case [4]byte{0x77, 0x17, 0x71, 0xf7}:
 		out, err := q.TotalSupply()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "track":
+	case [4]byte{0xb9, 0xfd, 0x54, 0xc4}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -368,13 +371,13 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "tracks":
+	case [4]byte{0x3c, 0x05, 0xbe, 0x89}:
 		out, err := q.Tracks()
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "vote":
+	case [4]byte{0x4d, 0x15, 0x1c, 0xf1}:
 		if err := model.RequireArgLen(args, 1, method); err != nil {
 			return nil, err
 		}
@@ -387,7 +390,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case "votes":
+	case [4]byte{0x34, 0x0f, 0x2c, 0xf4}:
 		out, err := q.Votes()
 		if err != nil {
 			return nil, err

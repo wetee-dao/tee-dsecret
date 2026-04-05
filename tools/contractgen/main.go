@@ -19,7 +19,7 @@ import (
 
 func main() {
 	dir := flag.String("dir", "", "合约包目录（含 .go 源文件，必填）")
-	out := flag.String("out", "", "输出文件名，默认 <dir>/dao_gen.go")
+	out := flag.String("out", "", "输出文件名，默认 <dir>/<pkg>_gen.go")
 	mutation := flag.String("mutation", "DaoMutation", "mutation 接收者类型名")
 	query := flag.String("query", "DaoQuery", "query 接收者类型名")
 	skipMut := flag.String("skip-mutation", "Delete", "逗号分隔：不生成 dispatch 的 mutation 方法名")
@@ -29,8 +29,12 @@ func main() {
 	execQuery := flag.String("exec-query", "ExecQuery", "跳过自身：query 上的 dispatch 方法名")
 	abiOut := flag.String("abi-out", "", "ink metadata 输出路径；默认 <dir>/../../abis/<包名>.json（contracts/<pkg> 布局时）")
 	abiSkip := flag.Bool("abi-skip", false, "不生成 ABI")
-	daoStruct := flag.String("dao-struct", "DAO", "DAO 结构体名称，用于生成 NewDAO 构造函数")
-	daoSkip := flag.Bool("dao-skip", false, "不生成 NewDAO 构造函数")
+	// 构造函数生成相关参数
+	structName := flag.String("struct", "", "结构体名称，用于生成构造函数（如 DAO、Token等）")
+	ctorFunc := flag.String("ctor-func", "", "构造函数名，默认 New<Struct>")
+	ctorApiType := flag.String("ctor-api-type", "model.ContractApi", "构造函数的 API 参数类型")
+	ctorApiField := flag.String("ctor-api-field", "api", "结构体中 API 字段名")
+	ctorSkip := flag.Bool("ctor-skip", false, "不生成构造函数")
 	flag.Parse()
 
 	if *dir == "" {
@@ -42,18 +46,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	outPath := *out
-	if outPath == "" {
-		outPath = filepath.Join(abs, "dao_gen.go")
-	}
-	outBase := filepath.Base(outPath)
 
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, abs, func(fi os.FileInfo) bool {
 		if strings.HasSuffix(fi.Name(), "_test.go") {
-			return false
-		}
-		if fi.Name() == outBase {
 			return false
 		}
 		return strings.HasSuffix(fi.Name(), ".go")
@@ -76,6 +72,32 @@ func main() {
 		pkgName = f.Name.Name
 		break
 	}
+
+	outPath := *out
+	if outPath == "" {
+		outPath = filepath.Join(abs, pkgName+"_gen.go")
+	}
+	outBase := filepath.Base(outPath)
+
+	// 重新解析，排除输出文件
+	pkgs, err = parser.ParseDir(fset, abs, func(fi os.FileInfo) bool {
+		if strings.HasSuffix(fi.Name(), "_test.go") {
+			return false
+		}
+		if fi.Name() == outBase {
+			return false
+		}
+		return strings.HasSuffix(fi.Name(), ".go")
+	}, parser.ParseComments)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	for _, p := range pkgs {
+		pkg = p
+		break
+	}
+
 	prefix := *errPrefix
 	if prefix == "" {
 		prefix = pkgName
@@ -85,7 +107,7 @@ func main() {
 	skipQset := parseSkip(*skipQ)
 
 	var mutMethods, qMethods []*methodSig
-	var daoFields []storeMappingField
+	var storeFields []storeMappingField
 	for _, f := range pkg.Files {
 		for _, decl := range f.Decls {
 			switch d := decl.(type) {
@@ -130,18 +152,18 @@ func main() {
 					qMethods = append(qMethods, ms)
 				}
 			case *ast.GenDecl:
-				// 解析 DAO 结构体定义
-				if !*daoSkip && d.Tok == token.TYPE {
+				// 解析结构体定义（用于生成构造函数）
+				if !*ctorSkip && *structName != "" && d.Tok == token.TYPE {
 					for _, spec := range d.Specs {
 						ts, ok := spec.(*ast.TypeSpec)
-						if !ok || ts.Name == nil || ts.Name.Name != *daoStruct {
+						if !ok || ts.Name == nil || ts.Name.Name != *structName {
 							continue
 						}
 						st, ok := ts.Type.(*ast.StructType)
 						if !ok {
 							continue
 						}
-						daoFields = parseDAOFields(st, fset)
+						storeFields = parseStructFields(st, fset)
 					}
 				}
 			}
@@ -167,8 +189,12 @@ func main() {
 
 	writeExecCall(&buf, *mutation, mutMethods, prefix)
 	writeExecQuery(&buf, *query, qMethods, prefix)
-	if !*daoSkip && len(daoFields) > 0 {
-		writeNewDAO(&buf, *daoStruct, pkgName, daoFields)
+	if !*ctorSkip && *structName != "" && len(storeFields) > 0 {
+		ctorName := *ctorFunc
+		if ctorName == "" {
+			ctorName = "New" + *structName
+		}
+		writeConstructor(&buf, *structName, ctorName, pkgName, storeFields, *ctorApiType, *ctorApiField)
 	}
 
 	formatted, err := format.Source(buf.Bytes())
@@ -221,9 +247,11 @@ func recvTypeName(expr ast.Expr) string {
 type methodSig struct {
 	goName       string
 	caseName     string
+	selector     [4]byte // 4字节selector，用于客户端传入selector时匹配
 	params       []param
 	isInit       bool
-	queryResult0 string // query 第一个返回值类型字符串，用于生成 ABI returnType
+	isMutation   bool    // 是否为mutation方法，用于计算selector
+	queryResult0 string  // query 第一个返回值类型字符串，用于生成 ABI returnType
 }
 
 type param struct {
@@ -235,7 +263,13 @@ type param struct {
 
 func parseMethod(fd *ast.FuncDecl, fset *token.FileSet, isMutation bool) (*methodSig, error) {
 	name := fd.Name.Name
-	ms := &methodSig{goName: name, caseName: snakeCase(name)}
+	caseName := snakeCase(name)
+	ms := &methodSig{
+		goName:     name,
+		caseName:   caseName,
+		selector:   pickSelectorInkBytes(caseName, isMutation),
+		isMutation: isMutation,
+	}
 
 	if fd.Type.Params != nil {
 		for _, field := range fd.Type.Params.List {
@@ -319,7 +353,9 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 	fmt.Fprintf(buf, "\tm := %s{DAO: *dao}\n\n", shortName)
 	fmt.Fprintf(buf, "\tmethod := call.Method\n")
 	fmt.Fprintf(buf, "\targs := call.Args\n")
-	fmt.Fprintf(buf, "\tswitch method {\n")
+	fmt.Fprintf(buf, "\t// 将 method 转换为 selector 进行匹配\n")
+	fmt.Fprintf(buf, "\tmethodSel := model.MethodToSelector(method)\n")
+	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 	for _, m := range methods {
 		if m.isInit {
 			writeInitCase(buf, m)
@@ -335,7 +371,7 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 
 // Init：与 SCALE 约定一致——至少 3 个参数，第 4 个可选 defaultTrack（TrackData）。
 func writeInitCase(buf *bytes.Buffer, m *methodSig) {
-	fmt.Fprintf(buf, "\tcase %q:\n", m.caseName)
+	fmt.Fprintf(buf, "\tcase [4]byte{0x%02x, 0x%02x, 0x%02x, 0x%02x}:\n", m.selector[0], m.selector[1], m.selector[2], m.selector[3])
 	fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, 3, method); err != nil {\n")
 	fmt.Fprintf(buf, "\t\t\treturn err\n")
 	fmt.Fprintf(buf, "\t\t}\n")
@@ -369,7 +405,7 @@ func writeInitCase(buf *bytes.Buffer, m *methodSig) {
 }
 
 func writeMutationCase(buf *bytes.Buffer, m *methodSig) {
-	fmt.Fprintf(buf, "\tcase %q:\n", m.caseName)
+	fmt.Fprintf(buf, "\tcase [4]byte{0x%02x, 0x%02x, 0x%02x, 0x%02x}:\n", m.selector[0], m.selector[1], m.selector[2], m.selector[3])
 	if len(m.params) == 0 {
 		fmt.Fprintf(buf, "\t\treturn m.%s()\n", m.goName)
 		return
@@ -436,11 +472,13 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 	fmt.Fprintf(buf, "\t\treturn nil, errors.New(%q)\n", prefix+": empty query method")
 	fmt.Fprintf(buf, "\t}\n\n")
 	fmt.Fprintf(buf, "\targs := call.Args\n")
-	fmt.Fprintf(buf, "\tmethod := call.Method\n\n")
-	fmt.Fprintf(buf, "\tswitch method {\n")
+	fmt.Fprintf(buf, "\tmethod := call.Method\n")
+	fmt.Fprintf(buf, "\t// 将 method 转换为 selector 进行匹配\n")
+	fmt.Fprintf(buf, "\tmethodSel := model.MethodToSelector(method)\n")
+	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 
 	for _, m := range methods {
-		fmt.Fprintf(buf, "\tcase %q:\n", m.caseName)
+		fmt.Fprintf(buf, "\tcase [4]byte{0x%02x, 0x%02x, 0x%02x, 0x%02x}:\n", m.selector[0], m.selector[1], m.selector[2], m.selector[3])
 		if len(m.params) == 0 {
 			fmt.Fprintf(buf, "\t\tout, err := q.%s()\n", m.goName)
 			fmt.Fprintf(buf, "\t\tif err != nil {\n")
@@ -485,7 +523,7 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 	fmt.Fprintf(buf, "}\n")
 }
 
-// storeMappingField 表示 DAO 结构体中的一个 StoreMapping 字段
+// storeMappingField 表示结构体中的一个 StoreMapping 字段
 type storeMappingField struct {
 	name    string // 字段名
 	keyType string // StoreMapping 的 Key 类型
@@ -493,8 +531,8 @@ type storeMappingField struct {
 	keyPfx  string // KeyPrefix
 }
 
-// parseDAOFields 解析 DAO 结构体中的 StoreMapping 字段
-func parseDAOFields(st *ast.StructType, fset *token.FileSet) []storeMappingField {
+// parseStructFields 解析结构体中的 StoreMapping 字段
+func parseStructFields(st *ast.StructType, fset *token.FileSet) []storeMappingField {
 	var fields []storeMappingField
 	if st.Fields == nil {
 		return fields
@@ -654,11 +692,11 @@ func smartSnakeCase(s string) string {
 	return b.String()
 }
 
-// writeNewDAO 生成 NewDAO 构造函数
-func writeNewDAO(buf *bytes.Buffer, daoName, pkgName string, fields []storeMappingField) {
-	fmt.Fprintf(buf, "\nfunc NewDAO(api model.ContractApi) *%s {\n", daoName)
-	fmt.Fprintf(buf, "\treturn &%s{\n", daoName)
-	fmt.Fprintf(buf, "\t\tapi: api,\n")
+// writeConstructor 生成构造函数
+func writeConstructor(buf *bytes.Buffer, structName, ctorName, pkgName string, fields []storeMappingField, apiType, apiField string) {
+	fmt.Fprintf(buf, "\nfunc %s(api %s) *%s {\n", ctorName, apiType, structName)
+	fmt.Fprintf(buf, "\treturn &%s{\n", structName)
+	fmt.Fprintf(buf, "\t\t%s: api,\n", apiField)
 	for _, f := range fields {
 		fmt.Fprintf(buf, "\t\t%s: &model.StoreMapping[%s, %s]{Namespace: %q, KeyPrefix: %q},\n",
 			f.name, f.keyType, f.valType, pkgName, f.keyPfx)

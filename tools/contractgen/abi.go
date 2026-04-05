@@ -39,6 +39,16 @@ func pickSelectorInk(abiLabel string, mutates bool) string {
 	return selectorHex(sel)
 }
 
+// pickSelectorInkBytes 返回 selector 的 4 字节数组形式
+func pickSelectorInkBytes(abiLabel string, mutates bool) [4]byte {
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "wetee/contractgen/v1:%s:mutates=%v", abiLabel, mutates)
+	h := blake2b.Sum256([]byte(buf.String()))
+	var sel [4]byte
+	copy(sel[:], h[:4])
+	return sel
+}
+
 // writeABI 在内存中构建 ink metadata v6 并写入 -abi-out。
 func writeABI(outPath, contractName string, mutMethods, qMethods []*methodSig) error {
 	root, err := buildInkRoot(contractName, mutMethods, qMethods)
