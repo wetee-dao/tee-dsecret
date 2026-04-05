@@ -219,11 +219,11 @@ func recvTypeName(expr ast.Expr) string {
 }
 
 type methodSig struct {
-	goName        string
-	caseName      string
-	params        []param
-	isInit        bool
-	queryResult0  string // query 第一个返回值类型字符串，用于生成 ABI returnType
+	goName       string
+	caseName     string
+	params       []param
+	isInit       bool
+	queryResult0 string // query 第一个返回值类型字符串，用于生成 ABI returnType
 }
 
 type param struct {
@@ -487,10 +487,10 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 
 // storeMappingField 表示 DAO 结构体中的一个 StoreMapping 字段
 type storeMappingField struct {
-	name     string // 字段名
-	keyType  string // StoreMapping 的 Key 类型
-	valType  string // StoreMapping 的 Value 类型
-	keyPfx   string // KeyPrefix
+	name    string // 字段名
+	keyType string // StoreMapping 的 Key 类型
+	valType string // StoreMapping 的 Value 类型
+	keyPfx  string // KeyPrefix
 }
 
 // parseDAOFields 解析 DAO 结构体中的 StoreMapping 字段

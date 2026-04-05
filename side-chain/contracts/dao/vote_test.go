@@ -35,12 +35,12 @@ func TestDaoMutation_SubmitVote_NotMember(t *testing.T) {
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init([]Member{}, false, []byte{1}, &track)
 
@@ -58,12 +58,12 @@ func TestDaoMutation_SubmitVote_ProposalNotOngoing(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -83,12 +83,12 @@ func TestDaoMutation_SubmitVote_LowBalance(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -110,12 +110,12 @@ func TestDaoMutation_SubmitVote_Success(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -146,12 +146,12 @@ func TestDaoMutation_CancelVote_NotOwner(t *testing.T) {
 	}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -175,12 +175,12 @@ func TestDaoMutation_CancelVote_Success(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -211,13 +211,13 @@ func TestDaoMutation_Unlock_AlreadyUnlocked(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       20,
-		DecisionPeriod:      30,
-		MinEnactmentPeriod:  10,
-		DecisionDeposit:     big.NewInt(50).Bytes(),
-		MaxBalance:          big.NewInt(1000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      20,
+		DecisionPeriod:     30,
+		MinEnactmentPeriod: 10,
+		DecisionDeposit:    big.NewInt(50).Bytes(),
+		MaxBalance:         big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -243,13 +243,13 @@ func TestDaoMutation_Unlock_InvalidVoteStatus(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       20,
-		DecisionPeriod:      30,
-		MinEnactmentPeriod:  10,
-		DecisionDeposit:     big.NewInt(50).Bytes(),
-		MaxBalance:          big.NewInt(1000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      20,
+		DecisionPeriod:     30,
+		MinEnactmentPeriod: 10,
+		DecisionDeposit:    big.NewInt(50).Bytes(),
+		MaxBalance:         big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -276,13 +276,13 @@ func TestDaoMutation_Unlock_InvalidUser(t *testing.T) {
 	}
 	track := TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       20,
-		DecisionPeriod:      30,
-		MinEnactmentPeriod:  10,
-		DecisionDeposit:     big.NewInt(50).Bytes(),
-		MaxBalance:          big.NewInt(1000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      20,
+		DecisionPeriod:     30,
+		MinEnactmentPeriod: 10,
+		DecisionDeposit:    big.NewInt(50).Bytes(),
+		MaxBalance:         big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -306,13 +306,13 @@ func TestDaoMutation_Unlock_Success(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       20,
-		DecisionPeriod:      30,
-		MinEnactmentPeriod:  10,
-		DecisionDeposit:     big.NewInt(50).Bytes(),
-		MaxBalance:          big.NewInt(1000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      20,
+		DecisionPeriod:     30,
+		MinEnactmentPeriod: 10,
+		DecisionDeposit:    big.NewInt(50).Bytes(),
+		MaxBalance:         big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -354,12 +354,12 @@ func TestDaoMutation_SubmitVote_MultipleVotes(t *testing.T) {
 	}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    0,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   0,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 

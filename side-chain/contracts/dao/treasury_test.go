@@ -14,12 +14,12 @@ func TestDaoMutation_Spend_NotMember(t *testing.T) {
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init([]Member{}, false, []byte{1}, &track)
 
@@ -37,12 +37,12 @@ func TestDaoMutation_Spend_Success(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -66,12 +66,12 @@ func TestDaoMutation_Payout_NotGov(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -104,12 +104,12 @@ func TestDaoMutation_Payout_AlreadyExecuted(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 
@@ -132,12 +132,12 @@ func TestDaoMutation_Payout_Success(t *testing.T) {
 	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init(members, false, sudo, &track)
 

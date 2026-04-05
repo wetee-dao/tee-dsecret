@@ -97,12 +97,12 @@ func TestDaoMutation_Init_WithDefaultTrack(t *testing.T) {
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	err := m.Init([]Member{}, false, []byte{1}, &track)
 	require.NoError(t, err)

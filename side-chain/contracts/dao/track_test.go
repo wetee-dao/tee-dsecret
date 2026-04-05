@@ -47,12 +47,12 @@ func TestDaoMutation_AddTrack_NotGov(t *testing.T) {
 
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	err := m.AddTrack(track)
 	require.ErrorIs(t, err, ErrMustCallByGov)
@@ -69,12 +69,12 @@ func TestDaoMutation_AddTrack_Success(t *testing.T) {
 	rt.caller = sudo
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	err := m.AddTrack(track)
 	require.NoError(t, err)
@@ -95,12 +95,12 @@ func TestDaoMutation_SetDefaultTrack_NotGov(t *testing.T) {
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init([]Member{}, false, []byte{1}, &track)
 
@@ -130,12 +130,12 @@ func TestDaoMutation_SetDefaultTrack_Success(t *testing.T) {
 	sudo := []byte{1}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init([]Member{}, false, sudo, &track)
 
@@ -158,12 +158,12 @@ func TestDaoQuery_Track_Success(t *testing.T) {
 	sudo := []byte{1}
 	track := TrackData{
 		Name:            "test",
-		PreparePeriod:    10,
-		MaxDeciding:      100,
-		ConfirmPeriod:    20,
-		DecisionPeriod:   30,
-		DecisionDeposit:  big.NewInt(50).Bytes(),
-		MaxBalance:       big.NewInt(1000).Bytes(),
+		PreparePeriod:   10,
+		MaxDeciding:     100,
+		ConfirmPeriod:   20,
+		DecisionPeriod:  30,
+		DecisionDeposit: big.NewInt(50).Bytes(),
+		MaxBalance:      big.NewInt(1000).Bytes(),
 	}
 	_ = m.Init([]Member{}, false, sudo, &track)
 
