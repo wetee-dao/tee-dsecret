@@ -27,6 +27,10 @@ func main() {
 	errPrefix := flag.String("err-prefix", "", "错误信息前缀，默认与包名相同")
 	execCall := flag.String("exec-call", "ExecCall", "跳过自身：mutation 上的 dispatch 方法名")
 	execQuery := flag.String("exec-query", "ExecQuery", "跳过自身：query 上的 dispatch 方法名")
+	abiOut := flag.String("abi-out", "", "ink metadata 输出路径；默认 <dir>/../../abis/<包名>.json（contracts/<pkg> 布局时）")
+	abiSkip := flag.Bool("abi-skip", false, "不生成 ABI")
+	daoStruct := flag.String("dao-struct", "DAO", "DAO 结构体名称，用于生成 NewDAO 构造函数")
+	daoSkip := flag.Bool("dao-skip", false, "不生成 NewDAO 构造函数")
 	flag.Parse()
 
 	if *dir == "" {
@@ -81,47 +85,65 @@ func main() {
 	skipQset := parseSkip(*skipQ)
 
 	var mutMethods, qMethods []*methodSig
+	var daoFields []storeMappingField
 	for _, f := range pkg.Files {
 		for _, decl := range f.Decls {
-			fd, ok := decl.(*ast.FuncDecl)
-			if !ok || fd.Recv == nil || fd.Name == nil {
-				continue
-			}
-			recvName := recvTypeName(fd.Recv.List[0].Type)
-			if recvName == "" {
-				continue
-			}
-			name := fd.Name.Name
-			if !ast.IsExported(name) {
-				continue
-			}
-			switch recvName {
-			case *mutation:
-				if name == *execCall {
+			switch d := decl.(type) {
+			case *ast.FuncDecl:
+				if d.Recv == nil || d.Name == nil {
 					continue
 				}
-				if skipM[name] {
+				recvName := recvTypeName(d.Recv.List[0].Type)
+				if recvName == "" {
 					continue
 				}
-				ms, err := parseMethod(fd, fset, true)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "contractgen %s.%s: %v\n", recvName, name, err)
-					os.Exit(1)
-				}
-				mutMethods = append(mutMethods, ms)
-			case *query:
-				if name == *execQuery {
+				name := d.Name.Name
+				if !ast.IsExported(name) {
 					continue
 				}
-				if skipQset[name] {
-					continue
+				switch recvName {
+				case *mutation:
+					if name == *execCall {
+						continue
+					}
+					if skipM[name] {
+						continue
+					}
+					ms, err := parseMethod(d, fset, true)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "contractgen %s.%s: %v\n", recvName, name, err)
+						os.Exit(1)
+					}
+					mutMethods = append(mutMethods, ms)
+				case *query:
+					if name == *execQuery {
+						continue
+					}
+					if skipQset[name] {
+						continue
+					}
+					ms, err := parseMethod(d, fset, false)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "contractgen %s.%s: %v\n", recvName, name, err)
+						os.Exit(1)
+					}
+					qMethods = append(qMethods, ms)
 				}
-				ms, err := parseMethod(fd, fset, false)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "contractgen %s.%s: %v\n", recvName, name, err)
-					os.Exit(1)
+			case *ast.GenDecl:
+				// 解析 DAO 结构体定义
+				if !*daoSkip && d.Tok == token.TYPE {
+					for _, spec := range d.Specs {
+						ts, ok := spec.(*ast.TypeSpec)
+						if !ok || ts.Name == nil || ts.Name.Name != *daoStruct {
+							continue
+						}
+						st, ok := ts.Type.(*ast.StructType)
+						if !ok {
+							continue
+						}
+						daoFields = parseDAOFields(st, fset)
+					}
 				}
-				qMethods = append(qMethods, ms)
 			}
 		}
 	}
@@ -145,6 +167,9 @@ func main() {
 
 	writeExecCall(&buf, *mutation, mutMethods, prefix)
 	writeExecQuery(&buf, *query, qMethods, prefix)
+	if !*daoSkip && len(daoFields) > 0 {
+		writeNewDAO(&buf, *daoStruct, pkgName, daoFields)
+	}
 
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
@@ -156,6 +181,19 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Fprintf(os.Stderr, "contractgen: wrote %s\n", outPath)
+
+	abiOutPath := *abiOut
+	if abiOutPath == "" {
+		// abs 通常为 .../side-chain/contracts/<pkg>，ABI 放在 .../side-chain/abis/<pkg>.json
+		abiOutPath = filepath.Join(abs, "..", "..", "abis", pkgName+".json")
+	}
+	if !*abiSkip {
+		if err := writeABI(abiOutPath, pkgName, mutMethods, qMethods); err != nil {
+			fmt.Fprintf(os.Stderr, "contractgen abi: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stderr, "contractgen: wrote %s\n", abiOutPath)
+	}
 }
 
 func parseSkip(s string) map[string]bool {
@@ -181,10 +219,11 @@ func recvTypeName(expr ast.Expr) string {
 }
 
 type methodSig struct {
-	goName   string
-	caseName string
-	params   []param
-	isInit bool
+	goName        string
+	caseName      string
+	params        []param
+	isInit        bool
+	queryResult0  string // query 第一个返回值类型字符串，用于生成 ABI returnType
 }
 
 type param struct {
@@ -239,6 +278,7 @@ func parseMethod(fd *ast.FuncDecl, fset *token.FileSet, isMutation bool) (*metho
 	if r1 != "error" {
 		return nil, fmt.Errorf("query second result must be error, got %s", r1)
 	}
+	ms.queryResult0 = typeString(fset, fd.Type.Results.List[0].Type)
 	return ms, nil
 }
 
@@ -441,6 +481,188 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 
 	fmt.Fprintf(buf, "\tdefault:\n")
 	fmt.Fprintf(buf, "\t\treturn nil, fmt.Errorf(%q, method)\n", prefix+": unknown query method %q")
+	fmt.Fprintf(buf, "\t}\n")
+	fmt.Fprintf(buf, "}\n")
+}
+
+// storeMappingField 表示 DAO 结构体中的一个 StoreMapping 字段
+type storeMappingField struct {
+	name     string // 字段名
+	keyType  string // StoreMapping 的 Key 类型
+	valType  string // StoreMapping 的 Value 类型
+	keyPfx   string // KeyPrefix
+}
+
+// parseDAOFields 解析 DAO 结构体中的 StoreMapping 字段
+func parseDAOFields(st *ast.StructType, fset *token.FileSet) []storeMappingField {
+	var fields []storeMappingField
+	if st.Fields == nil {
+		return fields
+	}
+	for _, field := range st.Fields.List {
+		if len(field.Names) == 0 {
+			continue
+		}
+		fieldName := field.Names[0].Name
+		typStr := typeString(fset, field.Type)
+		keyType, valType, ok := parseStoreMappingType(typStr)
+		if !ok {
+			continue
+		}
+		// 检查注释中是否有自定义 KeyPrefix
+		// 格式: `store:"keyPfx:xxx"` 或 `//keyPfx:xxx`
+		keyPfx := ""
+		// 先检查行尾注释（Comment）
+		if field.Comment != nil {
+			for _, c := range field.Comment.List {
+				text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
+				if strings.HasPrefix(text, "keyPfx:") {
+					keyPfx = strings.TrimSpace(strings.TrimPrefix(text, "keyPfx:"))
+					break
+				}
+			}
+		}
+		// 再检查文档注释（Doc）
+		if keyPfx == "" && field.Doc != nil {
+			for _, c := range field.Doc.List {
+				text := strings.TrimSpace(strings.TrimPrefix(c.Text, "//"))
+				if strings.HasPrefix(text, "keyPfx:") {
+					keyPfx = strings.TrimSpace(strings.TrimPrefix(text, "keyPfx:"))
+					break
+				}
+			}
+		}
+		if keyPfx == "" && field.Tag != nil {
+			// 解析 struct tag: `store:"keyPfx:xxx"`
+			tag := strings.Trim(field.Tag.Value, "`")
+			if storeTag, ok := reflectParseStructTag(tag, "store"); ok {
+				if pfx, ok := storeTag["keyPfx"]; ok {
+					keyPfx = pfx
+				}
+			}
+		}
+		if keyPfx == "" {
+			keyPfx = storeKeyPrefix(fieldName)
+		}
+		fields = append(fields, storeMappingField{
+			name:    fieldName,
+			keyType: keyType,
+			valType: valType,
+			keyPfx:  keyPfx,
+		})
+	}
+	return fields
+}
+
+// reflectParseStructTag 简单解析 struct tag
+func reflectParseStructTag(tag, key string) (map[string]string, bool) {
+	// 查找 key:"value" 格式
+	idx := strings.Index(tag, key+`:`)
+	if idx == -1 {
+		return nil, false
+	}
+	start := idx + len(key) + 2 // 跳过 key:"
+	end := strings.Index(tag[start:], `"`)
+	if end == -1 {
+		return nil, false
+	}
+	value := tag[start : start+end]
+	// 解析 key1:val1,key2:val2 格式
+	result := make(map[string]string)
+	for _, pair := range strings.Split(value, ",") {
+		parts := strings.SplitN(pair, ":", 2)
+		if len(parts) == 2 {
+			result[parts[0]] = parts[1]
+		}
+	}
+	return result, true
+}
+
+// parseStoreMappingType 解析 *model.StoreMapping[K, V] 类型，返回 K, V 类型字符串
+func parseStoreMappingType(typ string) (key, val string, ok bool) {
+	// 匹配 *model.StoreMapping[K, V] 或 model.StoreMapping[K, V]
+	typ = strings.TrimSpace(typ)
+	if strings.HasPrefix(typ, "*") {
+		typ = typ[1:]
+	}
+	if !strings.HasPrefix(typ, "model.StoreMapping[") || !strings.HasSuffix(typ, "]") {
+		return "", "", false
+	}
+	inner := typ[len("model.StoreMapping[") : len(typ)-1]
+	// 解析 [K, V] 中的 K 和 V，需要处理嵌套的 [] 和 ,
+	k, v, ok := parseTypePair(inner)
+	if !ok {
+		return "", "", false
+	}
+	return k, v, true
+}
+
+// parseTypePair 解析 "K, V" 格式的类型对，处理嵌套的 [] 和 ,
+func parseTypePair(s string) (k, v string, ok bool) {
+	s = strings.TrimSpace(s)
+	depth := 0
+	for i, c := range s {
+		switch c {
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				k = strings.TrimSpace(s[:i])
+				v = strings.TrimSpace(s[i+1:])
+				return k, v, true
+			}
+		}
+	}
+	return "", "", false
+}
+
+// storeKeyPrefix 根据字段名生成 KeyPrefix
+// 规则：驼峰转蛇形，处理复数形式（去掉末尾 s），去掉特定后缀（Store），加下划线
+func storeKeyPrefix(field string) string {
+	// 去掉特定后缀
+	name := strings.TrimSuffix(field, "Store")
+	// 转蛇形（处理连续大写字母如 ID）
+	snake := smartSnakeCase(name)
+	// 处理复数形式（简单去掉末尾 s）
+	if strings.HasSuffix(snake, "s") && !strings.HasSuffix(snake, "ss") {
+		snake = snake[:len(snake)-1]
+	}
+	return snake + "_"
+}
+
+// smartSnakeCase 将驼峰转为蛇形，处理连续大写字母（如 ID -> id）
+func smartSnakeCase(s string) string {
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			// 前一个字符是小写，或者后一个字符是小写，才添加下划线
+			// 连续大写字母不添加下划线（如 ID）
+			prev := []rune(s)[i-1]
+			if prev >= 'a' && prev <= 'z' {
+				b.WriteByte('_')
+			} else if i+1 < len(s) {
+				next := []rune(s)[i+1]
+				if next >= 'a' && next <= 'z' {
+					b.WriteByte('_')
+				}
+			}
+		}
+		b.WriteRune(unicode.ToLower(r))
+	}
+	return b.String()
+}
+
+// writeNewDAO 生成 NewDAO 构造函数
+func writeNewDAO(buf *bytes.Buffer, daoName, pkgName string, fields []storeMappingField) {
+	fmt.Fprintf(buf, "\nfunc NewDAO(api model.ContractApi) *%s {\n", daoName)
+	fmt.Fprintf(buf, "\treturn &%s{\n", daoName)
+	fmt.Fprintf(buf, "\t\tapi: api,\n")
+	for _, f := range fields {
+		fmt.Fprintf(buf, "\t\t%s: &model.StoreMapping[%s, %s]{Namespace: %q, KeyPrefix: %q},\n",
+			f.name, f.keyType, f.valType, pkgName, f.keyPfx)
+	}
 	fmt.Fprintf(buf, "\t}\n")
 	fmt.Fprintf(buf, "}\n")
 }

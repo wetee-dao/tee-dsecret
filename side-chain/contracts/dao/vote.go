@@ -55,6 +55,7 @@ func (d DaoMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount [
 	if err != nil {
 		return err
 	}
+	unlockAfter := int64(track.MinEnactmentPeriod)
 	lock, err := d.lockOf(caller)
 	if err != nil {
 		return err
@@ -66,7 +67,7 @@ func (d DaoMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount [
 		Pledge:      cloneBytes(lockAmount),
 		OpinionYes:  opinionYes,
 		VoteWeight:  encodeAmount(big.NewInt(1)),
-		UnlockBlock: 1,
+		UnlockBlock: unlockAfter,
 		VoteBlock:   height,
 	}
 	if err := d.memberLocks.Set(d.api.GetTxn(), caller, add(lock, lockAmount)); err != nil {
