@@ -358,10 +358,8 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 	fmt.Fprintf(buf, "\t}\n\n")
 	fmt.Fprintf(buf, "\tdao := NewDAO(d.api)\n")
 	fmt.Fprintf(buf, "\tm := %s{DAO: *dao}\n\n", shortName)
-	fmt.Fprintf(buf, "\tmethod := call.Method\n")
+	fmt.Fprintf(buf, "\tmethodSel := call.Method\n")
 	fmt.Fprintf(buf, "\targs := call.Args\n")
-	fmt.Fprintf(buf, "\t// 将 method 转换为 selector 进行匹配\n")
-	fmt.Fprintf(buf, "\tmethodSel := model.MethodToSelector(method)\n")
 	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 	for _, m := range methods {
 		if m.isInit {
@@ -371,7 +369,7 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 		writeMutationCase(buf, m)
 	}
 	fmt.Fprintf(buf, "\tdefault:\n")
-	fmt.Fprintf(buf, "\t\treturn fmt.Errorf(%q, method)\n", prefix+": unknown method %q")
+	fmt.Fprintf(buf, "\t\treturn fmt.Errorf(%q, methodSel)\n", prefix+": unknown method %q")
 	fmt.Fprintf(buf, "\t}\n")
 	fmt.Fprintf(buf, "}\n\n")
 }
@@ -379,7 +377,7 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 // Init：与 SCALE 约定一致——至少 3 个参数，第 4 个可选 defaultTrack（TrackData）。
 func writeInitCase(buf *bytes.Buffer, m *methodSig) {
 	fmt.Fprintf(buf, "\tcase [4]byte{0x%02x, 0x%02x, 0x%02x, 0x%02x}:\n", m.selector[0], m.selector[1], m.selector[2], m.selector[3])
-	fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, 3, method); err != nil {\n")
+	fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, 3, %q); err != nil {\n", m.caseName)
 	fmt.Fprintf(buf, "\t\t\treturn err\n")
 	fmt.Fprintf(buf, "\t\t}\n")
 	p0 := m.params[0]
@@ -418,7 +416,7 @@ func writeMutationCase(buf *bytes.Buffer, m *methodSig) {
 		return
 	}
 
-	fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, %d, method); err != nil {\n", len(m.params))
+	fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, %d, %q); err != nil {\n", len(m.params), m.caseName)
 	fmt.Fprintf(buf, "\t\t\treturn err\n")
 	fmt.Fprintf(buf, "\t\t}\n")
 
@@ -475,13 +473,8 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 	shortName := strings.TrimPrefix(query, "*")
 	fmt.Fprintf(buf, "// ExecuteQuery 按 method 将字符串参数解析为合约查询实参，返回 SCALE 编码结果。\n")
 	fmt.Fprintf(buf, "func (q %s) ExecQuery(call *model.ContractCall) ([]byte, error) {\n", shortName)
-	fmt.Fprintf(buf, "\tif call.Method == \"\" {\n")
-	fmt.Fprintf(buf, "\t\treturn nil, errors.New(%q)\n", prefix+": empty query method")
-	fmt.Fprintf(buf, "\t}\n\n")
 	fmt.Fprintf(buf, "\targs := call.Args\n")
-	fmt.Fprintf(buf, "\tmethod := call.Method\n")
-	fmt.Fprintf(buf, "\t// 将 method 转换为 selector 进行匹配\n")
-	fmt.Fprintf(buf, "\tmethodSel := model.MethodToSelectorWithMutates(method, false)\n")
+	fmt.Fprintf(buf, "\tmethodSel := call.Method\n")
 	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 
 	for _, m := range methods {
@@ -495,7 +488,7 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 			continue
 		}
 
-		fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, %d, method); err != nil {\n", len(m.params))
+		fmt.Fprintf(buf, "\t\tif err := model.RequireArgLen(args, %d, %q); err != nil {\n", len(m.params), m.caseName)
 		fmt.Fprintf(buf, "\t\t\treturn nil, err\n")
 		fmt.Fprintf(buf, "\t\t}\n")
 
@@ -525,7 +518,7 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 	}
 
 	fmt.Fprintf(buf, "\tdefault:\n")
-	fmt.Fprintf(buf, "\t\treturn nil, fmt.Errorf(%q, method)\n", prefix+": unknown query method %q")
+	fmt.Fprintf(buf, "\t\treturn nil, fmt.Errorf(%q, methodSel)\n", prefix+": unknown query method %q")
 	fmt.Fprintf(buf, "\t}\n")
 	fmt.Fprintf(buf, "}\n")
 }

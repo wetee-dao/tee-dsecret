@@ -21,7 +21,12 @@ extend type Query {
 
 extend type Mutation {
   """
-  执行指定合约调用。dao：method 为方法名；args 为字符串参数列表。
+  系统合约初始化
+  """
+  systemContractInit(contract: String!): Boolean!
+
+  """
+  执行指定合约调用 dao:method 为方法名 args 为字符串参数列表
   链上 Tx.contract 为 SCALE(Method string, Args []byte)，Args 为 json.Marshal(args)，args 每项为 hex(SCALE(单参))。
   """
   contractCall(

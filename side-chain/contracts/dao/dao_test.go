@@ -79,6 +79,16 @@ func scaleBytes(t *testing.T, v any) []byte {
 	return b
 }
 
+// mutSel 将 mutation 方法名转换为 selector。
+func mutSel(method string) [4]byte {
+	return model.MethodToSelector(method)
+}
+
+// querySel 将 query 方法名转换为 selector。
+func querySel(method string) [4]byte {
+	return model.MethodToSelectorWithMutates(method, false)
+}
+
 func TestIntegration_InitAndQueryMembers(t *testing.T) {
 	rt, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -93,7 +103,7 @@ func TestIntegration_InitAndQueryMembers(t *testing.T) {
 	// Init no longer takes arguments - it uses default values
 	err := mut.ExecCall(&model.ContractCall{
 		Contract: "dao",
-		Method:   "init",
+		Method:   mutSel("init"),
 		Args:     nil,
 	})
 	require.NoError(t, err)
@@ -101,14 +111,14 @@ func TestIntegration_InitAndQueryMembers(t *testing.T) {
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 
 	// After init with no members, members list should be empty
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "members", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("members"), Args: nil})
 	require.NoError(t, err)
 	var out []dao.Member
 	require.NoError(t, codec.Decode(raw, &out))
 	require.Len(t, out, 0)
 
 	// Total supply should be 0
-	ts, err := q.ExecQuery(&model.ContractCall{Method: "total_supply", Args: nil})
+	ts, err := q.ExecQuery(&model.ContractCall{Method: querySel("total_supply"), Args: nil})
 	require.NoError(t, err)
 	var supply []byte
 	require.NoError(t, codec.Decode(ts, &supply))
@@ -126,13 +136,13 @@ func TestIntegration_PublicJoinDeniedWhenDisabled(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	err := mut.ExecCall(&model.ContractCall{
-		Method: "init",
+		Method: mutSel("init"),
 		Args:   nil,
 	})
 	require.NoError(t, err)
 
 	rt.caller = []byte{0x99} // non-gov user
-	err = mut.ExecCall(&model.ContractCall{Method: "public_join", Args: nil})
+	err = mut.ExecCall(&model.ContractCall{Method: mutSel("public_join"), Args: nil})
 	require.ErrorIs(t, err, dao.ErrPublicJoinNotAllowed)
 }
 
@@ -148,12 +158,12 @@ func TestIntegration_JoinByGov(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "init",
+		Method: mutSel("init"),
 		Args:   nil,
 	}))
 
 	err := mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args: [][]byte{
 			scaleBytes(t, bob),
 			scaleBytes(t, big.NewInt(50).Bytes()),
@@ -163,7 +173,7 @@ func TestIntegration_JoinByGov(t *testing.T) {
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	raw, err := q.ExecQuery(&model.ContractCall{
-		Method: "balance_of",
+		Method: querySel("balance_of"),
 		Args:   [][]byte{scaleBytes(t, bob)},
 	})
 	require.NoError(t, err)
@@ -185,23 +195,23 @@ func TestIntegration_TransferDisabledByDefault(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "init",
+		Method: mutSel("init"),
 		Args:   nil,
 	}))
 
 	// Join alice and bob
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, alice), scaleBytes(t, big.NewInt(100).Bytes())},
 	}))
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, bob), scaleBytes(t, big.NewInt(10).Bytes())},
 	}))
 
 	rt.caller = alice
 	err := mut.ExecCall(&model.ContractCall{
-		Method: "transfer",
+		Method: mutSel("transfer"),
 		Args: [][]byte{
 			scaleBytes(t, bob),
 			scaleBytes(t, big.NewInt(5).Bytes()),
@@ -221,19 +231,19 @@ func TestIntegration_CancelProposal(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "init",
+		Method: mutSel("init"),
 		Args:   nil,
 	}))
 
 	// Join gov as member
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, gov), scaleBytes(t, big.NewInt(10_000).Bytes())},
 	}))
 
 	call := dao.CallContent{Amount: big.NewInt(10).Bytes()}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "submit_proposal",
+		Method: mutSel("submit_proposal"),
 		Args: [][]byte{
 			scaleBytes(t, call),
 			scaleBytes(t, uint32(0)),
@@ -241,12 +251,12 @@ func TestIntegration_CancelProposal(t *testing.T) {
 	}))
 
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "cancel_proposal",
+		Method: mutSel("cancel_proposal"),
 		Args:   [][]byte{scaleBytes(t, uint32(0))},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "proposals", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("proposals"), Args: nil})
 	require.NoError(t, err)
 	var props []dao.Proposal
 	require.NoError(t, codec.Decode(raw, &props))
@@ -268,13 +278,13 @@ func daoWithGov(t *testing.T) (*testRuntime, func()) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "init",
+		Method: mutSel("init"),
 		Args:   nil,
 	}))
 
 	// Join gov as member with balance
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, gov), scaleBytes(t, big.NewInt(10_000).Bytes())},
 	}))
 
@@ -287,7 +297,7 @@ func TestIntegration_SetPublicJoin(t *testing.T) {
 	defer cleanup()
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "get_public_join", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("get_public_join"), Args: nil})
 	require.NoError(t, err)
 	var pj bool
 	require.NoError(t, codec.Decode(raw, &pj))
@@ -296,10 +306,10 @@ func TestIntegration_SetPublicJoin(t *testing.T) {
 	// Gov enables public join
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "set_public_join",
+		Method: mutSel("set_public_join"),
 		Args:   [][]byte{scaleBytes(t, true)},
 	}))
-	raw, err = q.ExecQuery(&model.ContractCall{Method: "get_public_join", Args: nil})
+	raw, err = q.ExecQuery(&model.ContractCall{Method: querySel("get_public_join"), Args: nil})
 	require.NoError(t, err)
 	require.NoError(t, codec.Decode(raw, &pj))
 	require.True(t, pj)
@@ -313,15 +323,15 @@ func TestIntegration_Leave(t *testing.T) {
 	bob := []byte{0x02}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, bob), scaleBytes(t, big.NewInt(0).Bytes())},
 	}))
 
 	rt.caller = bob
-	require.NoError(t, mut.ExecCall(&model.ContractCall{Method: "leave", Args: nil}))
+	require.NoError(t, mut.ExecCall(&model.ContractCall{Method: mutSel("leave"), Args: nil}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "members", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("members"), Args: nil})
 	require.NoError(t, err)
 	var members []dao.Member
 	require.NoError(t, codec.Decode(raw, &members))
@@ -337,12 +347,12 @@ func TestIntegration_Leave_FailsWhenBalanceNonZero(t *testing.T) {
 	bob := []byte{0x02}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, bob), scaleBytes(t, big.NewInt(100).Bytes())},
 	}))
 
 	rt.caller = bob
-	err := mut.ExecCall(&model.ContractCall{Method: "leave", Args: nil})
+	err := mut.ExecCall(&model.ContractCall{Method: mutSel("leave"), Args: nil})
 	require.ErrorIs(t, err, dao.ErrMemberBalanceNotZero)
 }
 
@@ -407,12 +417,12 @@ func TestIntegration_AddTrack(t *testing.T) {
 		MaxBalance:         big.NewInt(500_000).Bytes(),
 	}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "add_track",
+		Method: mutSel("add_track"),
 		Args:   [][]byte{scaleBytes(t, newTrack)},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "tracks", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("tracks"), Args: nil})
 	require.NoError(t, err)
 	var tracks []dao.TrackData
 	require.NoError(t, codec.Decode(raw, &tracks))
@@ -420,7 +430,7 @@ func TestIntegration_AddTrack(t *testing.T) {
 
 	// Query track by id
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "track",
+		Method: querySel("track"),
 		Args:   [][]byte{scaleBytes(t, uint32(1))},
 	})
 	require.NoError(t, err)
@@ -431,7 +441,7 @@ func TestIntegration_AddTrack(t *testing.T) {
 
 	// Non-existent track returns error (Track query API returns error for missing keys)
 	_, err = q.ExecQuery(&model.ContractCall{
-		Method: "track",
+		Method: querySel("track"),
 		Args:   [][]byte{scaleBytes(t, uint32(99))},
 	})
 	require.Error(t, err)
@@ -445,7 +455,7 @@ func TestIntegration_SetDefaultTrack(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "add_track",
+		Method: mutSel("add_track"),
 		Args: [][]byte{scaleBytes(t, dao.TrackData{
 			Name:               "t2",
 			PreparePeriod:      0,
@@ -461,7 +471,7 @@ func TestIntegration_SetDefaultTrack(t *testing.T) {
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 
 	// Default is 0
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "default_track", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("default_track"), Args: nil})
 	require.NoError(t, err)
 	var dt uint32
 	require.NoError(t, codec.Decode(raw, &dt))
@@ -469,17 +479,17 @@ func TestIntegration_SetDefaultTrack(t *testing.T) {
 
 	// Set to 1
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "set_default_track",
+		Method: mutSel("set_default_track"),
 		Args:   [][]byte{scaleBytes(t, uint32(1))},
 	}))
-	raw, err = q.ExecQuery(&model.ContractCall{Method: "default_track", Args: nil})
+	raw, err = q.ExecQuery(&model.ContractCall{Method: querySel("default_track"), Args: nil})
 	require.NoError(t, err)
 	require.NoError(t, codec.Decode(raw, &dt))
 	require.Equal(t, uint32(1), dt)
 
 	// Non-existent track fails
 	err = mut.ExecCall(&model.ContractCall{
-		Method: "set_default_track",
+		Method: mutSel("set_default_track"),
 		Args:   [][]byte{scaleBytes(t, uint32(99))},
 	})
 	require.ErrorIs(t, err, dao.ErrNoTrack)
@@ -626,13 +636,13 @@ func TestIntegration_DepositProposal(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "submit_proposal",
+		Method: mutSel("submit_proposal"),
 		Args:   [][]byte{scaleBytes(t, dao.CallContent{Amount: big.NewInt(1).Bytes()}), scaleBytes(t, uint32(0))},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	raw, err := q.ExecQuery(&model.ContractCall{
-		Method: "proposal_status",
+		Method: querySel("proposal_status"),
 		Args:   [][]byte{scaleBytes(t, uint32(0))},
 	})
 	require.NoError(t, err)
@@ -643,12 +653,12 @@ func TestIntegration_DepositProposal(t *testing.T) {
 
 	rt.height = 2
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "deposit_proposal",
+		Method: mutSel("deposit_proposal"),
 		Args:   [][]byte{scaleBytes(t, uint32(0)), scaleBytes(t, big.NewInt(1).Bytes())},
 	}))
 
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "proposal_status",
+		Method: querySel("proposal_status"),
 		Args:   [][]byte{scaleBytes(t, uint32(0))},
 	})
 	require.NoError(t, err)
@@ -789,12 +799,12 @@ func TestIntegration_Spend(t *testing.T) {
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	to := []byte{0x0b}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "spend",
+		Method: mutSel("spend"),
 		Args:   [][]byte{scaleBytes(t, to), scaleBytes(t, big.NewInt(100).Bytes()), scaleBytes(t, uint32(0))},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "proposals", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("proposals"), Args: nil})
 	require.NoError(t, err)
 	var props []dao.Proposal
 	require.NoError(t, codec.Decode(raw, &props))
@@ -809,23 +819,23 @@ func TestIntegration_Payout(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "spend",
+		Method: mutSel("spend"),
 		Args:   [][]byte{scaleBytes(t, []byte{0x0b}), scaleBytes(t, big.NewInt(100).Bytes()), scaleBytes(t, uint32(0))},
 	}))
 
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "payout",
+		Method: mutSel("payout"),
 		Args:   [][]byte{scaleBytes(t, uint64(0))},
 	}))
 
 	err := mut.ExecCall(&model.ContractCall{
-		Method: "payout",
+		Method: mutSel("payout"),
 		Args:   [][]byte{scaleBytes(t, uint64(0))},
 	})
 	require.ErrorIs(t, err, dao.ErrSpendAlreadyExecuted)
 
 	err = mut.ExecCall(&model.ContractCall{
-		Method: "payout",
+		Method: mutSel("payout"),
 		Args:   [][]byte{scaleBytes(t, uint64(99))},
 	})
 	require.ErrorIs(t, err, dao.ErrSpendNotFound)
@@ -838,18 +848,18 @@ func TestIntegration_LockBalanceOf(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "submit_proposal",
+		Method: mutSel("submit_proposal"),
 		Args:   [][]byte{scaleBytes(t, dao.CallContent{Amount: big.NewInt(1).Bytes()}), scaleBytes(t, uint32(0))},
 	}))
 	rt.height = 2
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "submit_vote",
+		Method: mutSel("submit_vote"),
 		Args:   [][]byte{scaleBytes(t, uint32(0)), scaleBytes(t, true), scaleBytes(t, big.NewInt(50).Bytes())},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	raw, err := q.ExecQuery(&model.ContractCall{
-		Method: "lock_balance_of",
+		Method: querySel("lock_balance_of"),
 		Args:   [][]byte{scaleBytes(t, rt.caller)},
 	})
 	require.NoError(t, err)
@@ -865,13 +875,13 @@ func TestIntegration_ProposalStatusQuery(t *testing.T) {
 
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "submit_proposal",
+		Method: mutSel("submit_proposal"),
 		Args:   [][]byte{scaleBytes(t, dao.CallContent{Amount: big.NewInt(1).Bytes()}), scaleBytes(t, uint32(0))},
 	}))
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	raw, err := q.ExecQuery(&model.ContractCall{
-		Method: "proposal_status",
+		Method: querySel("proposal_status"),
 		Args:   [][]byte{scaleBytes(t, uint32(0))},
 	})
 	require.NoError(t, err)
@@ -882,12 +892,12 @@ func TestIntegration_ProposalStatusQuery(t *testing.T) {
 
 	rt.height = 2
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "deposit_proposal",
+		Method: mutSel("deposit_proposal"),
 		Args:   [][]byte{scaleBytes(t, uint32(0)), scaleBytes(t, big.NewInt(1).Bytes())},
 	}))
 
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "proposal_status",
+		Method: querySel("proposal_status"),
 		Args:   [][]byte{scaleBytes(t, uint32(0))},
 	})
 	require.NoError(t, err)
@@ -942,7 +952,7 @@ func TestIntegration_MembersQuery(t *testing.T) {
 	defer cleanup()
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "members", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: querySel("members"), Args: nil})
 	require.NoError(t, err)
 	var members []dao.Member
 	require.NoError(t, codec.Decode(raw, &members))
@@ -951,18 +961,18 @@ func TestIntegration_MembersQuery(t *testing.T) {
 	bob := []byte{0x02}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
-		Method: "join",
+		Method: mutSel("join"),
 		Args:   [][]byte{scaleBytes(t, bob), scaleBytes(t, big.NewInt(100).Bytes())},
 	}))
 
-	raw, err = q.ExecQuery(&model.ContractCall{Method: "members", Args: nil})
+	raw, err = q.ExecQuery(&model.ContractCall{Method: querySel("members"), Args: nil})
 	require.NoError(t, err)
 	require.NoError(t, codec.Decode(raw, &members))
 	require.Len(t, members, 2)
 
 	// Balance of bob
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "balance_of",
+		Method: querySel("balance_of"),
 		Args:   [][]byte{scaleBytes(t, bob)},
 	})
 	require.NoError(t, err)
@@ -972,7 +982,7 @@ func TestIntegration_MembersQuery(t *testing.T) {
 
 	// Non-member balance
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "balance_of",
+		Method: querySel("balance_of"),
 		Args:   [][]byte{scaleBytes(t, []byte{0xff})},
 	})
 	require.NoError(t, err)
@@ -982,7 +992,7 @@ func TestIntegration_MembersQuery(t *testing.T) {
 
 	// Lock of bob (no locks)
 	raw, err = q.ExecQuery(&model.ContractCall{
-		Method: "lock_balance_of",
+		Method: querySel("lock_balance_of"),
 		Args:   [][]byte{scaleBytes(t, bob)},
 	})
 	require.NoError(t, err)
@@ -993,35 +1003,35 @@ func TestIntegration_MembersQuery(t *testing.T) {
 
 func TestExecCall_MissingCaller(t *testing.T) {
 	m := dao.DaoMutation{DAO: *dao.NewDAO(stubTxn{})}
-	err := m.ExecCall(&model.ContractCall{Method: "init", Args: nil})
+	err := m.ExecCall(&model.ContractCall{Method: mutSel("init"), Args: nil})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing caller")
 }
 
 func TestExecCall_UnknownMethod(t *testing.T) {
 	m := dao.DaoMutation{DAO: *dao.NewDAO(&fixedCaller{caller: []byte{1}})}
-	err := m.ExecCall(&model.ContractCall{Method: "no_such_method", Args: nil})
+	err := m.ExecCall(&model.ContractCall{Method: mutSel("no_such_method"), Args: nil})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown method")
 }
 
 func TestExecQuery_EmptyMethod(t *testing.T) {
 	q := dao.DaoQuery{DAO: *dao.NewDAO(stubTxn{})}
-	_, err := q.ExecQuery(&model.ContractCall{Method: "", Args: nil})
+	_, err := q.ExecQuery(&model.ContractCall{Method: [4]byte{}, Args: nil})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "empty query method")
 }
 
 func TestExecQuery_UnknownMethod(t *testing.T) {
 	q := dao.DaoQuery{DAO: *dao.NewDAO(stubTxn{})}
-	_, err := q.ExecQuery(&model.ContractCall{Method: "no_such_query", Args: nil})
+	_, err := q.ExecQuery(&model.ContractCall{Method: querySel("no_such_query"), Args: nil})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown query method")
 }
 
 func TestExecCall_InitTooFewArgs(t *testing.T) {
 	m := dao.DaoMutation{DAO: *dao.NewDAO(&fixedCaller{caller: []byte{1}})}
-	err := m.ExecCall(&model.ContractCall{Method: "init", Args: [][]byte{}})
+	err := m.ExecCall(&model.ContractCall{Method: mutSel("init"), Args: [][]byte{}})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "expects at least")
 }
@@ -1060,7 +1070,7 @@ func TestExecCall_TableInsufficientArgs(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.method, func(t *testing.T) {
-			err := m.ExecCall(&model.ContractCall{Method: tc.method, Args: tc.args})
+			err := m.ExecCall(&model.ContractCall{Method: mutSel(tc.method), Args: tc.args})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "expects at least")
 		})

@@ -54,10 +54,11 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ContractCall func(childComplexity int, caller string, contract string, method string, args []string, signatureType int, signature string) int
-		InitDiskKey  func(childComplexity int, index string, user string) int
-		StartEpoch   func(childComplexity int) int
-		UploadSecret func(childComplexity int, index string, secret string, hash string, user string) int
+		ContractCall       func(childComplexity int, caller string, contract string, method string, args []string, signatureType int, signature string) int
+		InitDiskKey        func(childComplexity int, index string, user string) int
+		StartEpoch         func(childComplexity int) int
+		SystemContractInit func(childComplexity int, contract string) int
+		UploadSecret       func(childComplexity int, index string, secret string, hash string, user string) int
 	}
 
 	Query struct {
@@ -80,6 +81,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	StartEpoch(ctx context.Context) (bool, error)
+	SystemContractInit(ctx context.Context, contract string) (bool, error)
 	ContractCall(ctx context.Context, caller string, contract string, method string, args []string, signatureType int, signature string) (bool, error)
 	UploadSecret(ctx context.Context, index string, secret string, hash string, user string) (bool, error)
 	InitDiskKey(ctx context.Context, index string, user string) (bool, error)
@@ -154,6 +156,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.StartEpoch(childComplexity), true
+
+	case "Mutation.systemContractInit":
+		if e.complexity.Mutation.SystemContractInit == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_systemContractInit_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SystemContractInit(childComplexity, args["contract"].(string)), true
 
 	case "Mutation.upload_secret":
 		if e.complexity.Mutation.UploadSecret == nil {
@@ -551,6 +565,34 @@ func (ec *executionContext) field_Mutation_init_disk_key_argsUser(
 
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("user"))
 	if tmp, ok := rawArgs["user"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_systemContractInit_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_systemContractInit_argsContract(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["contract"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_systemContractInit_argsContract(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["contract"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("contract"))
+	if tmp, ok := rawArgs["contract"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -1133,6 +1175,61 @@ func (ec *executionContext) fieldContext_Mutation_start_epoch(_ context.Context,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_systemContractInit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_systemContractInit(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SystemContractInit(rctx, fc.Args["contract"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_systemContractInit(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_systemContractInit_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3884,6 +3981,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "start_epoch":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_start_epoch(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "systemContractInit":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_systemContractInit(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

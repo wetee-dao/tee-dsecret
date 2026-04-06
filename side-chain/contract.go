@@ -14,7 +14,7 @@ func (app *SideChain) ContractQuery(caller []byte, contract string, method strin
 
 	return contracts.Query(&model.ContractCall{
 		Contract: contract,
-		Method:   method,
+		Method:   model.MethodToSelector(method),
 		Args:     args,
 	}, runtime)
 }

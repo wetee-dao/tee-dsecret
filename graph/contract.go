@@ -25,16 +25,7 @@ func DecodeCaller(s string) ([]byte, error) {
 }
 
 // SubmitContractCall 提交合约调用
-func SubmitContractCall(caller []byte, contract, method string, args []string, signatureType uint32, signature string) error {
-	argsBytes := make([][]byte, len(args))
-	for i, arg := range args {
-		argBytes, err := hex.DecodeString(arg)
-		if err != nil {
-			return fmt.Errorf("dao: decode arg: %w", err)
-		}
-		argsBytes[i] = argBytes
-	}
-
+func SubmitContractCall(caller []byte, contract string, method [4]byte, argsBytes [][]byte, signatureType uint32, signature []byte) error {
 	contractPayload, err := codec.Encode(model.ContractCall{
 		Contract: contract,
 		Method:   method,
@@ -44,16 +35,11 @@ func SubmitContractCall(caller []byte, contract, method string, args []string, s
 		return fmt.Errorf("dao: encode contract payload: %w", err)
 	}
 
-	signatureBytes, err := hex.DecodeString(signature)
-	if err != nil {
-		return fmt.Errorf("signature 需为 hex 编码的 32 字节: %w", err)
-	}
-
 	tx := &model.Tx{
 		Caller:        caller,
 		Payload:       &model.Tx_Contract{Contract: contractPayload},
 		SignatureType: signatureType,
-		Signature:     signatureBytes,
+		Signature:     signature,
 	}
 
 	_, err = sidechain.SubmitTx(tx)
@@ -81,7 +67,7 @@ func ContractDryRun(caller []byte, contract string, mut bool, method string, arg
 	} else {
 		err = sideChain.ContractDryRun(caller, &model.ContractCall{
 			Contract: contract,
-			Method:   method,
+			Method:   model.MethodToSelector(method),
 			Args:     argsBytes,
 		})
 	}

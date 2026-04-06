@@ -10,54 +10,7 @@
     "language": "go"
   },
   "spec": {
-    "constructors": [
-      {
-        "args": [
-          {
-            "docs": [],
-            "label": "users",
-            "type": {
-              "displayName": [
-                "Vec"
-              ],
-              "type": 5
-            }
-          },
-          {
-            "docs": [],
-            "label": "public_join",
-            "type": {
-              "displayName": [
-                "bool"
-              ],
-              "type": 6
-            }
-          },
-          {
-            "docs": [],
-            "label": "sudo_account",
-            "type": {
-              "displayName": [
-                "Option"
-              ],
-              "type": 7
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "new_with_default_track",
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 10
-        },
-        "selector": "0x00000000"
-      }
-    ],
+    "constructors": [],
     "docs": [],
     "environment": {
       "accountId": {
@@ -371,38 +324,7 @@
         "selector": "0x76f20724"
       },
       {
-        "args": [
-          {
-            "docs": [],
-            "label": "initial_members",
-            "type": {
-              "displayName": [
-                "Vec"
-              ],
-              "type": 5
-            }
-          },
-          {
-            "docs": [],
-            "label": "public_join",
-            "type": {
-              "displayName": [
-                "bool"
-              ],
-              "type": 6
-            }
-          },
-          {
-            "docs": [],
-            "label": "sudo_account",
-            "type": {
-              "displayName": [
-                "Address"
-              ],
-              "type": 2
-            }
-          }
-        ],
+        "args": [],
         "default": false,
         "docs": [],
         "label": "init",

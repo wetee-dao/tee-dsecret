@@ -6,17 +6,52 @@ package graph
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/side-chain/contracts"
 )
+
+// SystemContractInit is the resolver for the systemContractInit field.
+func (r *mutationResolver) SystemContractInit(ctx context.Context, contract string) (bool, error) {
+	txn := model.DBINS.NewTransaction()
+	defer txn.Rollback()
+
+	if contracts.IsContractIsInit(txn, "dao") {
+		return false, gqlerror.Errorf("contract is inited")
+	}
+
+	err := SubmitContractCall(sideChain.GetDKG().DkgPubKey.Byte(), "dao", model.MethodToSelector("Init"), [][]byte{}, 0, []byte{})
+	if err != nil {
+		return false, gqlerror.Errorf("SystemContractInit DecodeCaller: %v", err)
+	}
+
+	return false, gqlerror.Errorf("contract is found")
+}
 
 // ContractCall is the resolver for the contractCall field.
 func (r *mutationResolver) ContractCall(ctx context.Context, caller string, contract string, method string, args []string, signatureType int, signature string) (bool, error) {
 	callerBytes, err := DecodeCaller(caller)
 	if err != nil {
-		return false, gqlerror.Errorf("caller: %v", err)
+		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
 	}
-	if err := SubmitContractCall(callerBytes, contract, method, args, uint32(signatureType), signature); err != nil {
+
+	argsBytes := make([][]byte, len(args))
+	for i, arg := range args {
+		argBytes, err := hex.DecodeString(arg)
+		if err != nil {
+			return false, gqlerror.Errorf("ContractCall: decode arg: %v", err)
+		}
+		argsBytes[i] = argBytes
+	}
+
+	sig, err := hex.DecodeString(signature)
+	if err != nil {
+		return false, gqlerror.Errorf("ContractCall DecodeString sign: %v", err)
+	}
+
+	if err := SubmitContractCall(callerBytes, contract, model.MethodToSelector(method), argsBytes, uint32(signatureType), sig); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 	return true, nil

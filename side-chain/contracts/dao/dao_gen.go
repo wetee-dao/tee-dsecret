@@ -19,13 +19,11 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	dao := NewDAO(d.api)
 	m := DaoMutation{DAO: *dao}
 
-	method := call.Method
+	methodSel := call.Method
 	args := call.Args
-	// 将 method 转换为 selector 进行匹配
-	methodSel := model.MethodToSelector(method)
 	switch methodSel {
 	case [4]byte{0xdf, 0x60, 0xa5, 0x15}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "add_track"); err != nil {
 			return err
 		}
 		track, err := model.DecodeScaleArgBytes[TrackData](args[0])
@@ -34,7 +32,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.AddTrack(track)
 	case [4]byte{0x13, 0x96, 0x0e, 0xb8}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "approve"); err != nil {
 			return err
 		}
 		spender, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -47,7 +45,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.Approve(spender, value)
 	case [4]byte{0x46, 0xc4, 0x21, 0xdb}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "cancel_proposal"); err != nil {
 			return err
 		}
 		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -56,7 +54,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.CancelProposal(proposalID)
 	case [4]byte{0x06, 0x99, 0x1e, 0x89}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "cancel_vote"); err != nil {
 			return err
 		}
 		voteID, err := model.DecodeScaleArgBytes[uint64](args[0])
@@ -65,7 +63,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.CancelVote(voteID)
 	case [4]byte{0xea, 0x58, 0xb3, 0x1d}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "deposit_proposal"); err != nil {
 			return err
 		}
 		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -78,7 +76,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.DepositProposal(proposalID, amount)
 	case [4]byte{0x3e, 0x44, 0x34, 0x0e}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "exec_proposal"); err != nil {
 			return err
 		}
 		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -89,7 +87,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	case [4]byte{0x53, 0xe3, 0x90, 0x03}:
 		return m.Init()
 	case [4]byte{0xc6, 0xc8, 0x3a, 0xf9}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "join"); err != nil {
 			return err
 		}
 		newUser, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -106,7 +104,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	case [4]byte{0x8d, 0x6e, 0x0f, 0x8c}:
 		return m.LeaveWithBurn()
 	case [4]byte{0xa4, 0xf0, 0x19, 0x6c}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "payout"); err != nil {
 			return err
 		}
 		spendID, err := model.DecodeScaleArgBytes[uint64](args[0])
@@ -117,7 +115,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 	case [4]byte{0x6d, 0x6f, 0x07, 0x72}:
 		return m.PublicJoin()
 	case [4]byte{0x29, 0x87, 0xd4, 0xba}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "set_default_track"); err != nil {
 			return err
 		}
 		trackID, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -126,7 +124,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.SetDefaultTrack(trackID)
 	case [4]byte{0x13, 0x64, 0x75, 0x15}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "set_public_join"); err != nil {
 			return err
 		}
 		publicJoin, err := model.DecodeScaleArgBytes[bool](args[0])
@@ -135,7 +133,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.SetPublicJoin(publicJoin)
 	case [4]byte{0x87, 0x2c, 0x40, 0xe9}:
-		if err := model.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, "spend"); err != nil {
 			return err
 		}
 		to, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -152,7 +150,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.Spend(to, amount, trackID)
 	case [4]byte{0x1c, 0x04, 0x71, 0xc4}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "submit_proposal"); err != nil {
 			return err
 		}
 		call, err := model.DecodeScaleArgBytes[CallContent](args[0])
@@ -165,7 +163,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.SubmitProposal(call, trackID)
 	case [4]byte{0xbb, 0x5c, 0xa1, 0x28}:
-		if err := model.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, "submit_vote"); err != nil {
 			return err
 		}
 		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -182,7 +180,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.SubmitVote(proposalID, opinionYes, lockAmount)
 	case [4]byte{0xad, 0xa0, 0x64, 0x62}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "transfer"); err != nil {
 			return err
 		}
 		to, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -195,7 +193,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.Transfer(to, value)
 	case [4]byte{0xee, 0x3b, 0xc6, 0x85}:
-		if err := model.RequireArgLen(args, 3, method); err != nil {
+		if err := model.RequireArgLen(args, 3, "transfer_from"); err != nil {
 			return err
 		}
 		from, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -212,7 +210,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.TransferFrom(from, to, value)
 	case [4]byte{0x2a, 0xb8, 0x1d, 0xd1}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "unlock"); err != nil {
 			return err
 		}
 		voteID, err := model.DecodeScaleArgBytes[uint64](args[0])
@@ -221,23 +219,17 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.Unlock(voteID)
 	default:
-		return fmt.Errorf("dao: unknown method %q", method)
+		return fmt.Errorf("dao: unknown method %q", methodSel)
 	}
 }
 
 // ExecuteQuery 按 method 将字符串参数解析为合约查询实参，返回 SCALE 编码结果。
 func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
-	if call.Method == "" {
-		return nil, errors.New("dao: empty query method")
-	}
-
 	args := call.Args
-	method := call.Method
-	// 将 method 转换为 selector 进行匹配
-	methodSel := model.MethodToSelectorWithMutates(method, false)
+	methodSel := call.Method
 	switch methodSel {
 	case [4]byte{0x1d, 0x62, 0x33, 0x27}:
-		if err := model.RequireArgLen(args, 2, method); err != nil {
+		if err := model.RequireArgLen(args, 2, "allowance"); err != nil {
 			return nil, err
 		}
 		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -254,7 +246,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0x87, 0xe0, 0xff, 0x32}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "balance_of"); err != nil {
 			return nil, err
 		}
 		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -279,7 +271,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0x3c, 0xd4, 0x96, 0x6d}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "lock_balance_of"); err != nil {
 			return nil, err
 		}
 		owner, err := model.DecodeScaleArgBytes[[]byte](args[0])
@@ -298,7 +290,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0x79, 0x9f, 0xe2, 0xdd}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "proposal"); err != nil {
 			return nil, err
 		}
 		id, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -311,7 +303,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0xfd, 0x88, 0x90, 0x7b}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "proposal_status"); err != nil {
 			return nil, err
 		}
 		id, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -336,7 +328,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0xb9, 0xfd, 0x54, 0xc4}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "track"); err != nil {
 			return nil, err
 		}
 		id, err := model.DecodeScaleArgBytes[uint32](args[0])
@@ -355,7 +347,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0x4d, 0x15, 0x1c, 0xf1}:
-		if err := model.RequireArgLen(args, 1, method); err != nil {
+		if err := model.RequireArgLen(args, 1, "vote"); err != nil {
 			return nil, err
 		}
 		id, err := model.DecodeScaleArgBytes[uint64](args[0])
@@ -374,7 +366,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	default:
-		return nil, fmt.Errorf("dao: unknown query method %q", method)
+		return nil, fmt.Errorf("dao: unknown query method %q", methodSel)
 	}
 }
 

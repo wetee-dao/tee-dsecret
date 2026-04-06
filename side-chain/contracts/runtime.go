@@ -60,7 +60,7 @@ func (r *Runtime) GetSudoAccount() []byte {
 }
 
 // is contract inited
-func isContractIsInit(txn *model.Txn, contract string) bool {
+func IsContractIsInit(txn *model.Txn, contract string) bool {
 	b, err := model.TxnGetCodec[bool](txn, "CONTRACT___INITED", contract)
 	if err != nil {
 		fmt.Println("contract init db error", err)
@@ -73,4 +73,8 @@ func isContractIsInit(txn *model.Txn, contract string) bool {
 	}
 
 	return *b
+}
+
+func SetContractInited(txn *model.Txn, contract string) error {
+	return model.TxnSetCodec(txn, "CONTRACT___INITED", contract, true)
 }

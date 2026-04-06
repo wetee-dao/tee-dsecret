@@ -77,7 +77,7 @@ type DaoMutation struct {
 	DAO
 }
 
-func (d DAO) Init() error {
+func (d DaoMutation) Init() error {
 	total := big.NewInt(0)
 	publicJoin := true
 	defaultTrack := TrackData{

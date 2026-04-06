@@ -10,20 +10,20 @@ import (
 // inkRegistry 在内存中构建 ink metadata v6 的 types 数组：先注册与历史模板一致的 0–46，
 // 再追加 DAO 合约用到的复合类型与 Result<T, LangError>，不依赖任何外部 JSON 模板文件。
 type inkRegistry struct {
-	types        []map[string]any
-	resultQLang  map[int]int // inner type id -> Result<T, LangError> type id（含预置 14/16/33）
-	optCallID    int
-	propStatusID int
+	types         []map[string]any
+	resultQLang   map[int]int // inner type id -> Result<T, LangError> type id（含预置 14/16/33）
+	optCallID     int
+	propStatusID  int
 	propDepositID int
-	proposalID   int
-	voteID       int
-	optU32ID     int
-	optVoteID    int
+	proposalID    int
+	voteID        int
+	optU32ID      int
+	optVoteID     int
 	optProposalID int
 	optPropStatID int
-	vecTrackID   int
+	vecTrackID    int
 	vecProposalID int
-	vecVoteID    int
+	vecVoteID     int
 }
 
 func newInkRegistry() *inkRegistry {
@@ -375,25 +375,25 @@ func inkEnvironment() map[string]any {
 	return map[string]any{
 		"accountId": map[string]any{
 			"displayName": []any{"AccountId"},
-			"type":          2,
+			"type":        2,
 		},
 		"balance": map[string]any{
 			"displayName": []any{"Balance"},
-			"type":          44,
+			"type":        44,
 		},
 		"blockNumber": map[string]any{
 			"displayName": []any{"BlockNumber"},
-			"type":          28,
+			"type":        28,
 		},
 		"hash": map[string]any{
 			"displayName": []any{"Hash"},
-			"type":          46,
+			"type":        46,
 		},
 		"nativeToEthRatio": 100000000,
 		"staticBufferSize": 16384,
 		"timestamp": map[string]any{
 			"displayName": []any{"Timestamp"},
-			"type":          20,
+			"type":        20,
 		},
 	}
 }
@@ -447,7 +447,7 @@ func buildInkRoot(contractName string, mutMethods, qMethods []*methodSig) (map[s
 		return nil, err
 	}
 	spec := map[string]any{
-		"constructors": inkConstructor(),
+		"constructors": []any{},
 		"docs":         []any{},
 		"environment":  inkEnvironment(),
 		"events":       []any{},
@@ -548,7 +548,7 @@ func abiOneArg(reg *inkRegistry, p param, idx int) (map[string]any, error) {
 		return nil, err
 	}
 	return map[string]any{
-		"docs": []any{},
+		"docs":  []any{},
 		"label": paramABIName(p.name, idx),
 		"type": map[string]any{
 			"displayName": ref.Display,
@@ -556,4 +556,3 @@ func abiOneArg(reg *inkRegistry, p param, idx int) (map[string]any, error) {
 		},
 	}, nil
 }
-
