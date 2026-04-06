@@ -22,16 +22,12 @@ func TestDaoQuery_TotalSupply_AfterInit(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(200).Bytes()},
-	}
-	_ = m.Init(members, false, []byte{1}, nil)
+	_ = m.Init()
 
 	q := DaoQuery{DAO: m.DAO}
 	supply, err := q.TotalSupply()
 	require.NoError(t, err)
-	require.Equal(t, 0, cmp(supply, big.NewInt(300).Bytes()))
+	require.True(t, isZero(supply))
 }
 
 func TestDaoQuery_BalanceOf_NotMember(t *testing.T) {
@@ -49,11 +45,16 @@ func TestDaoQuery_BalanceOf_Success(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{{Account: []byte{1}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, []byte{2}, nil)
+	sudo := []byte{1}
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member with balance
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	q := DaoQuery{DAO: m.DAO}
-	balance, err := q.BalanceOf([]byte{1})
+	balance, err := q.BalanceOf([]byte{2})
 	require.NoError(t, err)
 	require.Equal(t, 0, cmp(balance, big.NewInt(100).Bytes()))
 }
@@ -83,11 +84,14 @@ func TestDaoMutation_Transfer_Disabled(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, []byte{3}, nil)
+	sudo := []byte{3}
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{1}
 	err := m.Transfer([]byte{2}, big.NewInt(10).Bytes())
@@ -100,11 +104,13 @@ func TestDaoMutation_Transfer_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{3}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	// Enable transfer
 	_ = m.transferEnabled.Set(rt.txn, singletonKey, true)
@@ -126,11 +132,13 @@ func TestDaoMutation_Transfer_LowBalance(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{3}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	_ = m.transferEnabled.Set(rt.txn, singletonKey, true)
 
@@ -145,8 +153,12 @@ func TestDaoMutation_Transfer_MemberNotExisted(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{3}
-	members := []Member{{Account: []byte{1}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join only member 1
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
 
 	_ = m.transferEnabled.Set(rt.txn, singletonKey, true)
 
@@ -160,8 +172,13 @@ func TestDaoMutation_Approve_Success(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{{Account: []byte{1}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, []byte{2}, nil)
+	sudo := []byte{2}
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join member 1
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{1}
 	err := m.Approve([]byte{2}, big.NewInt(50).Bytes())
@@ -179,11 +196,13 @@ func TestDaoMutation_TransferFrom_InsufficientAllowance(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{3}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	_ = m.transferEnabled.Set(rt.txn, singletonKey, true)
 
@@ -201,11 +220,13 @@ func TestDaoMutation_TransferFrom_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{3}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	_ = m.transferEnabled.Set(rt.txn, singletonKey, true)
 
@@ -231,11 +252,14 @@ func TestDaoMutation_TransferFrom_Disabled(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-	}
-	_ = m.Init(members, false, []byte{3}, nil)
+	sudo := []byte{3}
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{1}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	err := m.TransferFrom([]byte{1}, []byte{2}, big.NewInt(10).Bytes())

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
 	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
@@ -173,6 +174,26 @@ func TxnSetProtoMessage[T proto.Message](txn *Txn, key []byte, value T) error {
 		return err
 	}
 	return txn.Set(key, buf.Bytes())
+}
+
+func TxnSetCodec[T any](txn *Txn, namespace, key string, val T) error {
+	bt, err := codec.Encode(val)
+	if err != nil {
+		return err
+	}
+
+	return txn.Set([]byte(comboKey(namespace, key)), bt)
+}
+
+func TxnGetCodec[T any](txn *Txn, namespace, key string) (*T, error) {
+	bt, err := txn.Get([]byte(comboKey(namespace, key)))
+	if err != nil {
+		return nil, err
+	}
+
+	val := new(T)
+	err = codec.Decode(bt, val)
+	return val, err
 }
 
 func (txn *Txn) Rollback() error {

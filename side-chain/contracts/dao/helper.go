@@ -10,12 +10,10 @@ import (
 )
 
 func (d DAO) ensureGov() error {
-	sudo, err := d.sudoAccount.Get(d.api.GetTxn(), singletonKey)
-	if err != nil {
-		return err
-	}
+	sudo := d.api.GetSudoAccount()
 	caller := d.api.GetCaller()
-	if sudo == nil || !bytes.Equal(*sudo, caller) {
+
+	if sudo == nil || !bytes.Equal(sudo, caller) {
 		return ErrMustCallByGov
 	}
 	return nil

@@ -2,8 +2,53 @@ package dao
 
 import (
 	"math/big"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
+
+// testDBSubdir is the subdirectory where the test database is stored.
+const testDBSubdir = "chain_data/wetee"
+
+// testRuntime implements model.ContractApi for tests.
+type testRuntime struct {
+	height      int64
+	caller      []byte
+	txn         *model.Txn
+	sudoAccount []byte
+}
+
+func (r *testRuntime) GetHeight() int64       { return r.height }
+func (r *testRuntime) GetTxn() *model.Txn     { return r.txn }
+func (r *testRuntime) GetCaller() []byte      { return r.caller }
+func (r *testRuntime) GetSudoAccount() []byte { return r.sudoAccount }
+
+// setupTestDB creates a temporary database for testing with an initialized runtime.
+// It returns a testRuntime with the database transaction set up.
+func setupTestDB(t *testing.T) (rt *testRuntime, cleanup func()) {
+	t.Helper()
+	tmp := t.TempDir()
+	oldWD, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(tmp))
+	require.NoError(t, os.MkdirAll(testDBSubdir, 0o755))
+
+	db, err := model.NewDB()
+	require.NoError(t, err)
+
+	txn := db.NewTransaction()
+	rt = &testRuntime{txn: txn}
+
+	cleanup = func() {
+		_ = txn.Rollback()
+		_ = db.Close()
+		model.DBINS = nil
+		_ = os.Chdir(oldWD)
+	}
+	return rt, cleanup
+}
 
 func TestDecodeEncodeAmount(t *testing.T) {
 	if decodeAmount(nil).Sign() != 0 {

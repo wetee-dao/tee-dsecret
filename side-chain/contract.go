@@ -10,7 +10,7 @@ func (app *SideChain) ContractQuery(caller []byte, contract string, method strin
 	height := app.state.Height
 	txn := app.onGoingBlock
 
-	runtime := contracts.NewRuntime(height, txn, caller)
+	runtime := contracts.NewRuntime(height, txn, caller, app.dkg.DkgPubKey.Byte())
 
 	return contracts.Query(&model.ContractCall{
 		Contract: contract,
@@ -23,7 +23,7 @@ func (app *SideChain) ContractMutation(caller []byte, call *model.ContractCall) 
 	height := app.state.Height
 	txn := app.onGoingBlock
 
-	runtime := contracts.NewRuntime(height, txn, caller)
+	runtime := contracts.NewRuntime(height, txn, caller, app.dkg.DkgPubKey.Byte())
 	return contracts.Mutation(call, runtime)
 }
 
@@ -32,6 +32,6 @@ func (app *SideChain) ContractDryRun(caller []byte, call *model.ContractCall) er
 	txn := model.DBINS.NewTransaction()
 	defer txn.Rollback()
 
-	runtime := contracts.NewRuntime(height, txn, caller)
+	runtime := contracts.NewRuntime(height, txn, caller, app.dkg.DkgPubKey.Byte())
 	return contracts.Mutation(call, runtime)
 }

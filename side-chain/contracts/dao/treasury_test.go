@@ -12,16 +12,8 @@ func TestDaoMutation_Spend_NotMember(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init([]Member{}, false, []byte{1}, &track)
+	_ = m.Init()
+	rt.sudoAccount = []byte{1}
 
 	rt.caller = []byte{2}
 	err := m.Spend([]byte{3}, big.NewInt(100).Bytes(), 0)
@@ -34,17 +26,12 @@ func TestDaoMutation_Spend_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	err := m.Spend([]byte{3}, big.NewInt(100).Bytes(), 0)
@@ -63,17 +50,12 @@ func TestDaoMutation_Payout_NotGov(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.Spend([]byte{3}, big.NewInt(100).Bytes(), 0)
@@ -88,7 +70,8 @@ func TestDaoMutation_Payout_NotFound(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	_ = m.Init([]Member{}, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
 
 	rt.caller = sudo
 	err := m.Payout(999)
@@ -101,17 +84,12 @@ func TestDaoMutation_Payout_AlreadyExecuted(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.Spend([]byte{3}, big.NewInt(100).Bytes(), 0)
@@ -129,17 +107,12 @@ func TestDaoMutation_Payout_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.Spend([]byte{3}, big.NewInt(100).Bytes(), 0)

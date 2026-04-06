@@ -13,28 +13,25 @@ import (
 	"github.com/wetee-dao/tee-dsecret/side-chain/contracts/dao"
 )
 
+// testDBSubdir is the subdirectory where the test database is stored.
 const testDBSubdir = "chain_data/wetee"
 
 // testRuntime implements model.ContractApi against a single pebble transaction.
 type testRuntime struct {
-	height int64
-	caller []byte
-	txn    *model.Txn
+	height      int64
+	caller      []byte
+	txn         *model.Txn
+	sudoAccount []byte
 }
 
-func (r *testRuntime) GetHeight() int64   { return r.height }
-func (r *testRuntime) GetTxn() *model.Txn { return r.txn }
-func (r *testRuntime) GetCaller() []byte  { return r.caller }
+func (r *testRuntime) GetHeight() int64       { return r.height }
+func (r *testRuntime) GetTxn() *model.Txn     { return r.txn }
+func (r *testRuntime) GetCaller() []byte      { return r.caller }
+func (r *testRuntime) GetSudoAccount() []byte { return r.sudoAccount }
 
-func scaleBytes(t *testing.T, v any) []byte {
-	t.Helper()
-	b, err := codec.Encode(v)
-	require.NoError(t, err)
-	return b
-}
-
-// chdirTempDB opens model DB under t.TempDir() so tests do not touch the repo's chain_data.
-func chdirTempDB(t *testing.T) (cleanup func()) {
+// setupTestDB creates a temporary database for testing with an initialized runtime.
+// It returns a testRuntime with the database transaction set up.
+func setupTestDB(t *testing.T) (rt *testRuntime, cleanup func()) {
 	t.Helper()
 	tmp := t.TempDir()
 	oldWD, err := os.Getwd()
@@ -45,95 +42,92 @@ func chdirTempDB(t *testing.T) (cleanup func()) {
 	db, err := model.NewDB()
 	require.NoError(t, err)
 
-	return func() {
+	txn := db.NewTransaction()
+	rt = &testRuntime{txn: txn}
+
+	cleanup = func() {
+		_ = txn.Rollback()
 		_ = db.Close()
 		model.DBINS = nil
 		_ = os.Chdir(oldWD)
 	}
+	return rt, cleanup
+}
+
+// stubTxn satisfies model.ContractApi for error-path tests that never touch storage.
+type stubTxn struct{}
+
+func (stubTxn) GetHeight() int64       { return 0 }
+func (stubTxn) GetTxn() *model.Txn     { return nil }
+func (stubTxn) GetCaller() []byte      { return nil }
+func (stubTxn) GetSudoAccount() []byte { return nil }
+
+// fixedCaller extends stubTxn with a fixed caller and sudoAccount.
+type fixedCaller struct {
+	stubTxn
+	caller      []byte
+	sudoAccount []byte
+}
+
+func (f *fixedCaller) GetCaller() []byte      { return f.caller }
+func (f *fixedCaller) GetSudoAccount() []byte { return f.sudoAccount }
+
+func scaleBytes(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := codec.Encode(v)
+	require.NoError(t, err)
+	return b
 }
 
 func TestIntegration_InitAndQueryMembers(t *testing.T) {
-	defer chdirTempDB(t)()
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	gov := []byte{0x01, 0x02, 0x03}
-	members := []dao.Member{
-		{Account: []byte{0x0a}, Balance: big.NewInt(1000).Bytes()},
-	}
-	track := dao.TrackData{
-		Name:               "t",
-		PreparePeriod:      0,
-		MaxDeciding:        1000,
-		ConfirmPeriod:      1,
-		DecisionPeriod:     1,
-		MinEnactmentPeriod: 0,
-		DecisionDeposit:    big.NewInt(1).Bytes(),
-		MaxBalance:         big.NewInt(1_000_000).Bytes(),
-	}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	db := model.DBINS
-	txn := db.NewTransaction()
-	defer func() { _ = txn.Rollback() }()
-
-	rt := &testRuntime{height: 1, caller: gov, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 
-	args := [][]byte{
-		scaleBytes(t, members),
-		scaleBytes(t, true),
-		scaleBytes(t, gov),
-		scaleBytes(t, track),
-	}
+	// Init no longer takes arguments - it uses default values
 	err := mut.ExecCall(&model.ContractCall{
 		Contract: "dao",
 		Method:   "init",
-		Args:     args,
+		Args:     nil,
 	})
 	require.NoError(t, err)
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
+
+	// After init with no members, members list should be empty
 	raw, err := q.ExecQuery(&model.ContractCall{Method: "members", Args: nil})
 	require.NoError(t, err)
 	var out []dao.Member
 	require.NoError(t, codec.Decode(raw, &out))
-	require.Len(t, out, 1)
-	require.Equal(t, members[0].Account, out[0].Account)
-	require.Equal(t, 0, big.NewInt(1000).Cmp(new(big.Int).SetBytes(out[0].Balance)))
+	require.Len(t, out, 0)
 
+	// Total supply should be 0
 	ts, err := q.ExecQuery(&model.ContractCall{Method: "total_supply", Args: nil})
 	require.NoError(t, err)
 	var supply []byte
 	require.NoError(t, codec.Decode(ts, &supply))
-	require.Equal(t, 0, big.NewInt(1000).Cmp(new(big.Int).SetBytes(supply)))
-
-	bal, err := q.ExecQuery(&model.ContractCall{
-		Method: "balance_of",
-		Args:   [][]byte{scaleBytes(t, []byte{0x0a})},
-	})
-	require.NoError(t, err)
-	var b []byte
-	require.NoError(t, codec.Decode(bal, &b))
-	require.Equal(t, 0, big.NewInt(1000).Cmp(new(big.Int).SetBytes(b)))
+	require.Nil(t, supply)
 }
 
 func TestIntegration_PublicJoinDeniedWhenDisabled(t *testing.T) {
-	defer chdirTempDB(t)()
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	gov := []byte{0x01}
-	members := []dao.Member{{Account: gov, Balance: big.NewInt(10).Bytes()}}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	db := model.DBINS
-	txn := db.NewTransaction()
-	defer func() { _ = txn.Rollback() }()
-
-	rt := &testRuntime{height: 1, caller: gov, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	err := mut.ExecCall(&model.ContractCall{
 		Method: "init",
-		Args: [][]byte{
-			scaleBytes(t, members),
-			scaleBytes(t, false), // public join off
-			scaleBytes(t, gov),
-		},
+		Args:   nil,
 	})
 	require.NoError(t, err)
 
@@ -143,25 +137,19 @@ func TestIntegration_PublicJoinDeniedWhenDisabled(t *testing.T) {
 }
 
 func TestIntegration_JoinByGov(t *testing.T) {
-	defer chdirTempDB(t)()
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	gov := []byte{0x01}
 	bob := []byte{0x02}
-	members := []dao.Member{{Account: gov, Balance: big.NewInt(100).Bytes()}}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	db := model.DBINS
-	txn := db.NewTransaction()
-	defer func() { _ = txn.Rollback() }()
-
-	rt := &testRuntime{height: 1, caller: gov, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "init",
-		Args: [][]byte{
-			scaleBytes(t, members),
-			scaleBytes(t, false),
-			scaleBytes(t, gov),
-		},
+		Args:   nil,
 	}))
 
 	err := mut.ExecCall(&model.ContractCall{
@@ -185,31 +173,33 @@ func TestIntegration_JoinByGov(t *testing.T) {
 }
 
 func TestIntegration_TransferDisabledByDefault(t *testing.T) {
-	defer chdirTempDB(t)()
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	gov := []byte{0x01}
 	alice := []byte{0x0a}
 	bob := []byte{0x0b}
-	members := []dao.Member{
-		{Account: alice, Balance: big.NewInt(100).Bytes()},
-		{Account: bob, Balance: big.NewInt(10).Bytes()},
-	}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	db := model.DBINS
-	txn := db.NewTransaction()
-	defer func() { _ = txn.Rollback() }()
-
-	rt := &testRuntime{height: 1, caller: alice, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "init",
-		Args: [][]byte{
-			scaleBytes(t, members),
-			scaleBytes(t, false),
-			scaleBytes(t, gov),
-		},
+		Args:   nil,
 	}))
 
+	// Join alice and bob
+	require.NoError(t, mut.ExecCall(&model.ContractCall{
+		Method: "join",
+		Args:   [][]byte{scaleBytes(t, alice), scaleBytes(t, big.NewInt(100).Bytes())},
+	}))
+	require.NoError(t, mut.ExecCall(&model.ContractCall{
+		Method: "join",
+		Args:   [][]byte{scaleBytes(t, bob), scaleBytes(t, big.NewInt(10).Bytes())},
+	}))
+
+	rt.caller = alice
 	err := mut.ExecCall(&model.ContractCall{
 		Method: "transfer",
 		Args: [][]byte{
@@ -221,31 +211,24 @@ func TestIntegration_TransferDisabledByDefault(t *testing.T) {
 }
 
 func TestIntegration_CancelProposal(t *testing.T) {
-	defer chdirTempDB(t)()
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
 
 	gov := []byte{0x01}
-	members := []dao.Member{{Account: gov, Balance: big.NewInt(10_000).Bytes()}}
-	track := dao.TrackData{
-		Name:            "t",
-		MaxDeciding:     100,
-		DecisionDeposit: big.NewInt(1).Bytes(),
-		MaxBalance:      big.NewInt(5000).Bytes(),
-	}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	db := model.DBINS
-	txn := db.NewTransaction()
-	defer func() { _ = txn.Rollback() }()
-
-	rt := &testRuntime{height: 1, caller: gov, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "init",
-		Args: [][]byte{
-			scaleBytes(t, members),
-			scaleBytes(t, false),
-			scaleBytes(t, gov),
-			scaleBytes(t, track),
-		},
+		Args:   nil,
+	}))
+
+	// Join gov as member
+	require.NoError(t, mut.ExecCall(&model.ContractCall{
+		Method: "join",
+		Args:   [][]byte{scaleBytes(t, gov), scaleBytes(t, big.NewInt(10_000).Bytes())},
 	}))
 
 	call := dao.CallContent{Amount: big.NewInt(10).Bytes()}
@@ -276,47 +259,26 @@ func TestIntegration_CancelProposal(t *testing.T) {
 // daoWithGov creates a temporary DB-backed DAO with gov as the sole member and default track.
 func daoWithGov(t *testing.T) (*testRuntime, func()) {
 	t.Helper()
-	tmp := t.TempDir()
-	oldWD, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(tmp))
-	require.NoError(t, os.MkdirAll(testDBSubdir, 0o755))
-
-	db, err := model.NewDB()
-	require.NoError(t, err)
+	rt, cleanup := setupTestDB(t)
 
 	gov := []byte{0x01}
-	members := []dao.Member{{Account: gov, Balance: big.NewInt(10_000).Bytes()}}
-	track := dao.TrackData{
-		Name:               "gov_track",
-		PreparePeriod:      0,
-		MaxDeciding:        100,
-		ConfirmPeriod:      1,
-		DecisionPeriod:     100,
-		MinEnactmentPeriod: 0,
-		DecisionDeposit:    big.NewInt(1).Bytes(),
-		MaxBalance:         big.NewInt(1_000_000).Bytes(),
-	}
+	rt.height = 1
+	rt.caller = gov
+	rt.sudoAccount = gov
 
-	txn := db.NewTransaction()
-	rt := &testRuntime{height: 1, caller: gov, txn: txn}
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "init",
-		Args: [][]byte{
-			scaleBytes(t, members),
-			scaleBytes(t, false),
-			scaleBytes(t, gov),
-			scaleBytes(t, track),
-		},
+		Args:   nil,
 	}))
 
-	return rt, func() {
-		_ = txn.Rollback()
-		_ = db.Close()
-		model.DBINS = nil
-		_ = os.Chdir(oldWD)
-	}
+	// Join gov as member with balance
+	require.NoError(t, mut.ExecCall(&model.ContractCall{
+		Method: "join",
+		Args:   [][]byte{scaleBytes(t, gov), scaleBytes(t, big.NewInt(10_000).Bytes())},
+	}))
+
+	return rt, cleanup
 }
 
 // TestIntegration_SetPublicJoin covers SetPublicJoin and the query side GetPublicJoin.
@@ -1027,4 +989,80 @@ func TestIntegration_MembersQuery(t *testing.T) {
 	var lock []byte
 	require.NoError(t, codec.Decode(raw, &lock))
 	require.Equal(t, 0, big.NewInt(0).Cmp(new(big.Int).SetBytes(lock)))
+}
+
+func TestExecCall_MissingCaller(t *testing.T) {
+	m := dao.DaoMutation{DAO: *dao.NewDAO(stubTxn{})}
+	err := m.ExecCall(&model.ContractCall{Method: "init", Args: nil})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing caller")
+}
+
+func TestExecCall_UnknownMethod(t *testing.T) {
+	m := dao.DaoMutation{DAO: *dao.NewDAO(&fixedCaller{caller: []byte{1}})}
+	err := m.ExecCall(&model.ContractCall{Method: "no_such_method", Args: nil})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unknown method")
+}
+
+func TestExecQuery_EmptyMethod(t *testing.T) {
+	q := dao.DaoQuery{DAO: *dao.NewDAO(stubTxn{})}
+	_, err := q.ExecQuery(&model.ContractCall{Method: "", Args: nil})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "empty query method")
+}
+
+func TestExecQuery_UnknownMethod(t *testing.T) {
+	q := dao.DaoQuery{DAO: *dao.NewDAO(stubTxn{})}
+	_, err := q.ExecQuery(&model.ContractCall{Method: "no_such_query", Args: nil})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "unknown query method")
+}
+
+func TestExecCall_InitTooFewArgs(t *testing.T) {
+	m := dao.DaoMutation{DAO: *dao.NewDAO(&fixedCaller{caller: []byte{1}})}
+	err := m.ExecCall(&model.ContractCall{Method: "init", Args: [][]byte{}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "expects at least")
+}
+
+// TestExecCall_TableInsufficientArgs 覆盖所有需要参数的 mutation 在参数不足时的路由错误（不访问存储）。
+func TestExecCall_TableInsufficientArgs(t *testing.T) {
+	m := dao.DaoMutation{DAO: *dao.NewDAO(&fixedCaller{caller: []byte{1}})}
+	cases := []struct {
+		method string
+		args   [][]byte
+	}{
+		{"join", nil},
+		{"join", [][]byte{{1}}},
+		{"submit_proposal", nil},
+		{"submit_proposal", [][]byte{{1}}},
+		{"deposit_proposal", nil},
+		{"deposit_proposal", [][]byte{{1}}},
+		{"submit_vote", nil},
+		{"submit_vote", [][]byte{{1}, {1}}},
+		{"cancel_vote", nil},
+		{"unlock", nil},
+		{"exec_proposal", nil},
+		{"cancel_proposal", nil},
+		{"transfer", nil},
+		{"transfer", [][]byte{{1}}},
+		{"approve", nil},
+		{"approve", [][]byte{{1}}},
+		{"transfer_from", nil},
+		{"transfer_from", [][]byte{{1}, {2}}},
+		{"spend", nil},
+		{"spend", [][]byte{{1}, {2}}},
+		{"payout", nil},
+		{"set_public_join", nil},
+		{"add_track", nil},
+		{"set_default_track", nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method, func(t *testing.T) {
+			err := m.ExecCall(&model.ContractCall{Method: tc.method, Args: tc.args})
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "expects at least")
+		})
+	}
 }

@@ -61,12 +61,7 @@ func SubmitContractCall(caller []byte, contract, method string, args []string, s
 }
 
 // ContractQuery 只读查询
-func ContractQuery(callerStr, contract string, mut bool, method string, args []string) (string, error) {
-	caller, err := DecodeCaller(callerStr)
-	if err != nil {
-		return "", err
-	}
-
+func ContractDryRun(caller []byte, contract string, mut bool, method string, args []string) (string, error) {
 	argsBytes := make([][]byte, len(args))
 	for i, arg := range args {
 		argBytes, err := hex.DecodeString(arg)
@@ -76,6 +71,7 @@ func ContractQuery(callerStr, contract string, mut bool, method string, args []s
 		argsBytes[i] = argBytes
 	}
 
+	var err error
 	var out []byte
 	if !mut {
 		out, err = sideChain.ContractQuery(caller, contract, method, argsBytes)

@@ -167,6 +167,7 @@ type ContractApi interface {
 	GetHeight() int64
 	GetTxn() *Txn
 	GetCaller() []byte
+	GetSudoAccount() []byte
 }
 
 func RequireArgLen[T any](args []T, n int, method string) error {

@@ -24,5 +24,10 @@ func (r *mutationResolver) ContractCall(ctx context.Context, caller string, cont
 
 // ContractQuery is the resolver for the contractDryRun field.
 func (r *queryResolver) ContractDryRun(ctx context.Context, caller string, contract string, mut bool, method string, args []string) (string, error) {
-	return ContractQuery(caller, contract, mut, method, args)
+	callerBt, err := DecodeCaller(caller)
+	if err != nil {
+		return "", err
+	}
+
+	return ContractDryRun(callerBt, contract, mut, method, args)
 }

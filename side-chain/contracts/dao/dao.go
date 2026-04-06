@@ -53,7 +53,6 @@ type DAO struct {
 
 	members             *model.StoreMapping[[]byte, Member]    //keyPfx:member_
 	publicJoin          *model.StoreMapping[string, bool]      //keyPfx:public_join_
-	sudoAccount         *model.StoreMapping[string, []byte]    //keyPfx:sudo_
 	transferEnabled     *model.StoreMapping[string, bool]      //keyPfx:transfer_
 	totalIssuance       *model.StoreMapping[string, []byte]    //keyPfx:issuance_
 	defaultTrack        *model.StoreMapping[string, uint32]    //keyPfx:default_track_
@@ -78,28 +77,22 @@ type DaoMutation struct {
 	DAO
 }
 
-func (d DaoMutation) Init(initialMembers []Member, publicJoin bool, sudoAccount []byte, defaultTrack *TrackData) error {
-
+func (d DAO) Init() error {
 	total := big.NewInt(0)
-	for i := range initialMembers {
-		member := &initialMembers[i]
-		if len(member.Account) == 0 {
-			continue
-		}
-		if err := d.members.Set(d.api.GetTxn(), member.Account, *member); err != nil {
-			return err
-		}
-		total.Add(total, decodeAmount(member.Balance))
+	publicJoin := true
+	defaultTrack := TrackData{
+		Name:               "default",
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 0,
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 
 	if err := d.publicJoin.Set(d.api.GetTxn(), singletonKey, publicJoin); err != nil {
 		return err
-	}
-
-	if len(sudoAccount) > 0 {
-		if err := d.sudoAccount.Set(d.api.GetTxn(), singletonKey, cloneBytes(sudoAccount)); err != nil {
-			return err
-		}
 	}
 
 	if err := d.transferEnabled.Set(d.api.GetTxn(), singletonKey, false); err != nil {
@@ -126,16 +119,14 @@ func (d DaoMutation) Init(initialMembers []Member, publicJoin bool, sudoAccount 
 		return err
 	}
 
-	if defaultTrack != nil {
-		if err := d.tracks.Set(d.api.GetTxn(), 0, *defaultTrack); err != nil {
-			return err
-		}
-		if err := d.defaultTrack.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
-			return err
-		}
-		if err := d.nextTrackIDStore.Set(d.api.GetTxn(), singletonKey, 1); err != nil {
-			return err
-		}
+	if err := d.tracks.Set(d.api.GetTxn(), 0, defaultTrack); err != nil {
+		return err
+	}
+	if err := d.defaultTrack.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+		return err
+	}
+	if err := d.nextTrackIDStore.Set(d.api.GetTxn(), singletonKey, 1); err != nil {
+		return err
 	}
 
 	return nil

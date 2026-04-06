@@ -2,50 +2,10 @@ package dao
 
 import (
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
-
-const testDBSubdir = "chain_data/wetee"
-
-// testRuntime implements model.ContractApi for tests.
-type testRuntime struct {
-	height int64
-	caller []byte
-	txn    *model.Txn
-}
-
-func (r *testRuntime) GetHeight() int64   { return r.height }
-func (r *testRuntime) GetTxn() *model.Txn { return r.txn }
-func (r *testRuntime) GetCaller() []byte  { return r.caller }
-
-// setupTestDB creates a temporary database for testing.
-func setupTestDB(t *testing.T) (rt *testRuntime, cleanup func()) {
-	t.Helper()
-	tmp := t.TempDir()
-	oldWD, err := os.Getwd()
-	require.NoError(t, err)
-	require.NoError(t, os.Chdir(tmp))
-	require.NoError(t, os.MkdirAll(testDBSubdir, 0o755))
-
-	db, err := model.NewDB()
-	require.NoError(t, err)
-
-	txn := db.NewTransaction()
-	rt = &testRuntime{txn: txn}
-
-	cleanup = func() {
-		_ = txn.Rollback()
-		_ = db.Close()
-		model.DBINS = nil
-		_ = os.Chdir(oldWD)
-	}
-	return rt, cleanup
-}
 
 func TestDaoQuery_Members(t *testing.T) {
 	rt, cleanup := setupTestDB(t)
@@ -72,19 +32,10 @@ func TestDaoMutation_Init_Basic(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	members := []Member{
-		{Account: []byte{1}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{2}, Balance: big.NewInt(200).Bytes()},
-	}
-	err := m.Init(members, true, []byte{1}, nil)
+	err := m.Init()
 	require.NoError(t, err)
 
-	// Check total supply
-	supply, err := DaoQuery{DAO: m.DAO}.TotalSupply()
-	require.NoError(t, err)
-	require.Equal(t, 0, cmp(supply, big.NewInt(300).Bytes()))
-
-	// Check public join enabled
+	// Check public join enabled by default
 	enabled, err := DaoQuery{DAO: m.DAO}.GetPublicJoin()
 	require.NoError(t, err)
 	require.True(t, enabled)
@@ -95,16 +46,7 @@ func TestDaoMutation_Init_WithDefaultTrack(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   10,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	err := m.Init([]Member{}, false, []byte{1}, &track)
+	err := m.Init()
 	require.NoError(t, err)
 
 	// Check default track set
@@ -145,7 +87,8 @@ func TestDaoMutation_SetPublicJoin_ByGov(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	_ = m.Init([]Member{}, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
 
 	rt.caller = sudo
 	err := m.SetPublicJoin(true)
@@ -172,7 +115,8 @@ func TestDaoMutation_Join_ByGov(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	_ = m.Init([]Member{}, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
 
 	rt.caller = sudo
 	err := m.Join([]byte{2}, big.NewInt(100).Bytes())
@@ -190,10 +134,14 @@ func TestDaoMutation_Join_MemberExisted(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
 
+	// First join a member
 	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
+
+	// Try to join again
 	err := m.Join([]byte{2}, big.NewInt(50).Bytes())
 	require.ErrorIs(t, err, ErrMemberExisted)
 }
@@ -214,8 +162,12 @@ func TestDaoMutation_Leave_BalanceNotZero(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member with balance
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	err := m.Leave()
@@ -228,8 +180,12 @@ func TestDaoMutation_Leave_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: nil}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member with zero balance
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, nil)
 
 	rt.caller = []byte{2}
 	err := m.Leave()
@@ -246,7 +202,8 @@ func TestDaoMutation_PublicJoin_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	_ = m.Init([]Member{}, true, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
 
 	rt.caller = []byte{2}
 	err := m.PublicJoin()
@@ -272,8 +229,12 @@ func TestDaoMutation_Delete_ByGov(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	err := m.Delete([]byte{2})
 	require.NoError(t, err)
@@ -293,8 +254,12 @@ func TestDaoMutation_LeaveWithBurn_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	_ = m.Init(members, false, sudo, nil)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member with balance
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	err := m.LeaveWithBurn()

@@ -87,30 +87,7 @@ func (d DaoMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.ExecProposal(proposalID)
 	case [4]byte{0x53, 0xe3, 0x90, 0x03}:
-		if err := model.RequireArgLen(args, 3, method); err != nil {
-			return err
-		}
-		members, err := model.DecodeScaleArgBytes[[]Member](args[0])
-		if err != nil {
-			return fmt.Errorf("init: members: %w", err)
-		}
-		pub, err := model.DecodeScaleArgBytes[bool](args[1])
-		if err != nil {
-			return fmt.Errorf("init: publicJoin: %w", err)
-		}
-		sudo, err := model.DecodeScaleArgBytes[[]byte](args[2])
-		if err != nil {
-			return fmt.Errorf("init: sudoAccount: %w", err)
-		}
-		var dt *TrackData
-		if len(args) >= 4 {
-			t, err := model.DecodeScaleArgBytes[TrackData](args[3])
-			if err != nil {
-				return fmt.Errorf("init: defaultTrack: %w", err)
-			}
-			dt = &t
-		}
-		return m.Init(members, pub, sudo, dt)
+		return m.Init()
 	case [4]byte{0xc6, 0xc8, 0x3a, 0xf9}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
 			return err
@@ -406,7 +383,6 @@ func NewDAO(api model.ContractApi) *DAO {
 		api:                 api,
 		members:             &model.StoreMapping[[]byte, Member]{Namespace: "dao", KeyPrefix: "member_"},
 		publicJoin:          &model.StoreMapping[string, bool]{Namespace: "dao", KeyPrefix: "public_join_"},
-		sudoAccount:         &model.StoreMapping[string, []byte]{Namespace: "dao", KeyPrefix: "sudo_"},
 		transferEnabled:     &model.StoreMapping[string, bool]{Namespace: "dao", KeyPrefix: "transfer_"},
 		totalIssuance:       &model.StoreMapping[string, []byte]{Namespace: "dao", KeyPrefix: "issuance_"},
 		defaultTrack:        &model.StoreMapping[string, uint32]{Namespace: "dao", KeyPrefix: "default_track_"},

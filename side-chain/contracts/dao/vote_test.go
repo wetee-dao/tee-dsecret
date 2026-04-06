@@ -33,16 +33,8 @@ func TestDaoMutation_SubmitVote_NotMember(t *testing.T) {
 	defer cleanup()
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init([]Member{}, false, []byte{1}, &track)
+	_ = m.Init()
+	rt.sudoAccount = []byte{1}
 
 	rt.caller = []byte{2}
 	err := m.SubmitVote(0, true, big.NewInt(10).Bytes())
@@ -55,17 +47,12 @@ func TestDaoMutation_SubmitVote_ProposalNotOngoing(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -80,17 +67,12 @@ func TestDaoMutation_SubmitVote_LowBalance(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -107,17 +89,12 @@ func TestDaoMutation_SubmitVote_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -140,20 +117,13 @@ func TestDaoMutation_CancelVote_NotOwner(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{3}, Balance: big.NewInt(100).Bytes()},
-	}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{3}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -172,17 +142,12 @@ func TestDaoMutation_CancelVote_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -208,18 +173,12 @@ func TestDaoMutation_Unlock_AlreadyUnlocked(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:               "test",
-		PreparePeriod:      0,
-		MaxDeciding:        100,
-		ConfirmPeriod:      20,
-		DecisionPeriod:     30,
-		MinEnactmentPeriod: 10,
-		DecisionDeposit:    big.NewInt(50).Bytes(),
-		MaxBalance:         big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -240,18 +199,12 @@ func TestDaoMutation_Unlock_InvalidVoteStatus(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:               "test",
-		PreparePeriod:      0,
-		MaxDeciding:        100,
-		ConfirmPeriod:      20,
-		DecisionPeriod:     30,
-		MinEnactmentPeriod: 10,
-		DecisionDeposit:    big.NewInt(50).Bytes(),
-		MaxBalance:         big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -270,21 +223,13 @@ func TestDaoMutation_Unlock_InvalidUser(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{3}, Balance: big.NewInt(100).Bytes()},
-	}
-	track := TrackData{
-		Name:               "test",
-		PreparePeriod:      0,
-		MaxDeciding:        100,
-		ConfirmPeriod:      20,
-		DecisionPeriod:     30,
-		MinEnactmentPeriod: 10,
-		DecisionDeposit:    big.NewInt(50).Bytes(),
-		MaxBalance:         big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{3}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -303,18 +248,12 @@ func TestDaoMutation_Unlock_Success(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{{Account: []byte{2}, Balance: big.NewInt(100).Bytes()}}
-	track := TrackData{
-		Name:               "test",
-		PreparePeriod:      0,
-		MaxDeciding:        100,
-		ConfirmPeriod:      20,
-		DecisionPeriod:     30,
-		MinEnactmentPeriod: 10,
-		DecisionDeposit:    big.NewInt(50).Bytes(),
-		MaxBalance:         big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join a member
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
@@ -348,20 +287,13 @@ func TestDaoMutation_SubmitVote_MultipleVotes(t *testing.T) {
 
 	m := DaoMutation{DAO: *NewDAO(rt)}
 	sudo := []byte{1}
-	members := []Member{
-		{Account: []byte{2}, Balance: big.NewInt(100).Bytes()},
-		{Account: []byte{3}, Balance: big.NewInt(100).Bytes()},
-	}
-	track := TrackData{
-		Name:            "test",
-		PreparePeriod:   0,
-		MaxDeciding:     100,
-		ConfirmPeriod:   20,
-		DecisionPeriod:  30,
-		DecisionDeposit: big.NewInt(50).Bytes(),
-		MaxBalance:      big.NewInt(1000).Bytes(),
-	}
-	_ = m.Init(members, false, sudo, &track)
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	// Join members
+	rt.caller = sudo
+	_ = m.Join([]byte{2}, big.NewInt(100).Bytes())
+	_ = m.Join([]byte{3}, big.NewInt(100).Bytes())
 
 	rt.caller = []byte{2}
 	_ = m.SubmitProposal(CallContent{Amount: big.NewInt(10).Bytes()}, 0)
