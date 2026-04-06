@@ -2,6 +2,7 @@ package dao
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -75,4 +76,67 @@ type DaoQuery struct {
 
 type DaoMutation struct {
 	DAO
+}
+
+func (d DaoMutation) Init(initialMembers []Member, publicJoin bool, sudoAccount []byte, defaultTrack *TrackData) error {
+
+	total := big.NewInt(0)
+	for i := range initialMembers {
+		member := &initialMembers[i]
+		if len(member.Account) == 0 {
+			continue
+		}
+		if err := d.members.Set(d.api.GetTxn(), member.Account, *member); err != nil {
+			return err
+		}
+		total.Add(total, decodeAmount(member.Balance))
+	}
+
+	if err := d.publicJoin.Set(d.api.GetTxn(), singletonKey, publicJoin); err != nil {
+		return err
+	}
+
+	if len(sudoAccount) > 0 {
+		if err := d.sudoAccount.Set(d.api.GetTxn(), singletonKey, cloneBytes(sudoAccount)); err != nil {
+			return err
+		}
+	}
+
+	if err := d.transferEnabled.Set(d.api.GetTxn(), singletonKey, false); err != nil {
+		return err
+	}
+
+	if err := d.totalIssuance.Set(d.api.GetTxn(), singletonKey, encodeAmount(total)); err != nil {
+		return err
+	}
+
+	if err := d.nextProposalIDStore.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+		return err
+	}
+
+	if err := d.nextVoteIDStore.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+		return err
+	}
+
+	if err := d.nextSpendIDStore.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+		return err
+	}
+
+	if err := d.nextTrackIDStore.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+		return err
+	}
+
+	if defaultTrack != nil {
+		if err := d.tracks.Set(d.api.GetTxn(), 0, *defaultTrack); err != nil {
+			return err
+		}
+		if err := d.defaultTrack.Set(d.api.GetTxn(), singletonKey, 0); err != nil {
+			return err
+		}
+		if err := d.nextTrackIDStore.Set(d.api.GetTxn(), singletonKey, 1); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

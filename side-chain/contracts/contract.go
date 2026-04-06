@@ -9,10 +9,8 @@ import (
 	"github.com/wetee-dao/tee-dsecret/side-chain/contracts/dao"
 )
 
-// Pallet 是单个 pallet/合约的标准调用接口。
-type PalletCall interface {
-	// ApplyCall 在给定 txn 与区块高度下执行一次调用：caller 为发起方，payload 为合约自定义载荷。
-	ExecCall(tx *model.Tx, runtime model.ContractApi) error
+type Contract interface {
+	Init()
 }
 
 func Query(call *model.ContractCall, runtime model.ContractApi) ([]byte, error) {

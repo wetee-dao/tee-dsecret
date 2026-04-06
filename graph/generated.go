@@ -61,10 +61,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		ContractQuery func(childComplexity int, caller string, contract string, method string, args []string) int
-		SecretRsa     func(childComplexity int) int
-		TeeReport     func(childComplexity int, hash string) int
-		Validators    func(childComplexity int) int
+		ContractDryRun func(childComplexity int, caller string, contract string, mut bool, method string, args []string) int
+		SecretRsa      func(childComplexity int) int
+		TeeReport      func(childComplexity int, hash string) int
+		Validators     func(childComplexity int) int
 	}
 
 	SecretEnv struct {
@@ -86,7 +86,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Validators(ctx context.Context) ([]string, error)
-	ContractQuery(ctx context.Context, caller string, contract string, method string, args []string) (string, error)
+	ContractDryRun(ctx context.Context, caller string, contract string, mut bool, method string, args []string) (string, error)
 	TeeReport(ctx context.Context, hash string) (string, error)
 	SecretRsa(ctx context.Context) (string, error)
 }
@@ -167,17 +167,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UploadSecret(childComplexity, args["index"].(string), args["secret"].(string), args["hash"].(string), args["user"].(string)), true
 
-	case "Query.contractQuery":
-		if e.complexity.Query.ContractQuery == nil {
+	case "Query.contractDryRun":
+		if e.complexity.Query.ContractDryRun == nil {
 			break
 		}
 
-		args, err := ec.field_Query_contractQuery_args(ctx, rawArgs)
+		args, err := ec.field_Query_contractDryRun_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.ContractQuery(childComplexity, args["caller"].(string), args["contract"].(string), args["method"].(string), args["args"].([]string)), true
+		return e.complexity.Query.ContractDryRun(childComplexity, args["caller"].(string), args["contract"].(string), args["mut"].(bool), args["method"].(string), args["args"].([]string)), true
 
 	case "Query.secret_rsa":
 		if e.complexity.Query.SecretRsa == nil {
@@ -683,32 +683,37 @@ func (ec *executionContext) field_Query___type_argsName(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_contractQuery_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_contractDryRun_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Query_contractQuery_argsCaller(ctx, rawArgs)
+	arg0, err := ec.field_Query_contractDryRun_argsCaller(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["caller"] = arg0
-	arg1, err := ec.field_Query_contractQuery_argsContract(ctx, rawArgs)
+	arg1, err := ec.field_Query_contractDryRun_argsContract(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["contract"] = arg1
-	arg2, err := ec.field_Query_contractQuery_argsMethod(ctx, rawArgs)
+	arg2, err := ec.field_Query_contractDryRun_argsMut(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["method"] = arg2
-	arg3, err := ec.field_Query_contractQuery_argsArgs(ctx, rawArgs)
+	args["mut"] = arg2
+	arg3, err := ec.field_Query_contractDryRun_argsMethod(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["args"] = arg3
+	args["method"] = arg3
+	arg4, err := ec.field_Query_contractDryRun_argsArgs(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["args"] = arg4
 	return args, nil
 }
-func (ec *executionContext) field_Query_contractQuery_argsCaller(
+func (ec *executionContext) field_Query_contractDryRun_argsCaller(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -726,7 +731,7 @@ func (ec *executionContext) field_Query_contractQuery_argsCaller(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_contractQuery_argsContract(
+func (ec *executionContext) field_Query_contractDryRun_argsContract(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -744,7 +749,25 @@ func (ec *executionContext) field_Query_contractQuery_argsContract(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_contractQuery_argsMethod(
+func (ec *executionContext) field_Query_contractDryRun_argsMut(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (bool, error) {
+	if _, ok := rawArgs["mut"]; !ok {
+		var zeroVal bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("mut"))
+	if tmp, ok := rawArgs["mut"]; ok {
+		return ec.unmarshalNBoolean2bool(ctx, tmp)
+	}
+
+	var zeroVal bool
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_contractDryRun_argsMethod(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -762,7 +785,7 @@ func (ec *executionContext) field_Query_contractQuery_argsMethod(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Query_contractQuery_argsArgs(
+func (ec *executionContext) field_Query_contractDryRun_argsArgs(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) ([]string, error) {
@@ -1323,8 +1346,8 @@ func (ec *executionContext) fieldContext_Query_validators(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_contractQuery(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_contractQuery(ctx, field)
+func (ec *executionContext) _Query_contractDryRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_contractDryRun(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1337,7 +1360,7 @@ func (ec *executionContext) _Query_contractQuery(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ContractQuery(rctx, fc.Args["caller"].(string), fc.Args["contract"].(string), fc.Args["method"].(string), fc.Args["args"].([]string))
+		return ec.resolvers.Query().ContractDryRun(rctx, fc.Args["caller"].(string), fc.Args["contract"].(string), fc.Args["mut"].(bool), fc.Args["method"].(string), fc.Args["args"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1354,7 +1377,7 @@ func (ec *executionContext) _Query_contractQuery(ctx context.Context, field grap
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_contractQuery(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_contractDryRun(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -1371,7 +1394,7 @@ func (ec *executionContext) fieldContext_Query_contractQuery(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_contractQuery_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_contractDryRun_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3950,7 +3973,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "contractQuery":
+		case "contractDryRun":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -3959,7 +3982,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_contractQuery(ctx, field)
+				res = ec._Query_contractDryRun(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

@@ -289,13 +289,13 @@ func daoWithGov(t *testing.T) (*testRuntime, func()) {
 	members := []dao.Member{{Account: gov, Balance: big.NewInt(10_000).Bytes()}}
 	track := dao.TrackData{
 		Name:               "gov_track",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      100,
-		MinEnactmentPeriod:  0,
-		DecisionDeposit:     big.NewInt(1).Bytes(),
-		MaxBalance:          big.NewInt(1_000_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 0,
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 
 	txn := db.NewTransaction()
@@ -319,13 +319,13 @@ func daoWithGov(t *testing.T) (*testRuntime, func()) {
 	}
 }
 
-// TestIntegration_SetPublicJoin covers SetPublicJoin and the query side PublicJoin.
+// TestIntegration_SetPublicJoin covers SetPublicJoin and the query side GetPublicJoin.
 func TestIntegration_SetPublicJoin(t *testing.T) {
 	rt, cleanup := daoWithGov(t)
 	defer cleanup()
 
 	q := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
-	raw, err := q.ExecQuery(&model.ContractCall{Method: "public_join", Args: nil})
+	raw, err := q.ExecQuery(&model.ContractCall{Method: "get_public_join", Args: nil})
 	require.NoError(t, err)
 	var pj bool
 	require.NoError(t, codec.Decode(raw, &pj))
@@ -337,7 +337,7 @@ func TestIntegration_SetPublicJoin(t *testing.T) {
 		Method: "set_public_join",
 		Args:   [][]byte{scaleBytes(t, true)},
 	}))
-	raw, err = q.ExecQuery(&model.ContractCall{Method: "public_join", Args: nil})
+	raw, err = q.ExecQuery(&model.ContractCall{Method: "get_public_join", Args: nil})
 	require.NoError(t, err)
 	require.NoError(t, codec.Decode(raw, &pj))
 	require.True(t, pj)
@@ -436,13 +436,13 @@ func TestIntegration_AddTrack(t *testing.T) {
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	newTrack := dao.TrackData{
 		Name:               "new_track",
-		PreparePeriod:       0,
-		MaxDeciding:         50,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      50,
-		MinEnactmentPeriod:  0,
-		DecisionDeposit:     big.NewInt(2).Bytes(),
-		MaxBalance:          big.NewInt(500_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        50,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     50,
+		MinEnactmentPeriod: 0,
+		DecisionDeposit:    big.NewInt(2).Bytes(),
+		MaxBalance:         big.NewInt(500_000).Bytes(),
 	}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "add_track",
@@ -484,15 +484,15 @@ func TestIntegration_SetDefaultTrack(t *testing.T) {
 	mut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	require.NoError(t, mut.ExecCall(&model.ContractCall{
 		Method: "add_track",
-		Args:   [][]byte{scaleBytes(t, dao.TrackData{
+		Args: [][]byte{scaleBytes(t, dao.TrackData{
 			Name:               "t2",
-			PreparePeriod:       0,
-			MaxDeciding:         10,
-			ConfirmPeriod:       1,
-			DecisionPeriod:      10,
-			MinEnactmentPeriod:  0,
-			DecisionDeposit:     big.NewInt(5).Bytes(),
-			MaxBalance:          big.NewInt(100_000).Bytes(),
+			PreparePeriod:      0,
+			MaxDeciding:        10,
+			ConfirmPeriod:      1,
+			DecisionPeriod:     10,
+			MinEnactmentPeriod: 0,
+			DecisionDeposit:    big.NewInt(5).Bytes(),
+			MaxBalance:         big.NewInt(100_000).Bytes(),
 		})},
 	}))
 
@@ -591,13 +591,13 @@ func TestIntegration_Unlock(t *testing.T) {
 	daoQ := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	track := dao.TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      100,
-		MinEnactmentPeriod:  1, // UnlockBlock=1, unlock at height >= end+1
-		DecisionDeposit:     big.NewInt(1).Bytes(),
-		MaxBalance:          big.NewInt(1_000_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 1, // UnlockBlock=1, unlock at height >= end+1
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 	require.NoError(t, daoMut.AddTrack(track))
 
@@ -628,13 +628,13 @@ func TestIntegration_Unlock_FailsIfAlreadyUnlocked(t *testing.T) {
 	daoQ := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	track := dao.TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      100,
-		MinEnactmentPeriod:  1, // UnlockBlock=1
-		DecisionDeposit:     big.NewInt(1).Bytes(),
-		MaxBalance:          big.NewInt(1_000_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 1, // UnlockBlock=1
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 	require.NoError(t, daoMut.AddTrack(track))
 
@@ -704,13 +704,13 @@ func TestIntegration_ExecProposal(t *testing.T) {
 	daoQ := dao.DaoQuery{DAO: *dao.NewDAO(rt)}
 	track := dao.TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      100,
-		MinEnactmentPeriod:  0,
-		DecisionDeposit:     big.NewInt(1).Bytes(),
-		MaxBalance:          big.NewInt(1_000_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 0,
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 	require.NoError(t, daoMut.AddTrack(track))
 
@@ -739,13 +739,13 @@ func TestIntegration_ExecProposal_NotConfirmed(t *testing.T) {
 	daoMut := dao.DaoMutation{DAO: *dao.NewDAO(rt)}
 	track := dao.TrackData{
 		Name:               "test",
-		PreparePeriod:       0,
-		MaxDeciding:         100,
-		ConfirmPeriod:       1,
-		DecisionPeriod:      100,
-		MinEnactmentPeriod:  0,
-		DecisionDeposit:     big.NewInt(1).Bytes(),
-		MaxBalance:          big.NewInt(1_000_000).Bytes(),
+		PreparePeriod:      0,
+		MaxDeciding:        100,
+		ConfirmPeriod:      1,
+		DecisionPeriod:     100,
+		MinEnactmentPeriod: 0,
+		DecisionDeposit:    big.NewInt(1).Bytes(),
+		MaxBalance:         big.NewInt(1_000_000).Bytes(),
 	}
 	require.NoError(t, daoMut.AddTrack(track))
 

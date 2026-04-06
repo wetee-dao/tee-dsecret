@@ -5,11 +5,13 @@ extend type Query {
   按合约查询，返回 base64(SCALE 编码结果)。
   dao：method 为查询方法名；args 每项为 hex(0x 可选)，内容为对应参数的 SCALE 编码字节（与 DecodeScaleArg 一致）。
   """
-  contractQuery(
+  contractDryRun(
     """ 调用方地址（32 字节 hex 或 SS58）"""
     caller: String!
     """ 合约名，如 dao """
     contract: String!
+    """ 是否是操作函数 """
+    mut: Boolean!
     """ dao：方法名，如 members、total_supply、balance_of """
     method: String!
     """ 每项 hex(SCALE(单参))，顺序与链上 ExecuteQuery 一致 """

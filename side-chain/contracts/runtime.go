@@ -28,8 +28,3 @@ func (r Runtime) GetTxn() *model.Txn {
 func (r Runtime) GetCaller() []byte {
 	return r.caller
 }
-
-type Contrtact struct {
-	Method string
-	Args   [][]byte
-}

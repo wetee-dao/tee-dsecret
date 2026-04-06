@@ -212,8 +212,16 @@ func DecodeScaleArgBytes[T any](s []byte) (T, error) {
 // 1. 十六进制字符串（如 "0x1d623327" 或 "1d623327"）→ 直接解析
 // 2. 普通字符串（如 "add_track"）→ 计算 blake2b 哈希取前 4 字节
 // 注意：普通字符串默认使用 mutates=true，因为无法从字符串判断是 mutation 还是 query
-// 如果需要区分，客户端应直接传入十六进制 selector
+// 如果需要区分，请使用 MethodToSelectorWithMutates 或直接传入十六进制 selector
 func MethodToSelector(method string) [4]byte {
+	return MethodToSelectorWithMutates(method, true)
+}
+
+// MethodToSelectorWithMutates 将 method 字符串转换为 4 字节 selector，可指定 mutates 参数
+// 支持两种格式：
+// 1. 十六进制字符串（如 "0x1d623327" 或 "1d623327"）→ 直接解析，忽略 mutates 参数
+// 2. 普通字符串（如 "add_track"）→ 计算 blake2b 哈希取前 4 字节，使用指定的 mutates 值
+func MethodToSelectorWithMutates(method string, mutates bool) [4]byte {
 	// 尝试解析十六进制格式
 	s := strings.TrimPrefix(method, "0x")
 	if len(s) == 8 {
@@ -221,9 +229,9 @@ func MethodToSelector(method string) [4]byte {
 			return [4]byte(b)
 		}
 	}
-	// 计算 blake2b 哈希（默认 mutates=true）
+	// 计算 blake2b 哈希
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "wetee/contractgen/v1:%s:mutates=true", method)
+	fmt.Fprintf(&buf, "wetee/contractgen/v1:%s:mutates=%v", method, mutates)
 	h := blake2b.Sum256([]byte(buf.String()))
 	var sel [4]byte
 	copy(sel[:], h[:4])

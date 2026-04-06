@@ -62,7 +62,7 @@ func TestDaoQuery_PublicJoin_Default(t *testing.T) {
 	defer cleanup()
 
 	d := DaoQuery{DAO: *NewDAO(rt)}
-	enabled, err := d.PublicJoin()
+	enabled, err := d.GetPublicJoin()
 	require.NoError(t, err)
 	require.False(t, enabled)
 }
@@ -85,7 +85,7 @@ func TestDaoMutation_Init_Basic(t *testing.T) {
 	require.Equal(t, 0, cmp(supply, big.NewInt(300).Bytes()))
 
 	// Check public join enabled
-	enabled, err := DaoQuery{DAO: m.DAO}.PublicJoin()
+	enabled, err := DaoQuery{DAO: m.DAO}.GetPublicJoin()
 	require.NoError(t, err)
 	require.True(t, enabled)
 }
@@ -151,7 +151,7 @@ func TestDaoMutation_SetPublicJoin_ByGov(t *testing.T) {
 	err := m.SetPublicJoin(true)
 	require.NoError(t, err)
 
-	enabled, err := DaoQuery{DAO: m.DAO}.PublicJoin()
+	enabled, err := DaoQuery{DAO: m.DAO}.GetPublicJoin()
 	require.NoError(t, err)
 	require.True(t, enabled)
 }

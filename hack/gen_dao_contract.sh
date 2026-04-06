@@ -7,4 +7,5 @@ exec go run ./tools/contractgen \
   -out ./side-chain/contracts/dao/dao_gen.go \
   -mutation DaoMutation \
   -query DaoQuery \
+  -struct DAO \
   -skip-mutation Delete

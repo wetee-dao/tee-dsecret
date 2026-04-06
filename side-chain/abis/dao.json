@@ -356,6 +356,21 @@
         "selector": "0x3e44340e"
       },
       {
+        "args": [],
+        "default": false,
+        "docs": [],
+        "label": "get_public_join",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 14
+        },
+        "selector": "0x76f20724"
+      },
+      {
         "args": [
           {
             "docs": [],
@@ -615,21 +630,6 @@
           "type": 15
         },
         "selector": "0x6d6f0772"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [],
-        "label": "public_join",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "Result"
-          ],
-          "type": 14
-        },
-        "selector": "0x1c8d0496"
       },
       {
         "args": [

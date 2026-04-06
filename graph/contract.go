@@ -24,7 +24,7 @@ func DecodeCaller(s string) ([]byte, error) {
 	return pub.Byte(), nil
 }
 
-// SubmitContractCall 提交合约调用。dao：args 每项为 hex(SCALE(单参))；链上 Tx.contract 的 Args 为 json.Marshal(args)。
+// SubmitContractCall 提交合约调用
 func SubmitContractCall(caller []byte, contract, method string, args []string, signatureType uint32, signature string) error {
 	argsBytes := make([][]byte, len(args))
 	for i, arg := range args {
@@ -60,16 +60,35 @@ func SubmitContractCall(caller []byte, contract, method string, args []string, s
 	return err
 }
 
-// ContractQuery 只读查询。dao：args 每项为 hex(SCALE(单参))；返回 base64(SCALE 查询结果)。
-func ContractQuery(callerStr, contract, method string, args []string) (string, error) {
+// ContractQuery 只读查询
+func ContractQuery(callerStr, contract string, mut bool, method string, args []string) (string, error) {
 	caller, err := DecodeCaller(callerStr)
 	if err != nil {
 		return "", err
 	}
 
-	out, err := sideChain.ContractQuery(caller, contract, method, args)
-	if err != nil {
-		return "", err
+	argsBytes := make([][]byte, len(args))
+	for i, arg := range args {
+		argBytes, err := hex.DecodeString(arg)
+		if err != nil {
+			return "", fmt.Errorf("dao: decode arg: %w", err)
+		}
+		argsBytes[i] = argBytes
 	}
+
+	var out []byte
+	if !mut {
+		out, err = sideChain.ContractQuery(caller, contract, method, argsBytes)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err = sideChain.ContractDryRun(caller, &model.ContractCall{
+			Contract: contract,
+			Method:   method,
+			Args:     argsBytes,
+		})
+	}
+
 	return base64.StdEncoding.EncodeToString(out), nil
 }

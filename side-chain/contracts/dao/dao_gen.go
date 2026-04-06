@@ -257,7 +257,7 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 	args := call.Args
 	method := call.Method
 	// 将 method 转换为 selector 进行匹配
-	methodSel := model.MethodToSelector(method)
+	methodSel := model.MethodToSelectorWithMutates(method, false)
 	switch methodSel {
 	case [4]byte{0x1d, 0x62, 0x33, 0x27}:
 		if err := model.RequireArgLen(args, 2, method); err != nil {
@@ -291,6 +291,12 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		return codec.Encode(out)
 	case [4]byte{0x36, 0x26, 0xe9, 0xbf}:
 		out, err := q.DefaultTrack()
+		if err != nil {
+			return nil, err
+		}
+		return codec.Encode(out)
+	case [4]byte{0x76, 0xf2, 0x07, 0x24}:
+		out, err := q.GetPublicJoin()
 		if err != nil {
 			return nil, err
 		}
@@ -342,12 +348,6 @@ func (q DaoQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		return codec.Encode(out)
 	case [4]byte{0xfe, 0x26, 0xfd, 0x17}:
 		out, err := q.Proposals()
-		if err != nil {
-			return nil, err
-		}
-		return codec.Encode(out)
-	case [4]byte{0x1c, 0x8d, 0x04, 0x96}:
-		out, err := q.PublicJoin()
 		if err != nil {
 			return nil, err
 		}
