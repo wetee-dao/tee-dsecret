@@ -2,52 +2,55 @@
 // 历史 JSON 辅助。链上 dao 调用已改为 Tx.contract（SCALE: method + args），请使用
 // github.com/centrifuge/go-substrate-rpc-client/v4/types/codec 与各 method 参数结构编码。
 
-package dao
+package gov
 
 import "encoding/json"
 
 // Payload 为旧版 JSON 形态。
 type Payload struct {
-  Op string `json:"op"`
-  InitialMembers []MemberInput `json:"initial_members,omitempty"`
-  PublicJoin     *bool   `json:"public_join,omitempty"`
-  SudoAccount    []byte  `json:"sudo_account,omitempty"`
-  DefaultTrack   *TrackInput `json:"default_track,omitempty"`
-  NewUser        []byte  `json:"new_user,omitempty"`
-  Balance        string  `json:"balance,omitempty"` // u128 十进制
-  ProposalId     uint32  `json:"proposal_id,omitempty"`
-  TrackId        uint32  `json:"track_id,omitempty"`
-  Call           *CallInput `json:"call,omitempty"`
-  Amount         string  `json:"amount,omitempty"`
-  OpinionYes     bool    `json:"opinion_yes,omitempty"`
-  LockAmount     string  `json:"lock_amount,omitempty"`
-  VoteId         uint64  `json:"vote_id,omitempty"`
-  To             []byte  `json:"to,omitempty"`
-  Value          string  `json:"value,omitempty"`
-  Spender        []byte  `json:"spender,omitempty"`
-  From           []byte  `json:"from,omitempty"`
-  SpendId        uint64  `json:"spend_id,omitempty"`
-  Track          *TrackInput `json:"track,omitempty"`
+	Op             string        `json:"op"`
+	InitialMembers []MemberInput `json:"initial_members,omitempty"`
+	PublicJoin     *bool         `json:"public_join,omitempty"`
+	SudoAccount    []byte        `json:"sudo_account,omitempty"`
+	DefaultTrack   *TrackInput   `json:"default_track,omitempty"`
+	NewUser        []byte        `json:"new_user,omitempty"`
+	Balance        string        `json:"balance,omitempty"` // u128 十进制
+	ProposalId     uint32        `json:"proposal_id,omitempty"`
+	TrackId        uint32        `json:"track_id,omitempty"`
+	Call           *CallInput    `json:"call,omitempty"`
+	Amount         string        `json:"amount,omitempty"`
+	OpinionYes     bool          `json:"opinion_yes,omitempty"`
+	LockAmount     string        `json:"lock_amount,omitempty"`
+	VoteId         uint64        `json:"vote_id,omitempty"`
+	To             []byte        `json:"to,omitempty"`
+	Value          string        `json:"value,omitempty"`
+	Spender        []byte        `json:"spender,omitempty"`
+	From           []byte        `json:"from,omitempty"`
+	SpendId        uint64        `json:"spend_id,omitempty"`
+	Track          *TrackInput   `json:"track,omitempty"`
 }
 
-type MemberInput struct { Account []byte `json:"account"`; Balance string `json:"balance"` }
+type MemberInput struct {
+	Account []byte `json:"account"`
+	Balance string `json:"balance"`
+}
 type TrackInput struct {
-  Name string `json:"name"`
-  PreparePeriod uint32 `json:"prepare_period"`
-  MaxDeciding   uint32 `json:"max_deciding"`
-  ConfirmPeriod uint32 `json:"confirm_period"`
-  DecisionPeriod uint32 `json:"decision_period"`
-  MinEnactmentPeriod uint32 `json:"min_enactment_period"`
-  DecisionDeposit string `json:"decision_deposit"`
-  MaxBalance     string `json:"max_balance"`
+	Name               string `json:"name"`
+	PreparePeriod      uint32 `json:"prepare_period"`
+	MaxDeciding        uint32 `json:"max_deciding"`
+	ConfirmPeriod      uint32 `json:"confirm_period"`
+	DecisionPeriod     uint32 `json:"decision_period"`
+	MinEnactmentPeriod uint32 `json:"min_enactment_period"`
+	DecisionDeposit    string `json:"decision_deposit"`
+	MaxBalance         string `json:"max_balance"`
 }
 type CallInput struct {
-  Contract []byte `json:"contract,omitempty"`
-  Selector []byte `json:"selector,omitempty"`
-  Input    []byte `json:"input,omitempty"`
-  Amount   string `json:"amount,omitempty"`
-  RefTimeLimit uint64 `json:"ref_time_limit,omitempty"`
-  AllowReentry bool   `json:"allow_reentry,omitempty"`
+	Contract     []byte `json:"contract,omitempty"`
+	Selector     []byte `json:"selector,omitempty"`
+	Input        []byte `json:"input,omitempty"`
+	Amount       string `json:"amount,omitempty"`
+	RefTimeLimit uint64 `json:"ref_time_limit,omitempty"`
+	AllowReentry bool   `json:"allow_reentry,omitempty"`
 }
 
 // MustPayload 将 p 序列化为 JSON，用于 dao_call(caller, payload)。
@@ -66,7 +69,10 @@ func PayloadDaoCancelProposal(p Payload) string { p.Op = "dao_cancel_proposal"; 
 func PayloadDaoCancelVote(p Payload) string { p.Op = "dao_cancel_vote"; return MustPayload(p) }
 
 // PayloadDaoDepositProposal 构建 op dao_deposit_proposal 的 payload，返回 JSON 字符串。
-func PayloadDaoDepositProposal(p Payload) string { p.Op = "dao_deposit_proposal"; return MustPayload(p) }
+func PayloadDaoDepositProposal(p Payload) string {
+	p.Op = "dao_deposit_proposal"
+	return MustPayload(p)
+}
 
 // PayloadDaoExecProposal 构建 op dao_exec_proposal 的 payload，返回 JSON 字符串。
 func PayloadDaoExecProposal(p Payload) string { p.Op = "dao_exec_proposal"; return MustPayload(p) }
@@ -90,7 +96,10 @@ func PayloadDaoPayout(p Payload) string { p.Op = "dao_payout"; return MustPayloa
 func PayloadDaoPublicJoin(p Payload) string { p.Op = "dao_public_join"; return MustPayload(p) }
 
 // PayloadDaoSetDefaultTrack 构建 op dao_set_default_track 的 payload，返回 JSON 字符串。
-func PayloadDaoSetDefaultTrack(p Payload) string { p.Op = "dao_set_default_track"; return MustPayload(p) }
+func PayloadDaoSetDefaultTrack(p Payload) string {
+	p.Op = "dao_set_default_track"
+	return MustPayload(p)
+}
 
 // PayloadDaoSetPublicJoin 构建 op dao_set_public_join 的 payload，返回 JSON 字符串。
 func PayloadDaoSetPublicJoin(p Payload) string { p.Op = "dao_set_public_join"; return MustPayload(p) }
@@ -112,4 +121,3 @@ func PayloadDaoTransferFrom(p Payload) string { p.Op = "dao_transfer_from"; retu
 
 // PayloadDaoUnlock 构建 op dao_unlock 的 payload，返回 JSON 字符串。
 func PayloadDaoUnlock(p Payload) string { p.Op = "dao_unlock"; return MustPayload(p) }
-

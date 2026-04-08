@@ -50,8 +50,8 @@ func pickSelectorInkBytes(abiLabel string, mutates bool) [4]byte {
 }
 
 // writeABI 在内存中构建 ink metadata v6 并写入 -abi-out。
-func writeABI(outPath, contractName string, mutMethods, qMethods []*methodSig) error {
-	root, err := buildInkRoot(contractName, mutMethods, qMethods)
+func writeABI(outPath, contractName string, mutMethods, qMethods []*methodSig, errVariants []errorVariant, structTypes map[string]structType) error {
+	root, err := buildInkRoot(contractName, mutMethods, qMethods, errVariants, structTypes)
 	if err != nil {
 		return err
 	}

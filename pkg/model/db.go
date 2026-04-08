@@ -78,7 +78,7 @@ func GetCodec[T any](namespace, key string) (*T, error) {
 	bt, err := GetKey(namespace, key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
-			return new(T), nil
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -86,6 +86,18 @@ func GetCodec[T any](namespace, key string) (*T, error) {
 	val := new(T)
 	err = codec.Decode(bt, val)
 	return val, err
+}
+
+func GetCodecOrDefault[T any](namespace, key string, defaultVal T) (T, error) {
+	val, err := GetCodec[T](namespace, key)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	if val == nil {
+		return defaultVal, nil
+	}
+	return *val, nil
 }
 
 func GetKey(namespace, key string) ([]byte, error) {

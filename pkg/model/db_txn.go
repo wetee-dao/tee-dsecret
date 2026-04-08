@@ -47,25 +47,29 @@ func (txn *Txn) Get(key []byte) ([]byte, error) {
 	return util.Unseal(v, nil)
 }
 
-func (txn *Txn) ListByPrefix(prefix []byte) ([][]byte, error) {
+func (txn *Txn) ListByPrefix(prefix []byte) ([][]byte, [][]byte, error) {
 	iter, err := txn.in.NewIter(&pebble.IterOptions{
 		LowerBound: prefix,
 		UpperBound: keyUpperBound(prefix),
 	})
+
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer iter.Close()
 
+	var keys [][]byte
 	var list [][]byte
 	for iter.First(); iter.Valid(); iter.Next() {
+		key := iter.Key()
 		v := iter.Value()
 		buf := make([]byte, len(v))
 		copy(buf, v)
 		list = append(list, buf)
+		keys = append(keys, key)
 	}
 
-	return list, nil
+	return keys, list, nil
 }
 
 func (txn *Txn) Delete(key []byte) error {
@@ -188,6 +192,9 @@ func TxnSetCodec[T any](txn *Txn, namespace, key string, val T) error {
 func TxnGetCodec[T any](txn *Txn, namespace, key string) (*T, error) {
 	bt, err := txn.Get([]byte(comboKey(namespace, key)))
 	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

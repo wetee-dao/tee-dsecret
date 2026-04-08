@@ -105,7 +105,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 				return nil, errors.Wrap(err, "decode contract call")
 			}
 
-			err = app.ContractMutation(tx.GetCaller(), call)
+			err = app.ContractMutation(tx.GetCaller(), tx.GetCallerType(), call)
 			if err != nil {
 				return nil, errors.Wrap(err, "contract mutation")
 			}

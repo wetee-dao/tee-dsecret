@@ -12,17 +12,20 @@ func (app *SideChain) checkTx(txbt []byte) uint32 {
 	txbox := new(model.TxBox)
 	err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
 	if err != nil {
+		fmt.Println("checkTx protoio.ReadMessage TxBox error")
 		return CodeTypeEncodingError
 	}
 
 	innerTx := new(model.Tx)
 	err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), innerTx)
 	if err != nil {
+		fmt.Println("checkTx protoio.ReadMessage Tx error")
 		return CodeTypeEncodingError
 	}
 
 	// 验证交易签名
 	if err := model.VerifyTxSigner(innerTx); err != nil {
+		fmt.Println("checkTx VerifyTxSigner error")
 		return CodeTypeInvalidTxFormat
 	}
 

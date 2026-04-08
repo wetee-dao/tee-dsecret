@@ -54,7 +54,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		ContractCall       func(childComplexity int, caller string, contract string, method string, args []string, signatureType int, signature string) int
+		ContractCall       func(childComplexity int, caller string, callerType int, contract string, method string, args []string, signature string) int
 		InitDiskKey        func(childComplexity int, index string, user string) int
 		StartEpoch         func(childComplexity int) int
 		SystemContractInit func(childComplexity int, contract string) int
@@ -62,7 +62,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		ContractDryRun func(childComplexity int, caller string, contract string, mut bool, method string, args []string) int
+		ContractDryRun func(childComplexity int, caller string, callerType int, contract string, mut bool, method string, args []string) int
 		SecretRsa      func(childComplexity int) int
 		TeeReport      func(childComplexity int, hash string) int
 		Validators     func(childComplexity int) int
@@ -82,13 +82,13 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	StartEpoch(ctx context.Context) (bool, error)
 	SystemContractInit(ctx context.Context, contract string) (bool, error)
-	ContractCall(ctx context.Context, caller string, contract string, method string, args []string, signatureType int, signature string) (bool, error)
+	ContractCall(ctx context.Context, caller string, callerType int, contract string, method string, args []string, signature string) (bool, error)
 	UploadSecret(ctx context.Context, index string, secret string, hash string, user string) (bool, error)
 	InitDiskKey(ctx context.Context, index string, user string) (bool, error)
 }
 type QueryResolver interface {
 	Validators(ctx context.Context) ([]string, error)
-	ContractDryRun(ctx context.Context, caller string, contract string, mut bool, method string, args []string) (string, error)
+	ContractDryRun(ctx context.Context, caller string, callerType int, contract string, mut bool, method string, args []string) (string, error)
 	TeeReport(ctx context.Context, hash string) (string, error)
 	SecretRsa(ctx context.Context) (string, error)
 }
@@ -136,7 +136,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ContractCall(childComplexity, args["caller"].(string), args["contract"].(string), args["method"].(string), args["args"].([]string), args["signatureType"].(int), args["signature"].(string)), true
+		return e.complexity.Mutation.ContractCall(childComplexity, args["caller"].(string), args["callerType"].(int), args["contract"].(string), args["method"].(string), args["args"].([]string), args["signature"].(string)), true
 
 	case "Mutation.init_disk_key":
 		if e.complexity.Mutation.InitDiskKey == nil {
@@ -191,7 +191,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.ContractDryRun(childComplexity, args["caller"].(string), args["contract"].(string), args["mut"].(bool), args["method"].(string), args["args"].([]string)), true
+		return e.complexity.Query.ContractDryRun(childComplexity, args["caller"].(string), args["callerType"].(int), args["contract"].(string), args["mut"].(bool), args["method"].(string), args["args"].([]string)), true
 
 	case "Query.secret_rsa":
 		if e.complexity.Query.SecretRsa == nil {
@@ -386,26 +386,26 @@ func (ec *executionContext) field_Mutation_contractCall_args(ctx context.Context
 		return nil, err
 	}
 	args["caller"] = arg0
-	arg1, err := ec.field_Mutation_contractCall_argsContract(ctx, rawArgs)
+	arg1, err := ec.field_Mutation_contractCall_argsCallerType(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["contract"] = arg1
-	arg2, err := ec.field_Mutation_contractCall_argsMethod(ctx, rawArgs)
+	args["callerType"] = arg1
+	arg2, err := ec.field_Mutation_contractCall_argsContract(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["method"] = arg2
-	arg3, err := ec.field_Mutation_contractCall_argsArgs(ctx, rawArgs)
+	args["contract"] = arg2
+	arg3, err := ec.field_Mutation_contractCall_argsMethod(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["args"] = arg3
-	arg4, err := ec.field_Mutation_contractCall_argsSignatureType(ctx, rawArgs)
+	args["method"] = arg3
+	arg4, err := ec.field_Mutation_contractCall_argsArgs(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["signatureType"] = arg4
+	args["args"] = arg4
 	arg5, err := ec.field_Mutation_contractCall_argsSignature(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -428,6 +428,24 @@ func (ec *executionContext) field_Mutation_contractCall_argsCaller(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_contractCall_argsCallerType(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (int, error) {
+	if _, ok := rawArgs["callerType"]; !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("callerType"))
+	if tmp, ok := rawArgs["callerType"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
 	return zeroVal, nil
 }
 
@@ -482,24 +500,6 @@ func (ec *executionContext) field_Mutation_contractCall_argsArgs(
 	}
 
 	var zeroVal []string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_contractCall_argsSignatureType(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (int, error) {
-	if _, ok := rawArgs["signatureType"]; !ok {
-		var zeroVal int
-		return zeroVal, nil
-	}
-
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("signatureType"))
-	if tmp, ok := rawArgs["signatureType"]; ok {
-		return ec.unmarshalNInt2int(ctx, tmp)
-	}
-
-	var zeroVal int
 	return zeroVal, nil
 }
 
@@ -733,26 +733,31 @@ func (ec *executionContext) field_Query_contractDryRun_args(ctx context.Context,
 		return nil, err
 	}
 	args["caller"] = arg0
-	arg1, err := ec.field_Query_contractDryRun_argsContract(ctx, rawArgs)
+	arg1, err := ec.field_Query_contractDryRun_argsCallerType(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["contract"] = arg1
-	arg2, err := ec.field_Query_contractDryRun_argsMut(ctx, rawArgs)
+	args["callerType"] = arg1
+	arg2, err := ec.field_Query_contractDryRun_argsContract(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["mut"] = arg2
-	arg3, err := ec.field_Query_contractDryRun_argsMethod(ctx, rawArgs)
+	args["contract"] = arg2
+	arg3, err := ec.field_Query_contractDryRun_argsMut(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["method"] = arg3
-	arg4, err := ec.field_Query_contractDryRun_argsArgs(ctx, rawArgs)
+	args["mut"] = arg3
+	arg4, err := ec.field_Query_contractDryRun_argsMethod(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["args"] = arg4
+	args["method"] = arg4
+	arg5, err := ec.field_Query_contractDryRun_argsArgs(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["args"] = arg5
 	return args, nil
 }
 func (ec *executionContext) field_Query_contractDryRun_argsCaller(
@@ -770,6 +775,24 @@ func (ec *executionContext) field_Query_contractDryRun_argsCaller(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_contractDryRun_argsCallerType(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (int, error) {
+	if _, ok := rawArgs["callerType"]; !ok {
+		var zeroVal int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("callerType"))
+	if tmp, ok := rawArgs["callerType"]; ok {
+		return ec.unmarshalNInt2int(ctx, tmp)
+	}
+
+	var zeroVal int
 	return zeroVal, nil
 }
 
@@ -1248,7 +1271,7 @@ func (ec *executionContext) _Mutation_contractCall(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ContractCall(rctx, fc.Args["caller"].(string), fc.Args["contract"].(string), fc.Args["method"].(string), fc.Args["args"].([]string), fc.Args["signatureType"].(int), fc.Args["signature"].(string))
+		return ec.resolvers.Mutation().ContractCall(rctx, fc.Args["caller"].(string), fc.Args["callerType"].(int), fc.Args["contract"].(string), fc.Args["method"].(string), fc.Args["args"].([]string), fc.Args["signature"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1457,7 +1480,7 @@ func (ec *executionContext) _Query_contractDryRun(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ContractDryRun(rctx, fc.Args["caller"].(string), fc.Args["contract"].(string), fc.Args["mut"].(bool), fc.Args["method"].(string), fc.Args["args"].([]string))
+		return ec.resolvers.Query().ContractDryRun(rctx, fc.Args["caller"].(string), fc.Args["callerType"].(int), fc.Args["contract"].(string), fc.Args["mut"].(bool), fc.Args["method"].(string), fc.Args["args"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

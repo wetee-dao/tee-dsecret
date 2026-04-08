@@ -1,5 +1,4 @@
 # get shell path
-set -euo pipefail
 SOURCE="$0"
 while [ -h "$SOURCE"  ]; do
     DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"

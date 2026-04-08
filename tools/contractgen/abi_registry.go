@@ -7,48 +7,168 @@ import (
 	"strings"
 )
 
-// inkRegistry 在内存中构建 ink metadata v6 的 types 数组：先注册与历史模板一致的 0–46，
-// 再追加 DAO 合约用到的复合类型与 Result<T, LangError>，不依赖任何外部 JSON 模板文件。
+// inkRegistry 在内存中构建 ink metadata v6 的 types 数组，按需注册类型。
 type inkRegistry struct {
 	types         []map[string]any
-	resultQLang   map[int]int // inner type id -> Result<T, LangError> type id（含预置 14/16/33）
-	optCallID     int
-	propStatusID  int
-	propDepositID int
-	proposalID    int
-	voteID        int
-	optU32ID      int
-	optVoteID     int
-	optProposalID int
-	optPropStatID int
-	vecTrackID    int
-	vecProposalID int
-	vecVoteID     int
+	resultQLang   map[int]int           // inner type id -> Result<T, LangError> type id
+	goTypeToID    map[string]int        // Go 类型名 -> type id 映射
+	langErrorID   int                   // LangError 类型的 ID
+	errorID       int                   // 合约 Error 类型的 ID
+	addressID     int                   // Address 类型的 ID
+	u256ID        int                   // U256 类型的 ID
+	messageResID  int                   // MessageResult 类型的 ID
+	balanceID     int                   // Balance 类型的 ID
+	blockNumberID int                   // BlockNumber 类型的 ID
+	hashID        int                   // Hash 类型的 ID
+	errVariants   []errorVariant        // 合约错误变体
+	structTypes   map[string]structType // 结构体类型定义
 }
 
-func newInkRegistry() *inkRegistry {
-	r := &inkRegistry{resultQLang: make(map[int]int)}
-	b := &inkBuilder{}
-	registerInkV6BaseTypes(b)
-	r.types = b.types
-	// 预置与旧模板一致的查询返回 Result 类型
-	r.resultQLang[6] = 14  // bool
-	r.resultQLang[3] = 16  // U256
-	r.resultQLang[32] = 33 // Option<Track>
-	r.registerDAOComposites()
+// newInkRegistry 创建 registry 并初始化基础类型
+func newInkRegistry(errVariants []errorVariant, structTypes map[string]structType) *inkRegistry {
+	r := &inkRegistry{
+		resultQLang: make(map[int]int),
+		goTypeToID:  make(map[string]int),
+		errVariants: errVariants,
+		structTypes: structTypes,
+	}
+
+	// 按固定顺序注册基础类型（与 ink metadata v6 兼容）
+	// ID 0-6: 原语类型
+	primitiveOrder := []string{"u8", "u16", "u32", "u64", "i64", "u128", "bool"}
+	for _, name := range primitiveOrder {
+		id := r.appendType(typeDefs[name])
+		r.goTypeToID[name] = id
+	}
+
+	// ID 7: U256（用于 model.Amount）
+	r.u256ID = r.appendType(typeDefs["U256"])
+	r.goTypeToID["U256"] = r.u256ID
+	r.goTypeToID["model.Amount"] = r.u256ID
+
+	// ID 8: LangError（ink 框架错误）
+	r.langErrorID = r.appendType(typeDefs["LangError"])
+
+	// ID 9: Error（合约错误）- 动态生成
+	r.errorID = r.appendType(r.buildErrorType())
+
+	// ID 10: MessageResult（mutation 返回类型）
+	r.messageResID = r.appendType(r.buildMessageResultType())
+
+	// ID 11: Address（model.UniAddr）
+	r.addressID = r.appendType(r.buildUniAddrType())
+	r.goTypeToID["model.UniAddr"] = r.addressID
+
+	// 注册更多类型将按需动态添加
 	return r
 }
 
-type inkBuilder struct {
-	types []map[string]any
+// buildUniAddrType 构建 UniAddr 类型定义
+// UniAddr { T uint32, V []byte }
+func (r *inkRegistry) buildUniAddrType() map[string]any {
+	u32ID := r.goTypeToID["u32"]
+	bytesID := r.ensureBytes()
+	return map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{
+				"fields": []any{
+					map[string]any{"name": "T", "type": u32ID},
+					map[string]any{"name": "V", "type": bytesID},
+				},
+			},
+		},
+		"path": []any{"UniAddr"},
+	}
 }
 
-func (b *inkBuilder) addID(id int, typ map[string]any) int {
-	if id != len(b.types) {
-		panic(fmt.Sprintf("inkBuilder: expected id %d, have %d entries", id, len(b.types)))
+// buildErrorType 构建 Error 类型定义
+func (r *inkRegistry) buildErrorType() map[string]any {
+	variants := make([]any, len(r.errVariants))
+	for i, v := range r.errVariants {
+		variants[i] = map[string]any{
+			"fields": []any{},
+			"index":  v.index,
+			"name":   v.name,
+		}
 	}
-	b.types = append(b.types, map[string]any{"id": id, "type": typ})
+	return map[string]any{
+		"def": map[string]any{
+			"variant": map[string]any{
+				"variants": variants,
+			},
+		},
+		"path": []any{"Error"},
+	}
+}
+
+// buildMessageResultType 构建 MessageResult 类型定义
+func (r *inkRegistry) buildMessageResultType() map[string]any {
+	return map[string]any{
+		"def": map[string]any{
+			"variant": map[string]any{
+				"variants": []any{
+					map[string]any{"index": 0, "name": "Ok"},
+					map[string]any{
+						"fields": []any{map[string]any{"type": r.errorID}},
+						"index":  1,
+						"name":   "Err",
+					},
+				},
+			},
+		},
+		"params": []any{
+			map[string]any{"name": "T"},
+			map[string]any{"name": "E", "type": r.errorID},
+		},
+		"path": []any{"ink", "MessageResult"},
+	}
+}
+
+// buildAddressType 构建 Address 类型定义
+func (r *inkRegistry) buildAddressType() map[string]any {
+	return map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{
+				"fields": []any{
+					map[string]any{"name": "T", "type": r.goTypeToID["u8"]},
+					map[string]any{"name": "V", "type": r.ensureBytes()},
+				},
+			},
+		},
+		"path": []any{"AccountId"},
+	}
+}
+
+// ensureBytes 确保 Bytes 类型存在
+func (r *inkRegistry) ensureBytes() int {
+	if id, ok := r.goTypeToID["Bytes"]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"sequence": map[string]any{
+				"type": r.goTypeToID["u8"],
+			},
+		},
+		"path": []any{"Bytes"},
+	})
+	r.goTypeToID["Bytes"] = id
 	return id
+}
+
+// typeDef 类型定义
+var typeDefs = map[string]map[string]any{
+	// 原语类型
+	"u8":   mustJSONType(`{"def":{"primitive":"u8"}}`),
+	"u16":  mustJSONType(`{"def":{"primitive":"u16"}}`),
+	"u32":  mustJSONType(`{"def":{"primitive":"u32"}}`),
+	"u64":  mustJSONType(`{"def":{"primitive":"u64"}}`),
+	"i64":  mustJSONType(`{"def":{"primitive":"i64"}}`),
+	"u128": mustJSONType(`{"def":{"primitive":"u128"}}`),
+	"bool": mustJSONType(`{"def":{"primitive":"bool"}}`),
+	// 复合类型
+	"U256":      mustJSONType(`{"def":{"composite":{}},"path":["U256"]}`),
+	"LangError": mustJSONType(`{"def":{"variant":{"variants":[{"index":1,"name":"CouldNotReadInput"}]}},"path":["ink_primitives","LangError"]}`),
 }
 
 func mustJSONType(s string) map[string]any {
@@ -57,57 +177,6 @@ func mustJSONType(s string) map[string]any {
 		panic(err)
 	}
 	return m
-}
-
-// registerInkV6BaseTypes 注册 ink v6 基础类型 0–46（与既有链上 metadata 环境字段引用一致；类型体由代码拼装，不读外部文件）。
-func registerInkV6BaseTypes(b *inkBuilder) {
-	_ = b.addID(0, mustJSONType(`{"def":{"primitive":"u8"}}`))
-	_ = b.addID(1, mustJSONType(`{"def":{"array":{"len":20,"type":0}}}`))
-	_ = b.addID(2, mustJSONType(`{"def":{"composite":{"fields":[{"type":1,"typeName":"[u8; 20]"}]}},"path":["primitive_types","H160"]}`))
-	_ = b.addID(3, mustJSONType(`{"def":{"composite":{}},"path":["U256"]}`))
-	_ = b.addID(4, mustJSONType(`{"def":{"tuple":[2,3]}}`))
-	_ = b.addID(5, mustJSONType(`{"def":{"sequence":{"type":4}}}`))
-	_ = b.addID(6, mustJSONType(`{"def":{"primitive":"bool"}}`))
-	_ = b.addID(7, mustJSONType(`{"def":{"variant":{"variants":[{"index":0,"name":"None"},{"fields":[{"type":2}],"index":1,"name":"Some"}]}},"params":[{"name":"T","type":2}],"path":["Option"]}`))
-	_ = b.addID(8, mustJSONType(`{"def":{"tuple":[]}}`))
-	_ = b.addID(9, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[],"index":0,"name":"TokenNotFound"},{"fields":[],"index":1,"name":"MemberExisted"},{"fields":[],"index":2,"name":"MemberNotExisted"},{"fields":[],"index":3,"name":"MemberBalanceNotZero"},{"fields":[],"index":4,"name":"PublicJoinNotAllowed"},{"fields":[],"index":5,"name":"LowBalance"},{"fields":[],"index":6,"name":"InsufficientAllowance"},{"fields":[],"index":7,"name":"CallFailed"},{"fields":[],"index":8,"name":"InvalidDeposit"},{"fields":[],"index":9,"name":"TransferFailed"},{"fields":[],"index":10,"name":"MustCallByGov"},{"fields":[],"index":11,"name":"PropNotOngoing"},{"fields":[],"index":12,"name":"PropNotEnd"},{"fields":[],"index":13,"name":"InvalidProposal"},{"fields":[],"index":14,"name":"InvalidProposalStatus"},{"fields":[],"index":15,"name":"InvalidProposalCaller"},{"fields":[],"index":16,"name":"InvalidDepositTime"},{"fields":[],"index":17,"name":"InvalidVoteTime"},{"fields":[],"index":18,"name":"InvalidVoteStatus"},{"fields":[],"index":19,"name":"InvalidVoteUser"},{"fields":[],"index":20,"name":"ProposalInDecision"},{"fields":[],"index":21,"name":"VoteAlreadyUnlocked"},{"fields":[],"index":22,"name":"InvalidVoteUnlockTime"},{"fields":[],"index":23,"name":"ProposalNotConfirmed"},{"fields":[],"index":24,"name":"NoTrack"},{"fields":[],"index":25,"name":"MaxBalanceOverflow"},{"fields":[],"index":26,"name":"TransferDisable"},{"fields":[],"index":27,"name":"InvalidVote"},{"fields":[],"index":28,"name":"SetCodeFailed"},{"fields":[],"index":29,"name":"SpendNotFound"},{"fields":[],"index":30,"name":"SpendAlreadyExecuted"},{"fields":[],"index":31,"name":"SpendTransferError"}]}},"path":["Error"]}`))
-	_ = b.addID(10, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":8}],"index":0,"name":"Ok"},{"fields":[{"type":9}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":8},{"name":"E","type":9}],"path":["Result"]}`))
-	_ = b.addID(11, mustJSONType(`{"def":{"sequence":{"type":2}}}`))
-	_ = b.addID(12, mustJSONType(`{"def":{"variant":{"variants":[{"index":1,"name":"CouldNotReadInput"}]}},"path":["ink_primitives","LangError"]}`))
-	_ = b.addID(13, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":11}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":11},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(14, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":6}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":6},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(15, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":10}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":10},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(16, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":3}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":3},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(17, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":7}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":7},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(18, mustJSONType(`{"def":{"array":{"len":4,"type":0}},"path":["Selector"]}`))
-	_ = b.addID(19, mustJSONType(`{"def":{"sequence":{"type":0}}}`))
-	_ = b.addID(20, mustJSONType(`{"def":{"primitive":"u64"}}`))
-	_ = b.addID(21, mustJSONType(`{"def":{"composite":{"fields":[{"name":"contract","type":7,"typeName":"Option<Address>"},{"name":"selector","type":18,"typeName":"Selector"},{"name":"input","type":19,"typeName":"Vec<u8>"},{"name":"amount","type":3,"typeName":"U256"},{"name":"ref_time_limit","type":20,"typeName":"u64"},{"name":"allow_reentry","type":6,"typeName":"bool"}]}},"path":["Call"]}`))
-	_ = b.addID(22, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":19}],"index":0,"name":"Ok"},{"fields":[{"type":9}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":19},{"name":"E","type":9}],"path":["Result"]}`))
-	_ = b.addID(23, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":22}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":22},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(24, mustJSONType(`{"def":{"primitive":"u16"}}`))
-	_ = b.addID(25, mustJSONType(`{"def":{"variant":{"variants":[{"index":0,"name":"None"},{"fields":[{"type":24}],"index":1,"name":"Some"}]}},"params":[{"name":"T","type":24}],"path":["Option"]}`))
-	_ = b.addID(26, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":25}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":25},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(27, mustJSONType(`{"def":{"primitive":"u32"},"path":["BlockNumber"]}`))
-	_ = b.addID(28, mustJSONType(`{"def":{"primitive":"u32"}}`))
-	_ = b.addID(29, mustJSONType(`{"def":{"primitive":"i64"}}`))
-	_ = b.addID(30, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":28,"typeName":"u32"},{"type":28,"typeName":"u32"},{"type":27,"typeName":"BlockNumber"}],"index":0,"name":"LinearDecreasing"},{"fields":[{"type":28,"typeName":"u32"},{"type":28,"typeName":"u32"},{"type":28,"typeName":"u32"},{"type":27,"typeName":"BlockNumber"}],"index":1,"name":"SteppedDecreasing"},{"fields":[{"type":28,"typeName":"u32"},{"type":28,"typeName":"u32"},{"type":29,"typeName":"i64"},{"type":29,"typeName":"i64"}],"index":2,"name":"Reciprocal"}]}},"path":["Curve"]}`))
-	_ = b.addID(31, mustJSONType(`{"def":{"composite":{"fields":[{"name":"name","type":19,"typeName":"Vec<u8>"},{"name":"prepare_period","type":27,"typeName":"BlockNumber"},{"name":"decision_deposit","type":3,"typeName":"U256"},{"name":"max_deciding","type":27,"typeName":"BlockNumber"},{"name":"confirm_period","type":27,"typeName":"BlockNumber"},{"name":"decision_period","type":27,"typeName":"BlockNumber"},{"name":"min_enactment_period","type":27,"typeName":"BlockNumber"},{"name":"max_balance","type":3,"typeName":"U256"},{"name":"min_approval","type":30,"typeName":"Curve"},{"name":"min_support","type":30,"typeName":"Curve"}]}},"path":["Track"]}`))
-	_ = b.addID(32, mustJSONType(`{"def":{"variant":{"variants":[{"index":0,"name":"None"},{"fields":[{"type":31}],"index":1,"name":"Some"}]}},"params":[{"name":"T","type":31}],"path":["Option"]}`))
-	_ = b.addID(33, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":32}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":32},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(34, mustJSONType(`{"def":{"tuple":[24,31]}}`))
-	_ = b.addID(35, mustJSONType(`{"def":{"sequence":{"type":34}}}`))
-	_ = b.addID(36, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":35}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":35},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(37, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":24}],"index":0,"name":"Ok"},{"fields":[{"type":9}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":24},{"name":"E","type":9}],"path":["Result"]}`))
-	_ = b.addID(38, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":37}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":37},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(39, mustJSONType(`{"def":{"variant":{"variants":[{"index":0,"name":"None"},{"fields":[{"type":18}],"index":1,"name":"Some"}]}},"params":[{"name":"T","type":18}],"path":["Option"]}`))
-	_ = b.addID(40, mustJSONType(`{"def":{"composite":{"fields":[{"name":"name","type":19,"typeName":"Vec<u8>"},{"name":"symbol","type":19,"typeName":"Vec<u8>"},{"name":"decimals","type":0,"typeName":"u8"}]}},"path":["TokenInfo"]}`))
-	_ = b.addID(41, mustJSONType(`{"def":{"variant":{"variants":[{"index":0,"name":"None"},{"fields":[{"type":40}],"index":1,"name":"Some"}]}},"params":[{"name":"T","type":40}],"path":["Option"]}`))
-	_ = b.addID(42, mustJSONType(`{"def":{"variant":{"variants":[{"fields":[{"type":41}],"index":0,"name":"Ok"},{"fields":[{"type":12}],"index":1,"name":"Err"}]}},"params":[{"name":"T","type":41},{"name":"E","type":12}],"path":["Result"]}`))
-	_ = b.addID(43, mustJSONType(`{"def":{"composite":{}},"path":["H256"]}`))
-	_ = b.addID(44, mustJSONType(`{"def":{"primitive":"u128"}}`))
-	_ = b.addID(45, mustJSONType(`{"def":{"array":{"len":32,"type":0}}}`))
-	_ = b.addID(46, mustJSONType(`{"def":{"composite":{"fields":[{"type":45,"typeName":"[u8; 32]"}]}},"path":["ink_primitives","types","Hash"]}`))
 }
 
 func (r *inkRegistry) appendType(typ map[string]any) int {
@@ -139,187 +208,217 @@ func (r *inkRegistry) ensureResultQueryLang(inner int) int {
 	if id, ok := r.resultQLang[inner]; ok {
 		return id
 	}
-	id := r.appendType(r.resultVariantLang(inner, 12))
+	id := r.appendType(r.resultVariantLang(inner, r.langErrorID))
 	r.resultQLang[inner] = id
 	return id
 }
 
-// registerDAOComposites 追加 side-chain/contracts/dao/types.go 中提案/投票等复合类型（与 SCALE 字段顺序一致）。
-func (r *inkRegistry) registerDAOComposites() {
-	// Option<Call> — Call 为 id 21
-	r.optCallID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"variant": map[string]any{
-				"variants": []any{
-					map[string]any{"index": 0, "name": "None"},
-					map[string]any{"fields": []any{map[string]any{"type": 21}}, "index": 1, "name": "Some"},
-				},
-			},
-		},
-		"params": []any{map[string]any{"name": "T", "type": 21}},
-		"path":   []any{"Option"},
-	})
-	// ProposalStatus: ProposalState 编码为 Vec<u8>，Block 为 i64
-	r.propStatusID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"composite": map[string]any{
-				"fields": []any{
-					map[string]any{"name": "state", "type": 19, "typeName": "Vec<u8>"},
-					map[string]any{"name": "block", "type": 29, "typeName": "i64"},
-				},
-			},
-		},
-		"path": []any{"ProposalStatus"},
-	})
-	r.propDepositID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"composite": map[string]any{
-				"fields": []any{
-					map[string]any{"name": "depositor", "type": 2, "typeName": "Address"},
-					map[string]any{"name": "amount", "type": 3, "typeName": "U256"},
-					map[string]any{"name": "block", "type": 29, "typeName": "i64"},
-				},
-			},
-		},
-		"path": []any{"ProposalDeposit"},
-	})
-	r.proposalID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"composite": map[string]any{
-				"fields": []any{
-					map[string]any{"name": "id", "type": 28, "typeName": "u32"},
-					map[string]any{"name": "call", "type": r.optCallID, "typeName": "Option<Call>"},
-					map[string]any{"name": "track_id", "type": 28, "typeName": "u32"},
-					map[string]any{"name": "caller", "type": 2, "typeName": "Address"},
-					map[string]any{"name": "status", "type": r.propStatusID, "typeName": "ProposalStatus"},
-					map[string]any{"name": "submit_block", "type": 29, "typeName": "i64"},
-					map[string]any{"name": "decision_block", "type": 29, "typeName": "i64"},
-					map[string]any{"name": "deposit", "type": r.propDepositID, "typeName": "ProposalDeposit"},
-				},
-			},
-		},
-		"path": []any{"Proposal"},
-	})
-	r.voteID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"composite": map[string]any{
-				"fields": []any{
-					map[string]any{"name": "id", "type": 20, "typeName": "u64"},
-					map[string]any{"name": "proposal_id", "type": 28, "typeName": "u32"},
-					map[string]any{"name": "caller", "type": 2, "typeName": "Address"},
-					map[string]any{"name": "pledge", "type": 3, "typeName": "U256"},
-					map[string]any{"name": "opinion_yes", "type": 6, "typeName": "bool"},
-					map[string]any{"name": "vote_weight", "type": 3, "typeName": "U256"},
-					map[string]any{"name": "unlock_block", "type": 29, "typeName": "i64"},
-					map[string]any{"name": "vote_block", "type": 29, "typeName": "i64"},
-					map[string]any{"name": "deleted", "type": 6, "typeName": "bool"},
-				},
-			},
-		},
-		"path": []any{"Vote"},
-	})
-	// Option<u32> — DefaultTrack *uint32
-	r.optU32ID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"variant": map[string]any{
-				"variants": []any{
-					map[string]any{"index": 0, "name": "None"},
-					map[string]any{"fields": []any{map[string]any{"type": 28}}, "index": 1, "name": "Some"},
-				},
-			},
-		},
-		"params": []any{map[string]any{"name": "T", "type": 28}},
-		"path":   []any{"Option"},
-	})
-	r.optVoteID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"variant": map[string]any{
-				"variants": []any{
-					map[string]any{"index": 0, "name": "None"},
-					map[string]any{"fields": []any{map[string]any{"type": r.voteID}}, "index": 1, "name": "Some"},
-				},
-			},
-		},
-		"params": []any{map[string]any{"name": "T", "type": r.voteID}},
-		"path":   []any{"Option"},
-	})
-	r.optProposalID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"variant": map[string]any{
-				"variants": []any{
-					map[string]any{"index": 0, "name": "None"},
-					map[string]any{"fields": []any{map[string]any{"type": r.proposalID}}, "index": 1, "name": "Some"},
-				},
-			},
-		},
-		"params": []any{map[string]any{"name": "T", "type": r.proposalID}},
-		"path":   []any{"Option"},
-	})
-	r.optPropStatID = r.appendType(map[string]any{
-		"def": map[string]any{
-			"variant": map[string]any{
-				"variants": []any{
-					map[string]any{"index": 0, "name": "None"},
-					map[string]any{"fields": []any{map[string]any{"type": r.propStatusID}}, "index": 1, "name": "Some"},
-				},
-			},
-		},
-		"params": []any{map[string]any{"name": "T", "type": r.propStatusID}},
-		"path":   []any{"Option"},
-	})
-	r.vecTrackID = r.appendType(map[string]any{"def": map[string]any{"sequence": map[string]any{"type": 31}}})
-	r.vecProposalID = r.appendType(map[string]any{"def": map[string]any{"sequence": map[string]any{"type": r.proposalID}}})
-	r.vecVoteID = r.appendType(map[string]any{"def": map[string]any{"sequence": map[string]any{"type": r.voteID}}})
-}
-
 func (r *inkRegistry) ensureInnerQueryReturn(goType string) (int, error) {
 	goType = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(goType), "*"))
-	// 查询返回 []byte 视为 U256（余额等），与参数里的 Address 区分
-	if goType == "[]byte" {
-		return 3, nil
+
+	// 检查缓存
+	if id, ok := r.goTypeToID[goType]; ok {
+		return id, nil
 	}
+
 	kind, inner := parseGoTypeRoot(goType)
 	switch kind {
 	case "slice":
 		inner = strings.TrimSpace(inner)
-		switch inner {
-		case "Member":
-			return 5, nil // Vec<Member>
-		case "TrackData":
-			return r.vecTrackID, nil
-		case "Proposal":
-			return r.vecProposalID, nil
-		case "Vote":
-			return r.vecVoteID, nil
+		innerID, err := r.ensureInnerQueryReturn(inner)
+		if err != nil {
+			return 0, err
 		}
+		return r.ensureVec(innerID), nil
 	case "option":
 		inner = strings.TrimSpace(inner)
-		switch inner {
-		case "TrackData":
-			return 32, nil // Option<Track>
-		case "Vote":
-			return r.optVoteID, nil
-		case "Proposal":
-			return r.optProposalID, nil
-		case "ProposalStatus":
-			return r.optPropStatID, nil
+		innerID, err := r.ensureInnerQueryReturn(inner)
+		if err != nil {
+			return 0, err
 		}
+		return r.ensureOption(innerID), nil
 	case "ptr":
 		inner = strings.TrimSpace(inner)
-		if inner == "uint32" {
-			return r.optU32ID, nil
+		innerID, err := r.ensureInnerQueryReturn(inner)
+		if err != nil {
+			return 0, err
 		}
+		return r.ensureOption(innerID), nil
 	case "named":
 		switch goType {
 		case "bool":
-			return 6, nil
+			return r.goTypeToID["bool"], nil
 		case "uint32":
-			return 28, nil
+			return r.goTypeToID["u32"], nil
 		case "uint64":
-			return 20, nil
+			return r.goTypeToID["u64"], nil
+		case "model.Amount":
+			return r.u256ID, nil
+		case "model.UniAddr":
+			return r.addressID, nil
 		}
+		// 尝试动态注册未知的命名类型
+		return r.ensureNamedType(goType)
 	}
 	return 0, fmt.Errorf("unknown query return type %q", goType)
+}
+
+// ensureVec 确保 Vec<T> 类型存在
+func (r *inkRegistry) ensureVec(innerID int) int {
+	key := fmt.Sprintf("Vec<%d>", innerID)
+	if id, ok := r.goTypeToID[key]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"sequence": map[string]any{
+				"type": innerID,
+			},
+		},
+		"params": []any{
+			map[string]any{"name": "T", "type": innerID},
+		},
+		"path": []any{"Vec"},
+	})
+	r.goTypeToID[key] = id
+	return id
+}
+
+// ensureOption 确保 Option<T> 类型存在
+func (r *inkRegistry) ensureOption(innerID int) int {
+	key := fmt.Sprintf("Option<%d>", innerID)
+	if id, ok := r.goTypeToID[key]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"variant": map[string]any{
+				"variants": []any{
+					map[string]any{"index": 0, "name": "None"},
+					map[string]any{
+						"fields": []any{map[string]any{"type": innerID}},
+						"index":  1,
+						"name":   "Some",
+					},
+				},
+			},
+		},
+		"params": []any{
+			map[string]any{"name": "T", "type": innerID},
+		},
+		"path": []any{"Option"},
+	})
+	r.goTypeToID[key] = id
+	return id
+}
+
+// ensureNamedType 确保命名类型存在（动态注册）
+func (r *inkRegistry) ensureNamedType(goType string) (int, error) {
+	key := goType
+	if id, ok := r.goTypeToID[key]; ok {
+		return id, nil
+	}
+
+	// 检查是否有结构体定义
+	if st, ok := r.structTypes[goType]; ok {
+		// 有结构体定义，生成包含字段的 composite 类型
+		return r.ensureStructType(st)
+	}
+
+	// 对于未知的命名类型，创建一个简单的 composite 类型
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{},
+		},
+		"path": []any{goType},
+	})
+	r.goTypeToID[key] = id
+	return id, nil
+}
+
+// ensureStructType 根据结构体定义生成 composite 类型
+func (r *inkRegistry) ensureStructType(st structType) (int, error) {
+	key := st.name
+	if id, ok := r.goTypeToID[key]; ok {
+		return id, nil
+	}
+
+	// 检查是否是类型别名（只有一个 _alias 字段）
+	if len(st.fields) == 1 && st.fields[0].name == "_alias" {
+		return r.ensureTypeAlias(st.name, st.fields[0].typ)
+	}
+
+	// 先注册类型占位，避免递归循环
+	placeholderID := r.appendType(map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{},
+		},
+		"path": []any{st.name},
+	})
+	r.goTypeToID[key] = placeholderID
+
+	// 解析字段类型并生成字段定义
+	var fields []any
+	for _, f := range st.fields {
+		fieldTypeID, err := r.ensureInnerQueryReturn(f.typ)
+		if err != nil {
+			// 如果字段类型解析失败，使用占位符
+			fieldTypeID = r.goTypeToID["u8"] // 默认使用 u8
+		}
+		fieldDef := map[string]any{
+			"name": f.name,
+			"type": fieldTypeID,
+		}
+		fields = append(fields, fieldDef)
+	}
+
+	// 更新类型定义
+	r.types[placeholderID] = map[string]any{
+		"id": placeholderID,
+		"type": map[string]any{
+			"def": map[string]any{
+				"composite": map[string]any{
+					"fields": fields,
+				},
+			},
+			"path": []any{st.name},
+		},
+	}
+
+	return placeholderID, nil
+}
+
+// ensureTypeAlias 为类型别名生成 ABI 类型
+// string 类型的别名生成 primitive string 类型
+func (r *inkRegistry) ensureTypeAlias(name string, underlyingType string) (int, error) {
+	key := name
+	if id, ok := r.goTypeToID[key]; ok {
+		return id, nil
+	}
+
+	var typeDef map[string]any
+	switch underlyingType {
+	case "string":
+		// string 类型别名生成 primitive string
+		typeDef = map[string]any{
+			"def": map[string]any{
+				"primitive": "str",
+			},
+			"path": []any{name},
+		}
+	default:
+		// 其他类型别名生成空的 composite
+		typeDef = map[string]any{
+			"def": map[string]any{
+				"composite": map[string]any{},
+			},
+			"path": []any{name},
+		}
+	}
+
+	id := r.appendType(typeDef)
+	r.goTypeToID[key] = id
+	return id, nil
 }
 
 func parseGoTypeRoot(s string) (kind, inner string) {
@@ -348,112 +447,131 @@ func (r *inkRegistry) ensureResultQuery(goType string) (map[string]any, error) {
 func (r *inkRegistry) goTypeToABIRefParam(goType string) (abiTypeRef, error) {
 	goType = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(goType), "*"))
 	if goType == "[]byte" {
-		return abiTypeRef{Display: []string{"Address"}, TypeID: 2}, nil
+		return abiTypeRef{Display: []string{"UniAddr"}, TypeID: r.addressID}, nil
 	}
 	return r.goTypeToABIRefNamed(goType)
 }
 
 func (r *inkRegistry) goTypeToABIRefNamed(goType string) (abiTypeRef, error) {
+	// 优先处理已知的 model 类型（避免被动态注册）
 	switch goType {
 	case "bool":
-		return abiTypeRef{Display: []string{"bool"}, TypeID: 6}, nil
+		return abiTypeRef{Display: []string{"bool"}, TypeID: r.goTypeToID["bool"]}, nil
 	case "uint32":
-		return abiTypeRef{Display: []string{"u32"}, TypeID: 28}, nil
+		return abiTypeRef{Display: []string{"u32"}, TypeID: r.goTypeToID["u32"]}, nil
 	case "uint64":
-		return abiTypeRef{Display: []string{"u64"}, TypeID: 20}, nil
-	case "[]Member":
-		return abiTypeRef{Display: []string{"Vec"}, TypeID: 5}, nil
-	case "CallContent":
-		return abiTypeRef{Display: []string{"Call"}, TypeID: 21}, nil
-	case "TrackData":
-		return abiTypeRef{Display: []string{"Track"}, TypeID: 31}, nil
+		return abiTypeRef{Display: []string{"u64"}, TypeID: r.goTypeToID["u64"]}, nil
+	case "model.Amount":
+		return abiTypeRef{Display: []string{"U256"}, TypeID: r.u256ID}, nil
+	case "model.UniAddr":
+		return abiTypeRef{Display: []string{"UniAddr"}, TypeID: r.addressID}, nil
 	}
-	return abiTypeRef{}, fmt.Errorf("unknown Go type %q for ABI param (extend inkRegistry.goTypeToABIRefNamed)", goType)
+
+	// 检查缓存
+	if id, ok := r.goTypeToID[goType]; ok {
+		// 使用简短的 displayName
+		displayName := goType
+		switch goType {
+		case "model.Amount":
+			displayName = "U256"
+		case "model.UniAddr":
+			displayName = "UniAddr"
+		}
+		return abiTypeRef{Display: []string{displayName}, TypeID: id}, nil
+	}
+
+	// 动态注册未知类型
+	id, err := r.ensureNamedType(goType)
+	if err != nil {
+		return abiTypeRef{}, err
+	}
+	return abiTypeRef{Display: []string{goType}, TypeID: id}, nil
 }
 
-func inkEnvironment() map[string]any {
+func inkEnvironment(r *inkRegistry) map[string]any {
+	// 确保 Balance、BlockNumber、Hash 类型存在
+	balanceID := r.ensureBalanceType()
+	blockNumberID := r.goTypeToID["u32"] // BlockNumber 使用 u32
+	hashID := r.ensureHashType()
+
 	return map[string]any{
 		"accountId": map[string]any{
 			"displayName": []any{"AccountId"},
-			"type":        2,
+			"type":        r.addressID,
 		},
 		"balance": map[string]any{
 			"displayName": []any{"Balance"},
-			"type":        44,
+			"type":        balanceID,
 		},
 		"blockNumber": map[string]any{
 			"displayName": []any{"BlockNumber"},
-			"type":        28,
+			"type":        blockNumberID,
 		},
 		"hash": map[string]any{
 			"displayName": []any{"Hash"},
-			"type":        46,
+			"type":        hashID,
 		},
 		"nativeToEthRatio": 100000000,
 		"staticBufferSize": 16384,
 		"timestamp": map[string]any{
 			"displayName": []any{"Timestamp"},
-			"type":        20,
+			"type":        r.goTypeToID["u64"],
 		},
 	}
+}
+
+// ensureBalanceType 确保 Balance 类型存在
+func (r *inkRegistry) ensureBalanceType() int {
+	if id, ok := r.goTypeToID["Balance"]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"primitive": "u128",
+		},
+		"path": []any{"Balance"},
+	})
+	r.goTypeToID["Balance"] = id
+	return id
+}
+
+// ensureHashType 确保 Hash 类型存在
+func (r *inkRegistry) ensureHashType() int {
+	if id, ok := r.goTypeToID["Hash"]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{
+				"fields": []any{
+					map[string]any{"name": "0", "type": r.ensureBytes()},
+				},
+			},
+		},
+		"path": []any{"Hash"},
+	})
+	r.goTypeToID["Hash"] = id
+	return id
 }
 
 func inkConstructor() []any {
-	return []any{
-		map[string]any{
-			"args": []any{
-				map[string]any{
-					"docs":  []any{},
-					"label": "users",
-					"type": map[string]any{
-						"displayName": []any{"Vec"},
-						"type":        5,
-					},
-				},
-				map[string]any{
-					"docs":  []any{},
-					"label": "public_join",
-					"type": map[string]any{
-						"displayName": []any{"bool"},
-						"type":        6,
-					},
-				},
-				map[string]any{
-					"docs":  []any{},
-					"label": "sudo_account",
-					"type": map[string]any{
-						"displayName": []any{"Option"},
-						"type":        7,
-					},
-				},
-			},
-			"default": false,
-			"docs":    []any{},
-			"label":   "new_with_default_track",
-			"payable": false,
-			"returnType": map[string]any{
-				"displayName": []any{"ink", "MessageResult"},
-				"type":        10,
-			},
-			"selector": "0x00000000",
-		},
-	}
+	return []any{}
 }
 
-func buildInkRoot(contractName string, mutMethods, qMethods []*methodSig) (map[string]any, error) {
-	reg := newInkRegistry()
+func buildInkRoot(contractName string, mutMethods, qMethods []*methodSig, errVariants []errorVariant, structTypes map[string]structType) (map[string]any, error) {
+	reg := newInkRegistry(errVariants, structTypes)
 	messages, err := buildInkMessages(reg, mutMethods, qMethods)
 	if err != nil {
 		return nil, err
 	}
 	spec := map[string]any{
-		"constructors": []any{},
+		"constructors": inkConstructor(),
 		"docs":         []any{},
-		"environment":  inkEnvironment(),
+		"environment":  inkEnvironment(reg),
 		"events":       []any{},
 		"lang_error": map[string]any{
 			"displayName": []any{"ink", "LangError"},
-			"type":        12,
+			"type":        reg.langErrorID,
 		},
 		"messages": messages,
 	}
@@ -477,46 +595,56 @@ func buildInkRoot(contractName string, mutMethods, qMethods []*methodSig) (map[s
 }
 
 func buildInkMessages(reg *inkRegistry, mutMethods, qMethods []*methodSig) ([]any, error) {
-	type tagged struct {
-		ms       *methodSig
-		mutates  bool
-		abiLabel string
-	}
-	var all []tagged
-	for _, m := range mutMethods {
-		all = append(all, tagged{ms: m, mutates: true, abiLabel: m.caseName})
-	}
-	for _, m := range qMethods {
-		all = append(all, tagged{ms: m, mutates: false, abiLabel: m.caseName})
-	}
-	sort.Slice(all, func(i, j int) bool { return all[i].abiLabel < all[j].abiLabel })
-	out := make([]any, 0, len(all))
-	for _, t := range all {
-		msg, err := buildInkMessage(reg, t.ms, t.mutates, t.abiLabel)
-		if err != nil {
-			return nil, fmt.Errorf("abi %s: %w", t.abiLabel, err)
-		}
-		out = append(out, msg)
-	}
-	return out, nil
-}
+	var messages []any
 
-func buildInkMessage(reg *inkRegistry, ms *methodSig, mutates bool, abiLabel string) (map[string]any, error) {
-	args, err := abiArgs(reg, ms)
-	if err != nil {
-		return nil, err
-	}
-	var ret map[string]any
-	if mutates {
-		ret = map[string]any{"displayName": []any{"Result"}, "type": 15}
-	} else {
-		ret, err = reg.ensureResultQuery(ms.queryResult0)
+	// mutation 方法
+	for _, m := range mutMethods {
+		args, err := abiArgs(reg, m)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("mutation %s: %w", m.caseName, err)
 		}
+		msg := map[string]any{
+			"args":       args,
+			"default":    false,
+			"docs":       []any{},
+			"label":      m.caseName,
+			"mutates":    true,
+			"payable":    false,
+			"returnType": map[string]any{"displayName": []any{"ink", "MessageResult"}, "type": reg.messageResID},
+			"selector":   selectorHex(m.selector),
+		}
+		messages = append(messages, msg)
 	}
-	sel := pickSelectorInk(abiLabel, mutates)
-	return abiMessageJSON(args, abiLabel, mutates, ret, sel), nil
+
+	// query 方法
+	for _, m := range qMethods {
+		args, err := abiArgs(reg, m)
+		if err != nil {
+			return nil, fmt.Errorf("query %s: %w", m.caseName, err)
+		}
+		retType, err := reg.ensureResultQuery(m.queryResult0)
+		if err != nil {
+			return nil, fmt.Errorf("abi %s: %w", m.caseName, err)
+		}
+		msg := map[string]any{
+			"args":       args,
+			"default":    false,
+			"docs":       []any{},
+			"label":      m.caseName,
+			"mutates":    false,
+			"payable":    false,
+			"returnType": retType,
+			"selector":   selectorHex(m.selector),
+		}
+		messages = append(messages, msg)
+	}
+
+	// 按 selector 排序以保持稳定输出
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].(map[string]any)["selector"].(string) < messages[j].(map[string]any)["selector"].(string)
+	})
+
+	return messages, nil
 }
 
 func abiArgs(reg *inkRegistry, ms *methodSig) ([]any, error) {

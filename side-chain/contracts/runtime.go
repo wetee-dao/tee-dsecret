@@ -4,7 +4,6 @@ package contracts
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
@@ -13,10 +12,10 @@ import (
 // 它实现了 model.ContractApi 接口，在 FinalizeTx / Query 等路径中传入区块高度、交易和调用方信息。
 // 每次合约调用都会创建一个新的 Runtime 实例，确保执行上下文的隔离性。
 type Runtime struct {
-	height int64      // 当前区块高度，用于时间相关的业务逻辑判断
-	txn    *model.Txn // 当前交易对象，包含交易的签名和原始数据
-	caller []byte     // 调用者地址，标识合约方法的调用发起方
-	sudo   []byte
+	height int64         // 当前区块高度，用于时间相关的业务逻辑判断
+	txn    *model.Txn    // 当前交易对象，包含交易的签名和原始数据
+	caller model.UniAddr // 调用者地址，标识合约方法的调用发起方
+	sudo   model.UniAddr
 }
 
 // NewRuntime 创建一个新的合约运行时实例。
@@ -27,7 +26,7 @@ type Runtime struct {
 //
 // 返回:
 //   - Runtime: 初始化后的运行时上下文对象
-func NewRuntime(height int64, txn *model.Txn, caller []byte, sudo []byte) *Runtime {
+func NewRuntime(height int64, txn *model.Txn, caller model.UniAddr, sudo model.UniAddr) *Runtime {
 	return &Runtime{height: height, txn: txn, caller: caller}
 }
 
@@ -51,20 +50,19 @@ func (r *Runtime) GetTxn() *model.Txn {
 // 该地址用于权限验证和身份识别，确保只有授权的调用者能执行特定操作。
 // 返回:
 //   - []byte: 调用者的区块链地址字节切片
-func (r *Runtime) GetCaller() []byte {
+func (r *Runtime) GetCaller() model.UniAddr {
 	return r.caller
 }
 
-func (r *Runtime) GetSudoAccount() []byte {
+func (r *Runtime) GetSudoAccount() model.UniAddr {
 	return r.sudo
 }
 
 // is contract inited
-func IsContractIsInit(txn *model.Txn, contract string) bool {
+func IsContractIsInited(txn *model.Txn, contract string) bool {
 	b, err := model.TxnGetCodec[bool](txn, "CONTRACT___INITED", contract)
 	if err != nil {
 		fmt.Println("contract init db error", err)
-		os.Exit(2)
 		return false
 	}
 

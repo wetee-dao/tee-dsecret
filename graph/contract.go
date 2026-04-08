@@ -24,22 +24,36 @@ func DecodeCaller(s string) ([]byte, error) {
 	return pub.Byte(), nil
 }
 
+func decodeArgs(args []string) ([][]byte, error) {
+	argsBytes := make([][]byte, len(args))
+	for i, arg := range args {
+		arg = strings.TrimPrefix(arg, "0x")
+		argBytes, err := hex.DecodeString(arg)
+		if err != nil {
+			return nil, fmt.Errorf("decodeArgs: decode arg: %w", err)
+		}
+		argsBytes[i] = argBytes
+	}
+
+	return argsBytes, nil
+}
+
 // SubmitContractCall 提交合约调用
-func SubmitContractCall(caller []byte, contract string, method [4]byte, argsBytes [][]byte, signatureType uint32, signature []byte) error {
+func SubmitContractCall(caller []byte, callerType uint32, contract string, method [4]byte, argsBytes [][]byte, signature []byte) error {
 	contractPayload, err := codec.Encode(model.ContractCall{
 		Contract: contract,
 		Method:   method,
 		Args:     argsBytes,
 	})
 	if err != nil {
-		return fmt.Errorf("dao: encode contract payload: %w", err)
+		return fmt.Errorf("SubmitContractCall: encode contract payload: %w", err)
 	}
 
 	tx := &model.Tx{
-		Caller:        caller,
-		Payload:       &model.Tx_Contract{Contract: contractPayload},
-		SignatureType: signatureType,
-		Signature:     signature,
+		Caller:     caller,
+		CallerType: callerType,
+		Payload:    &model.Tx_Contract{Contract: contractPayload},
+		Signature:  signature,
 	}
 
 	_, err = sidechain.SubmitTx(tx)
@@ -47,20 +61,11 @@ func SubmitContractCall(caller []byte, contract string, method [4]byte, argsByte
 }
 
 // ContractQuery 只读查询
-func ContractDryRun(caller []byte, contract string, mut bool, method string, args []string) (string, error) {
-	argsBytes := make([][]byte, len(args))
-	for i, arg := range args {
-		argBytes, err := hex.DecodeString(arg)
-		if err != nil {
-			return "", fmt.Errorf("dao: decode arg: %w", err)
-		}
-		argsBytes[i] = argBytes
-	}
-
+func ContractDryRun(caller []byte, callerType int, contract string, mut bool, method string, args [][]byte) (string, error) {
 	var err error
 	var out []byte
 	if !mut {
-		out, err = sideChain.ContractQuery(caller, contract, method, argsBytes)
+		out, err = sideChain.ContractQuery(caller, uint32(callerType), contract, method, args)
 		if err != nil {
 			return "", err
 		}
@@ -68,7 +73,7 @@ func ContractDryRun(caller []byte, contract string, mut bool, method string, arg
 		err = sideChain.ContractDryRun(caller, &model.ContractCall{
 			Contract: contract,
 			Method:   model.MethodToSelector(method),
-			Args:     argsBytes,
+			Args:     args,
 		})
 	}
 

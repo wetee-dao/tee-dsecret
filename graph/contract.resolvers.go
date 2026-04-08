@@ -18,32 +18,28 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 	txn := model.DBINS.NewTransaction()
 	defer txn.Rollback()
 
-	if contracts.IsContractIsInit(txn, "dao") {
+	if contracts.IsContractIsInited(txn, "gov") {
 		return false, gqlerror.Errorf("contract is inited")
 	}
 
-	err := SubmitContractCall(sideChain.GetDKG().DkgPubKey.Byte(), "dao", model.MethodToSelector("Init"), [][]byte{}, 0, []byte{})
+	err := SubmitContractCall(sideChain.GetDKG().DkgPubKey.Byte(), 0, "gov", model.MethodToSelector("Init"), [][]byte{}, []byte{})
 	if err != nil {
 		return false, gqlerror.Errorf("SystemContractInit DecodeCaller: %v", err)
 	}
 
-	return false, gqlerror.Errorf("contract is found")
+	return true, nil
 }
 
 // ContractCall is the resolver for the contractCall field.
-func (r *mutationResolver) ContractCall(ctx context.Context, caller string, contract string, method string, args []string, signatureType int, signature string) (bool, error) {
+func (r *mutationResolver) ContractCall(ctx context.Context, caller string, callerType int, contract string, method string, args []string, signature string) (bool, error) {
 	callerBytes, err := DecodeCaller(caller)
 	if err != nil {
 		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
 	}
 
-	argsBytes := make([][]byte, len(args))
-	for i, arg := range args {
-		argBytes, err := hex.DecodeString(arg)
-		if err != nil {
-			return false, gqlerror.Errorf("ContractCall: decode arg: %v", err)
-		}
-		argsBytes[i] = argBytes
+	argBytes, err := decodeArgs(args)
+	if err != nil {
+		return false, gqlerror.Errorf("ContractCall: %v", err)
 	}
 
 	sig, err := hex.DecodeString(signature)
@@ -51,18 +47,23 @@ func (r *mutationResolver) ContractCall(ctx context.Context, caller string, cont
 		return false, gqlerror.Errorf("ContractCall DecodeString sign: %v", err)
 	}
 
-	if err := SubmitContractCall(callerBytes, contract, model.MethodToSelector(method), argsBytes, uint32(signatureType), sig); err != nil {
+	if err := SubmitContractCall(callerBytes, uint32(callerType), contract, model.MethodToSelector(method), argBytes, sig); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 	return true, nil
 }
 
 // ContractQuery is the resolver for the contractDryRun field.
-func (r *queryResolver) ContractDryRun(ctx context.Context, caller string, contract string, mut bool, method string, args []string) (string, error) {
+func (r *queryResolver) ContractDryRun(ctx context.Context, caller string, callerType int, contract string, mut bool, method string, args []string) (string, error) {
 	callerBt, err := DecodeCaller(caller)
 	if err != nil {
 		return "", err
 	}
 
-	return ContractDryRun(callerBt, contract, mut, method, args)
+	argBytes, err := decodeArgs(args)
+	if err != nil {
+		return "", gqlerror.Errorf("ContractDryRun: %v", err)
+	}
+
+	return ContractDryRun(callerBt, callerType, contract, mut, method, argBytes)
 }

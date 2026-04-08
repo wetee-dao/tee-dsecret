@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	"github.com/wetee-dao/tee-dsecret/side-chain/contracts/dao"
+	"github.com/wetee-dao/tee-dsecret/side-chain/contracts/gov"
 )
 
 // Query 执行合约的查询操作（只读操作）。
@@ -25,10 +25,10 @@ import (
 //   - "dao": 去中心化自治组织合约，提供提案查询、投票状态等功能
 func Query(call *model.ContractCall, runtime model.ContractApi) ([]byte, error) {
 	switch call.Contract {
-	case "dao":
+	case "gov":
 		// 创建 DAO 合约实例并执行查询
-		ins := dao.NewDAO(runtime)
-		query := dao.DaoQuery{DAO: *ins}
+		ins := gov.NewGov(runtime)
+		query := gov.GovQuery{Gov: *ins}
 		return query.ExecQuery(call)
 	default:
 		return nil, fmt.Errorf("unsupported contract: %s", call.Contract)
@@ -50,17 +50,17 @@ func Query(call *model.ContractCall, runtime model.ContractApi) ([]byte, error) 
 //   - "dao": 去中心化自治组织合约，提供提案创建、投票执行等功能
 func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
 	// 判断是否是初始化函数
-	if call.Method == model.MethodToSelector("Init") && IsContractIsInit(runtime.GetTxn(), call.Contract) {
+	if call.Method == model.MethodToSelector("Init") && IsContractIsInited(runtime.GetTxn(), call.Contract) {
 		return nil
 	}
 
 	var err error
 
 	switch call.Contract {
-	case "dao":
-		// 创建 DAO 合约实例并执行状态变更
-		ins := dao.NewDAO(runtime)
-		mutation := dao.DaoMutation{DAO: *ins}
+	case "gov":
+		// 创建 GOV 合约实例并执行状态变更
+		ins := gov.NewGov(runtime)
+		mutation := gov.GovMutation{Gov: *ins}
 		err = mutation.ExecCall(call)
 	default:
 		return fmt.Errorf("unsupported contract: %s", call.Contract)
