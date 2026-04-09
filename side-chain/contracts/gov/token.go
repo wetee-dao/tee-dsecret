@@ -1,8 +1,6 @@
 package gov
 
 import (
-	"fmt"
-
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -19,8 +17,6 @@ func (d GovQuery) BalanceOf(owner model.UniAddr) (model.Amount, error) {
 	if err != nil {
 		return model.ZeroAmount, err
 	}
-
-	fmt.Println("member:", member.String(), "lock:", lock.String())
 
 	return model.AmountSub(member, lock), nil
 }

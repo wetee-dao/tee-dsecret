@@ -30,7 +30,7 @@ func InitSideChain(
 	chainPort int,
 	light bool,
 	callback func(),
-) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
+) (func() (*nm.Node, error), *SideChain, *bftbrigde.BTFReactor, error) {
 	// Get boot peers
 	boots, err := chains.MainChain.GetBootPeers()
 	if err != nil {
@@ -124,23 +124,27 @@ func InitSideChain(
 	// add DKG to chain node
 	p2pReactor := bftbrigde.NewBTFReactor("DKG")
 
-	// init BFT node
-	SideChainNode, err = nm.NewNode(
-		context.Background(),
-		config,
-		validatorKey,
-		nodeKey,
-		proxy.NewLocalClientCreator(sideChain),
-		nm.DefaultGenesisDocProviderFunc(config),
-		cfg.DefaultDBProvider,
-		nm.DefaultMetricsProvider(config.Instrumentation),
-		logger,
-		nm.CustomReactors(map[string]p2p.Reactor{
-			"DKG": p2pReactor,
-		}),
-	)
-	if err != nil {
-		return nil, nil, nil, errors.New("init BFT node error: " + err.Error())
+	var StartSideChain = func() (*nm.Node, error) {
+		// init BFT node
+		SideChainNode, err = nm.NewNode(
+			context.Background(),
+			config,
+			validatorKey,
+			nodeKey,
+			proxy.NewLocalClientCreator(sideChain),
+			nm.DefaultGenesisDocProviderFunc(config),
+			cfg.DefaultDBProvider,
+			nm.DefaultMetricsProvider(config.Instrumentation),
+			logger,
+			nm.CustomReactors(map[string]p2p.Reactor{
+				"DKG": p2pReactor,
+			}),
+		)
+		if err != nil {
+			return nil, errors.New("init BFT node error: " + err.Error())
+		}
+
+		return SideChainNode, nil
 	}
 
 	// call callback function
@@ -155,7 +159,7 @@ func InitSideChain(
 
 	p2pReactor.Sub("secret", sideChain.revSecret)
 
-	return SideChainNode, sideChain, p2pReactor, err
+	return StartSideChain, sideChain, p2pReactor, err
 }
 
 func (s *SideChain) SetDKG(dkg *dkg.DKG) {

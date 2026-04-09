@@ -46,6 +46,30 @@ func (m *StoreMapping[K, V]) keySuffix(key K) string {
 	}
 }
 
+// parseKeySuffix 将字符串后缀解码回 K 类型。
+func parseKeySuffix[K MappingKey](suffix string) K {
+	var zero K
+	switch any(zero).(type) {
+	case string:
+		return any(suffix).(K)
+	case []byte:
+		b, _ := hex.DecodeString(suffix)
+		return any(b).(K)
+	case uint64:
+		v, _ := strconv.ParseUint(suffix, 10, 64)
+		return any(v).(K)
+	case uint32:
+		v, _ := strconv.ParseUint(suffix, 10, 32)
+		return any(uint32(v)).(K)
+	case UniAddr:
+		var addr UniAddr
+		codec.DecodeFromHex(suffix, &addr)
+		return any(addr).(K)
+	default:
+		panic("unsupported MappingKey type")
+	}
+}
+
 // StorageKey 返回该 key 对应的完整存储 key。
 func (m *StoreMapping[K, V]) StorageKey(key K) []byte {
 	return m.fullKey(m.keySuffix(key))
@@ -132,14 +156,14 @@ func (m *StoreMapping[K, V]) Set(txn *Txn, key K, v V) error {
 }
 
 // ListCodec 读取该 mapping 下所有值并使用 codec.Decode 反序列化为 V。
-func (m *StoreMapping[K, V]) List(txn *Txn) ([][]byte, []V, error) {
+func (m *StoreMapping[K, V]) List(txn *Txn) ([]K, []V, error) {
 	keyPrefix := m.fullKey("")
 	keys, list, err := txn.ListByPrefix(keyPrefix)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	outKeys := make([][]byte, 0, len(list))
+	outKeys := make([]K, 0, len(list))
 	out := make([]V, 0, len(list))
 	for i, bt := range list {
 		val := new(V)
@@ -147,7 +171,9 @@ func (m *StoreMapping[K, V]) List(txn *Txn) ([][]byte, []V, error) {
 			return nil, nil, err
 		}
 		out = append(out, *val)
-		outKeys = append(outKeys, keys[i][len(keyPrefix):])
+		// 解析 key 后缀为 K 类型
+		suffix := string(keys[i][len(keyPrefix):])
+		outKeys = append(outKeys, parseKeySuffix[K](suffix))
 	}
 
 	return outKeys, out, nil

@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -77,5 +76,5 @@ func ContractDryRun(caller []byte, callerType int, contract string, mut bool, me
 		})
 	}
 
-	return base64.StdEncoding.EncodeToString(out), nil
+	return hex.EncodeToString(out), nil
 }

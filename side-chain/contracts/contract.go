@@ -70,5 +70,9 @@ func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
 		return SetContractInited(runtime.GetTxn(), call.Contract)
 	}
 
+	// if err != nil {
+	// 	util.LogError("Contract "+call.Contract+" call "+hex.EncodeToString(call.Method[:])+"err", err)
+	// }
+
 	return err
 }

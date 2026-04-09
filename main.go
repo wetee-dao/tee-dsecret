@@ -65,23 +65,13 @@ func main() {
 	}
 
 	// Init node
-	node, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
+	nodeFunc, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
 		util.LogWithYellow("Main Chain", chainAddr)
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
 		os.Exit(1)
 	}
-
-	// Start BFT node
-	if err := node.Start(); err != nil {
-		log.Fatalf("failed to start BFT node: %v", err)
-		os.Exit(1)
-	}
-	defer func() {
-		_ = node.Stop()
-		node.Wait()
-	}()
 
 	dkgIns, err := dkg.NewDKG(nodePriv, dkgReactor, dkg.Logger{
 		NodeTag: "DKG",
@@ -106,6 +96,22 @@ func main() {
 		log.Fatalf("loadChains error: %v", err)
 		os.Exit(1)
 	}
+
+	node, err := nodeFunc()
+	if err != nil {
+		log.Fatalf("failed to create BFT node: %v", err)
+		os.Exit(1)
+	}
+
+	// Start BFT node
+	if err := node.Start(); err != nil {
+		log.Fatalf("failed to start BFT node: %v", err)
+		os.Exit(1)
+	}
+	defer func() {
+		_ = node.Stop()
+		node.Wait()
+	}()
 
 	// 启动 graphql 服务器
 	go graph.StartServer(sideChain, gqlPort)

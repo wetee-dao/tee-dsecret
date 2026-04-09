@@ -3,7 +3,6 @@ package gov
 import (
 	"math/big"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -12,11 +11,10 @@ func (d GovQuery) Members() ([]Member, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	out := make([]Member, len(keys))
 	for i := range keys {
-		a := model.UniAddr{}
-		codec.Decode(keys[i], &a)
-		out[i] = Member{Account: a, Balance: balances[i]}
+		out[i] = Member{Account: keys[i], Balance: balances[i]}
 	}
 	return out, err
 }
@@ -26,13 +24,15 @@ func (d GovQuery) GetPublicJoin() (bool, error) {
 }
 
 func (d GovMutation) PublicJoin() error {
-	enabled, err := d.publicJoin.GetOrDefault(d.api.GetTxn(), false)
+	enabled, err := d.publicJoin.GetOrDefault(d.api.GetTxn(), true)
 	if err != nil {
 		return err
 	}
+
 	if !enabled {
 		return ErrPublicJoinNotAllowed
 	}
+
 	return d.addMember(d.api.GetCaller(), model.ZeroAmount)
 }
 

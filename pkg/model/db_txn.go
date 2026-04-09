@@ -61,12 +61,20 @@ func (txn *Txn) ListByPrefix(prefix []byte) ([][]byte, [][]byte, error) {
 	var keys [][]byte
 	var list [][]byte
 	for iter.First(); iter.Valid(); iter.Next() {
+		// 复制 key（iter.Key() 返回的 slice 指向内部缓冲区）
 		key := iter.Key()
+		keyCopy := make([]byte, len(key))
+		copy(keyCopy, key)
+
+		// 解密数据
 		v := iter.Value()
-		buf := make([]byte, len(v))
-		copy(buf, v)
-		list = append(list, buf)
-		keys = append(keys, key)
+		decrypted, err := util.Unseal(v, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		list = append(list, decrypted)
+		keys = append(keys, keyCopy)
 	}
 
 	return keys, list, nil

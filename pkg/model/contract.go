@@ -36,6 +36,16 @@ func AmountSub(a, b Amount) Amount {
 	return types.NewU256(*bigInt)
 }
 
+func AmountMul(a, b Amount) Amount {
+	bigInt := new(big.Int).Mul(a.Int, b.Int)
+	return types.NewU256(*bigInt)
+}
+
+func AmountDiv(a, b Amount) Amount {
+	bigInt := new(big.Int).Div(a.Int, b.Int)
+	return types.NewU256(*bigInt)
+}
+
 // BlockNumber 区块高度（与 Rust BlockNumber = u32 一致）。
 type BlockNumber uint32
 

@@ -107,7 +107,8 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 
 			err = app.ContractMutation(tx.GetCaller(), tx.GetCallerType(), call)
 			if err != nil {
-				return nil, errors.Wrap(err, "contract mutation")
+				// TODO add tx error or set tx status
+				// return nil, errors.Wrap(err, "contract mutation")
 			}
 		default:
 			return nil, errors.New("invalid tx type")
