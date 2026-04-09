@@ -41,8 +41,8 @@ func newInkRegistry(errVariants []errorVariant, structTypes map[string]structTyp
 		r.goTypeToID[name] = id
 	}
 
-	// ID 7: U256（用于 model.Amount）
-	r.u256ID = r.appendType(typeDefs["U256"])
+	// ID 7: U256（用于 model.Amount）- 包含 [u64; 4] 字段
+	r.u256ID = r.appendType(r.buildU256Type())
 	r.goTypeToID["U256"] = r.u256ID
 	r.goTypeToID["model.Amount"] = r.u256ID
 
@@ -61,6 +61,44 @@ func newInkRegistry(errVariants []errorVariant, structTypes map[string]structTyp
 
 	// 注册更多类型将按需动态添加
 	return r
+}
+
+// ensureArrayU64x4 确保 [u64; 4] 类型存在
+func (r *inkRegistry) ensureArrayU64x4() int {
+	key := "[u64; 4]"
+	if id, ok := r.goTypeToID[key]; ok {
+		return id
+	}
+	u64ID := r.goTypeToID["u64"]
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"array": map[string]any{
+				"len":  4,
+				"type": u64ID,
+			},
+		},
+	})
+	r.goTypeToID[key] = id
+	return id
+}
+
+// buildU256Type 构建 U256 类型定义
+// U256 包含一个 [u64; 4] 类型的字段
+func (r *inkRegistry) buildU256Type() map[string]any {
+	arrayID := r.ensureArrayU64x4()
+	return map[string]any{
+		"def": map[string]any{
+			"composite": map[string]any{
+				"fields": []any{
+					map[string]any{
+						"type":     arrayID,
+						"typeName": "[u64; 4]",
+					},
+				},
+			},
+		},
+		"path": []any{"U256"},
+	}
 }
 
 // buildUniAddrType 构建 UniAddr 类型定义
@@ -167,7 +205,7 @@ var typeDefs = map[string]map[string]any{
 	"u128": mustJSONType(`{"def":{"primitive":"u128"}}`),
 	"bool": mustJSONType(`{"def":{"primitive":"bool"}}`),
 	// 复合类型
-	"U256":      mustJSONType(`{"def":{"composite":{}},"path":["U256"]}`),
+	// U256 动态生成，包含 [u64; 4] 字段
 	"LangError": mustJSONType(`{"def":{"variant":{"variants":[{"index":1,"name":"CouldNotReadInput"}]}},"path":["ink_primitives","LangError"]}`),
 }
 
@@ -319,6 +357,11 @@ func (r *inkRegistry) ensureNamedType(goType string) (int, error) {
 		return id, nil
 	}
 
+	// 特殊处理 string 类型 -> sequence<u8>
+	if goType == "string" {
+		return r.ensureStringType(), nil
+	}
+
 	// 检查是否有结构体定义
 	if st, ok := r.structTypes[goType]; ok {
 		// 有结构体定义，生成包含字段的 composite 类型
@@ -334,6 +377,25 @@ func (r *inkRegistry) ensureNamedType(goType string) (int, error) {
 	})
 	r.goTypeToID[key] = id
 	return id, nil
+}
+
+// ensureStringType 确保 string 类型存在（sequence<u8>）
+func (r *inkRegistry) ensureStringType() int {
+	key := "string"
+	if id, ok := r.goTypeToID[key]; ok {
+		return id
+	}
+	u8ID := r.goTypeToID["u8"]
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"sequence": map[string]any{
+				"type": u8ID,
+			},
+		},
+		"path": []any{"string"},
+	})
+	r.goTypeToID[key] = id
+	return id
 }
 
 // ensureStructType 根据结构体定义生成 composite 类型
@@ -389,7 +451,7 @@ func (r *inkRegistry) ensureStructType(st structType) (int, error) {
 }
 
 // ensureTypeAlias 为类型别名生成 ABI 类型
-// string 类型的别名生成 primitive string 类型
+// string 类型的别名生成 sequence<u8> 类型
 func (r *inkRegistry) ensureTypeAlias(name string, underlyingType string) (int, error) {
 	key := name
 	if id, ok := r.goTypeToID[key]; ok {
@@ -399,10 +461,13 @@ func (r *inkRegistry) ensureTypeAlias(name string, underlyingType string) (int, 
 	var typeDef map[string]any
 	switch underlyingType {
 	case "string":
-		// string 类型别名生成 primitive string
+		// string 类型生成 sequence<u8>（即 Vec<u8>）
+		u8ID := r.goTypeToID["u8"]
 		typeDef = map[string]any{
 			"def": map[string]any{
-				"primitive": "str",
+				"sequence": map[string]any{
+					"type": u8ID,
+				},
 			},
 			"path": []any{name},
 		}

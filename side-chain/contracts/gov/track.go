@@ -1,12 +1,21 @@
 package gov
 
-import "github.com/wetee-dao/ink.go/util"
+import (
+	"fmt"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"github.com/wetee-dao/ink.go/util"
+)
 
 func (d GovQuery) Tracks() ([]TrackData, error) {
 	_, tracks, err := d.tracks.List(d.api.GetTxn())
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(tracks[0])
+	fmt.Println(codec.EncodeToHex(tracks))
+
 	return tracks, nil
 }
 

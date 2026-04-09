@@ -74,6 +74,9 @@ func ContractDryRun(caller []byte, callerType int, contract string, mut bool, me
 			Method:   model.MethodToSelector(method),
 			Args:     args,
 		})
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return hex.EncodeToString(out), nil
