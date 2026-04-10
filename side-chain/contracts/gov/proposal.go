@@ -153,6 +153,7 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 	if err != nil {
 		return err
 	}
+
 	if prop.Status.State != ProposalOngoing {
 		return ErrPropNotOngoing
 	}
@@ -161,6 +162,7 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 	if err != nil {
 		return err
 	}
+
 	if !confirmed {
 		if height > end {
 			prop.Status = ProposalStatus{State: ProposalRejected, Block: end}
@@ -168,11 +170,34 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 		}
 		return ErrProposalNotConfirmed
 	}
+
 	if height < end+int64(track.DecisionPeriod) {
 		return ErrProposalInDecision
 	}
 
+	// 执行提案中的调用并记录结果
+	result := ProposalResult{}
+	if prop.Call.IsSome() {
+		call, _ := prop.Call.UnWrap()
+		res, err := d.api.Call(model.UniAddr{}, model.ContractCall{
+			Contract: string(call.Contract),
+			Method:   call.Selector,
+			Args:     call.Args,
+		})
+		if err != nil {
+			// 记录错误但不返回，提案仍标记为已批准
+			result.ExecError = util.NewSome([]byte(err.Error()))
+		} else {
+			result.Result = util.NewSome(res)
+		}
+
+		// 保存执行结果
+		if err := d.proposalResults.Set(d.api.GetTxn(), prop.ID, result); err != nil {
+			return err
+		}
+	}
+
 	prop.Status = ProposalStatus{State: ProposalApproved, Block: height}
-	prop.DecisionBlock = height
+	// prop.DecisionBlock = height
 	return d.proposals.Set(d.api.GetTxn(), prop.ID, prop)
 }

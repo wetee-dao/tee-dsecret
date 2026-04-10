@@ -20,11 +20,11 @@ func (d GovQuery) Members() ([]Member, error) {
 }
 
 func (d GovQuery) GetPublicJoin() (bool, error) {
-	return d.publicJoin.GetOrDefault(d.api.GetTxn(), true)
+	return d.publicJoin.GetOrDefault(d.api.GetTxn(), false)
 }
 
 func (d GovMutation) PublicJoin() error {
-	enabled, err := d.publicJoin.GetOrDefault(d.api.GetTxn(), true)
+	enabled, err := d.publicJoin.GetOrDefault(d.api.GetTxn(), false)
 	if err != nil {
 		return err
 	}
@@ -53,9 +53,12 @@ func (d GovMutation) Join(newUser model.UniAddr, balance model.Amount) error {
 
 func (d GovMutation) Leave() error {
 	caller := d.api.GetCaller()
-	member, err := d.members.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
+	member, err := d.members.Get(d.api.GetTxn(), caller)
 	if err != nil {
 		return err
+	}
+	if member == nil {
+		return ErrMemberNotExisted
 	}
 
 	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
@@ -63,7 +66,8 @@ func (d GovMutation) Leave() error {
 		return err
 	}
 
-	if member.Cmp(big.NewInt(0)) >= 0 || lock.Cmp(big.NewInt(0)) >= 0 {
+	// 余额或锁定金额不为零时不能离开
+	if member.Int.Cmp(big.NewInt(0)) > 0 || lock.Int.Cmp(big.NewInt(0)) > 0 {
 		return ErrMemberBalanceNotZero
 	}
 	return d.removeMember(caller)
@@ -108,9 +112,12 @@ func (d Gov) deleteMemberAndBurn(account model.UniAddr, requireGov bool) error {
 		}
 	}
 
-	member, err := d.members.GetOrDefault(d.api.GetTxn(), account, model.ZeroAmount)
+	member, err := d.members.Get(d.api.GetTxn(), account)
 	if err != nil {
 		return err
+	}
+	if member == nil {
+		return ErrMemberNotExisted
 	}
 
 	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), account, model.ZeroAmount)
@@ -118,7 +125,7 @@ func (d Gov) deleteMemberAndBurn(account model.UniAddr, requireGov bool) error {
 		return err
 	}
 
-	amount := model.AmountAdd(member, lock)
+	amount := model.AmountAdd(*member, lock)
 	total, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
 	if err != nil {
 		return err

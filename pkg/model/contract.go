@@ -64,6 +64,8 @@ type ContractApi interface {
 	GetTxn() *Txn
 	GetCaller() UniAddr
 	GetSudoAccount() UniAddr
+	Query(UniAddr, ContractCall) ([]byte, error)
+	Call(UniAddr, ContractCall) ([]byte, error)
 }
 
 func RequireArgLen[T any](args []T, n int, method string) error {

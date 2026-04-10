@@ -27,6 +27,16 @@ func (r *testRuntime) GetSudoAccount() model.UniAddr {
 	return r.sudoAccount
 }
 
+// Query 实现跨合约查询（测试环境暂不支持）
+func (r *testRuntime) Query(target model.UniAddr, call model.ContractCall) ([]byte, error) {
+	return nil, nil
+}
+
+// Call 实现跨合约调用（测试环境暂不支持）
+func (r *testRuntime) Call(target model.UniAddr, call model.ContractCall) ([]byte, error) {
+	return nil, nil
+}
+
 // setupTestDB creates a temporary database for testing with an initialized runtime.
 // It returns a testRuntime with the database transaction set up.
 func setupTestDB(t *testing.T) (rt *testRuntime, cleanup func()) {

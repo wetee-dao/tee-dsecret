@@ -106,13 +106,15 @@ type Gov struct {
 	// tracks 轨道数据映射 (keyPfx: track_)
 	tracks *model.StoreMapping[uint32, TrackData]
 	// proposals 提案数据映射 (keyPfx: proposal_)
-	proposals *model.StoreMapping[uint32, Proposal] `store:"keyPfx:proposal_v2"`
+	proposals *model.StoreMapping[uint32, Proposal] `store:"keyPfx:proposal_v3"`
 	// votes 投票数据映射 (keyPfx: vote_)
 	votes *model.StoreMapping[uint64, Vote]
 	// voteUnlocks 投票解锁状态映射 (keyPfx: vote_unlock_)
 	voteUnlocks *model.StoreMapping[uint64, bool]
 	// spends 支出数据映射 (keyPfx: spend_)
 	spends *model.StoreMapping[uint64, Spend]
+	// proposalResults 提案执行结果映射 (keyPfx: proposal_result_)
+	proposalResults *model.StoreMapping[uint32, ProposalResult]
 }
 
 // GovQuery 治理合约查询接口

@@ -50,14 +50,18 @@ type ProposalDeposit struct {
 }
 
 type Proposal struct {
-	ID            uint32
-	Call          util.Option[CallContent]
-	TrackID       uint32
-	Caller        model.UniAddr
-	Status        ProposalStatus
-	SubmitBlock   int64
-	DecisionBlock int64
-	Deposit       ProposalDeposit
+	ID          uint32
+	Call        util.Option[CallContent]
+	TrackID     uint32
+	Caller      model.UniAddr
+	Status      ProposalStatus
+	SubmitBlock int64
+	Deposit     ProposalDeposit
+}
+
+type ProposalResult struct {
+	Result    util.Option[[]byte]
+	ExecError util.Option[[]byte]
 }
 
 type Vote struct {

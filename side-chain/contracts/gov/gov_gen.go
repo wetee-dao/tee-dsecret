@@ -363,9 +363,10 @@ func NewGov(api model.ContractApi) *Gov {
 		memberLocks:         &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_lock_"},
 		allowances:          &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "allowance_"},
 		tracks:              &model.StoreMapping[uint32, TrackData]{Namespace: "gov", KeyPrefix: "track_"},
-		proposals:           &model.StoreMapping[uint32, Proposal]{Namespace: "gov", KeyPrefix: "proposal_v2"},
+		proposals:           &model.StoreMapping[uint32, Proposal]{Namespace: "gov", KeyPrefix: "proposal_v3"},
 		votes:               &model.StoreMapping[uint64, Vote]{Namespace: "gov", KeyPrefix: "vote_"},
 		voteUnlocks:         &model.StoreMapping[uint64, bool]{Namespace: "gov", KeyPrefix: "vote_unlock_"},
 		spends:              &model.StoreMapping[uint64, Spend]{Namespace: "gov", KeyPrefix: "spend_"},
+		proposalResults:     &model.StoreMapping[uint32, ProposalResult]{Namespace: "gov", KeyPrefix: "proposal_result_"},
 	}
 }

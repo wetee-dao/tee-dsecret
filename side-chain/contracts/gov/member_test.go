@@ -222,7 +222,12 @@ func TestGovMutation_Delete_NotMember(t *testing.T) {
 	defer cleanup()
 
 	m := GovMutation{Gov: *NewGov(rt)}
-	err := m.Delete(addr([]byte{1}))
+	sudo := addr([]byte{1})
+	_ = m.Init()
+	rt.sudoAccount = sudo
+
+	rt.caller = sudo
+	err := m.Delete(addr([]byte{2}))
 	require.ErrorIs(t, err, ErrMemberNotExisted)
 }
 
