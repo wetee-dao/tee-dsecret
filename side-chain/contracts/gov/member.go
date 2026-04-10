@@ -1,6 +1,7 @@
 package gov
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -24,6 +25,7 @@ func (d GovQuery) GetPublicJoin() (bool, error) {
 }
 
 func (d GovMutation) PublicJoin() error {
+	fmt.Println("PublicJoin1")
 	enabled, err := d.publicJoin.GetOrDefault(d.api.GetTxn(), true)
 	if err != nil {
 		return err
@@ -33,6 +35,7 @@ func (d GovMutation) PublicJoin() error {
 		return ErrPublicJoinNotAllowed
 	}
 
+	fmt.Println("PublicJoin")
 	return d.addMember(d.api.GetCaller(), model.ZeroAmount)
 }
 
@@ -47,6 +50,7 @@ func (d GovMutation) Join(newUser model.UniAddr, balance model.Amount) error {
 	if err := d.ensureGov(); err != nil {
 		return err
 	}
+
 	return d.addMember(newUser, balance)
 }
 

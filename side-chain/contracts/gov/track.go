@@ -1,9 +1,6 @@
 package gov
 
 import (
-	"fmt"
-
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/ink.go/util"
 )
 
@@ -12,9 +9,6 @@ func (d GovQuery) Tracks() ([]TrackData, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(tracks[0])
-	fmt.Println(codec.EncodeToHex(tracks))
 
 	return tracks, nil
 }

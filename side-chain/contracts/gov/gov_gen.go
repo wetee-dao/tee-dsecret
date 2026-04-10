@@ -26,19 +26,6 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("add_track: %w", err)
 		}
 		return m.AddTrack(track)
-	case [4]byte{0x13, 0x96, 0x0e, 0xb8}:
-		if err := model.RequireArgLen(args, 2, "approve"); err != nil {
-			return err
-		}
-		spender, err := model.DecodeScaleArgBytes[model.UniAddr](args[0])
-		if err != nil {
-			return fmt.Errorf("approve: spender: %w", err)
-		}
-		value, err := model.DecodeScaleArgBytes[model.Amount](args[1])
-		if err != nil {
-			return fmt.Errorf("approve: value: %w", err)
-		}
-		return m.Approve(spender, value)
 	case [4]byte{0x46, 0xc4, 0x21, 0xdb}:
 		if err := model.RequireArgLen(args, 1, "cancel_proposal"); err != nil {
 			return err
@@ -98,6 +85,19 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 		return m.Leave()
 	case [4]byte{0x8d, 0x6e, 0x0f, 0x8c}:
 		return m.LeaveWithBurn()
+	case [4]byte{0x9b, 0x7b, 0xfa, 0x69}:
+		if err := model.RequireArgLen(args, 2, "mint"); err != nil {
+			return err
+		}
+		to, err := model.DecodeScaleArgBytes[model.UniAddr](args[0])
+		if err != nil {
+			return fmt.Errorf("mint: to: %w", err)
+		}
+		value, err := model.DecodeScaleArgBytes[model.Amount](args[1])
+		if err != nil {
+			return fmt.Errorf("mint: value: %w", err)
+		}
+		return m.Mint(to, value)
 	case [4]byte{0xa4, 0xf0, 0x19, 0x6c}:
 		if err := model.RequireArgLen(args, 1, "payout"); err != nil {
 			return err
@@ -223,23 +223,6 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 	args := call.Args
 	methodSel := call.Method
 	switch methodSel {
-	case [4]byte{0x1d, 0x62, 0x33, 0x27}:
-		if err := model.RequireArgLen(args, 2, "allowance"); err != nil {
-			return nil, err
-		}
-		owner, err := model.DecodeScaleArgBytes[model.UniAddr](args[0])
-		if err != nil {
-			return nil, fmt.Errorf("allowance: owner: %w", err)
-		}
-		spender, err := model.DecodeScaleArgBytes[model.UniAddr](args[1])
-		if err != nil {
-			return nil, fmt.Errorf("allowance: spender: %w", err)
-		}
-		out, err := q.Allowance(owner, spender)
-		if err != nil {
-			return nil, err
-		}
-		return codec.Encode(out)
 	case [4]byte{0x87, 0xe0, 0xff, 0x32}:
 		if err := model.RequireArgLen(args, 1, "balance_of"); err != nil {
 			return nil, err

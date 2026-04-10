@@ -4,9 +4,11 @@
 package contracts
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	"github.com/wetee-dao/tee-dsecret/side-chain/contracts/gov"
 )
 
@@ -70,9 +72,7 @@ func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
 		return SetContractInited(runtime.GetTxn(), call.Contract)
 	}
 
-	// if err != nil {
-	// 	util.LogError("Contract "+call.Contract+" call "+hex.EncodeToString(call.Method[:])+"err", err)
-	// }
+	util.LogOk("Contract Call "+call.Contract+":"+hex.EncodeToString(call.Method[:])+" -> err", err)
 
 	return err
 }

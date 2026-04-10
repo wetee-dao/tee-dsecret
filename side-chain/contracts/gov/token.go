@@ -1,6 +1,9 @@
 package gov
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -25,10 +28,6 @@ func (d GovQuery) LockBalanceOf(owner model.UniAddr) (model.Amount, error) {
 	return d.memberLocks.GetOrDefault(d.api.GetTxn(), owner, model.ZeroAmount)
 }
 
-func (d GovQuery) Allowance(owner, spender model.UniAddr) (model.Amount, error) {
-	return d.allowances.GetOrDefault(d.api.GetTxn(), allowanceKey(owner, spender), model.ZeroAmount)
-}
-
 func (d GovMutation) Transfer(to model.UniAddr, value model.Amount) error {
 	enabled, err := d.transferEnabled.GetOrDefault(d.api.GetTxn(), false)
 	if err != nil {
@@ -38,11 +37,6 @@ func (d GovMutation) Transfer(to model.UniAddr, value model.Amount) error {
 		return ErrTransferDisabled
 	}
 	return d.transfer(d.api.GetCaller(), to, value)
-}
-
-func (d GovMutation) Approve(spender model.UniAddr, value model.Amount) error {
-	caller := d.api.GetCaller()
-	return d.allowances.Set(d.api.GetTxn(), allowanceKey(caller, spender), value)
 }
 
 func (d GovMutation) TransferFrom(from, to model.UniAddr, amount model.Amount) error {
@@ -98,4 +92,27 @@ func (d GovMutation) transfer(from, to model.UniAddr, value model.Amount) error 
 		return err
 	}
 	return d.members.Set(d.api.GetTxn(), to, receiver)
+}
+
+func (d GovMutation) Mint(to model.UniAddr, value model.Amount) error {
+	// 获取当前余额
+	balance, err := d.members.GetOrDefault(d.api.GetTxn(), to, model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Mint => ", hex.EncodeToString(to.V), balance.String(), value.String())
+
+	// 增加余额
+	if err := d.members.Set(d.api.GetTxn(), to, model.AmountAdd(balance, value)); err != nil {
+		return err
+	}
+
+	// 增加总供应量
+	total, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+
+	return d.totalIssuance.Set(d.api.GetTxn(), model.AmountAdd(total, value))
 }

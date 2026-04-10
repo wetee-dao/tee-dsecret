@@ -4,7 +4,6 @@ package model
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
@@ -31,7 +30,6 @@ func (s *StoreValue[V]) get(txn *Txn) ([]byte, error) {
 		return nil, err
 	}
 
-	fmt.Println("get", v)
 	return v, nil
 }
 

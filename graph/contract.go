@@ -69,7 +69,7 @@ func ContractDryRun(caller []byte, callerType int, contract string, mut bool, me
 			return "", err
 		}
 	} else {
-		err = sideChain.ContractDryRun(caller, &model.ContractCall{
+		err = sideChain.ContractDryRun(caller, uint32(callerType), &model.ContractCall{
 			Contract: contract,
 			Method:   model.MethodToSelector(method),
 			Args:     args,

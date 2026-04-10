@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -268,6 +269,23 @@ func (r *inkRegistry) ensureInnerQueryReturn(goType string) (int, error) {
 			return 0, err
 		}
 		return r.ensureVec(innerID), nil
+	case "array":
+		// inner 格式为 "Type|N"
+		parts := strings.Split(inner, "|")
+		if len(parts) != 2 {
+			return 0, fmt.Errorf("invalid array type format: %s", inner)
+		}
+		elemType := strings.TrimSpace(parts[0])
+		lenStr := strings.TrimSpace(parts[1])
+		len, err := strconv.Atoi(lenStr)
+		if err != nil {
+			return 0, fmt.Errorf("invalid array length: %s", lenStr)
+		}
+		elemID, err := r.ensureInnerQueryReturn(elemType)
+		if err != nil {
+			return 0, err
+		}
+		return r.ensureArray(elemID, len), nil
 	case "option":
 		inner = strings.TrimSpace(inner)
 		innerID, err := r.ensureInnerQueryReturn(inner)
@@ -286,6 +304,10 @@ func (r *inkRegistry) ensureInnerQueryReturn(goType string) (int, error) {
 		switch goType {
 		case "bool":
 			return r.goTypeToID["bool"], nil
+		case "byte", "uint8":
+			return r.goTypeToID["u8"], nil
+		case "int64", "int":
+			return r.goTypeToID["i64"], nil
 		case "uint32":
 			return r.goTypeToID["u32"], nil
 		case "uint64":
@@ -317,6 +339,24 @@ func (r *inkRegistry) ensureVec(innerID int) int {
 			map[string]any{"name": "T", "type": innerID},
 		},
 		"path": []any{"Vec"},
+	})
+	r.goTypeToID[key] = id
+	return id
+}
+
+// ensureArray 确保数组类型 [N; T] 存在
+func (r *inkRegistry) ensureArray(elemID int, len int) int {
+	key := fmt.Sprintf("Array<%d,%d>", len, elemID)
+	if id, ok := r.goTypeToID[key]; ok {
+		return id
+	}
+	id := r.appendType(map[string]any{
+		"def": map[string]any{
+			"array": map[string]any{
+				"len":  len,
+				"type": elemID,
+			},
+		},
 	})
 	r.goTypeToID[key] = id
 	return id
@@ -488,6 +528,15 @@ func (r *inkRegistry) ensureTypeAlias(name string, underlyingType string) (int, 
 
 func parseGoTypeRoot(s string) (kind, inner string) {
 	s = strings.TrimSpace(s)
+	// 数组类型 [N]Type
+	if len(s) > 2 && s[0] == '[' && s[1] != ']' {
+		// 找到 ]
+		for i := 1; i < len(s); i++ {
+			if s[i] == ']' {
+				return "array", s[i+1:] + "|" + s[1:i]
+			}
+		}
+	}
 	if strings.HasPrefix(s, "[]") {
 		return "slice", strings.TrimPrefix(s, "[]")
 	}
@@ -522,6 +571,10 @@ func (r *inkRegistry) goTypeToABIRefNamed(goType string) (abiTypeRef, error) {
 	switch goType {
 	case "bool":
 		return abiTypeRef{Display: []string{"bool"}, TypeID: r.goTypeToID["bool"]}, nil
+	case "byte", "uint8":
+		return abiTypeRef{Display: []string{"u8"}, TypeID: r.goTypeToID["u8"]}, nil
+	case "int64", "int":
+		return abiTypeRef{Display: []string{"i64"}, TypeID: r.goTypeToID["i64"]}, nil
 	case "uint32":
 		return abiTypeRef{Display: []string{"u32"}, TypeID: r.goTypeToID["u32"]}, nil
 	case "uint64":
