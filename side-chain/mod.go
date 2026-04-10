@@ -107,6 +107,8 @@ func InitSideChain(
 		seeds = append(seeds, boot.SideChainUrl())
 	}
 	config.P2P.Seeds = strings.Join(seeds, ",")
+	// 将 boot 节点同时设置为 PersistentPeers，确保断开后自动重连
+	config.P2P.PersistentPeers = strings.Join(seeds, ",")
 
 	// load validator key
 	validatorKey := privval.LoadFilePV(

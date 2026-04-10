@@ -4,13 +4,18 @@ import (
 	"github.com/wetee-dao/ink.go/util"
 )
 
-func (d GovQuery) Tracks() ([]TrackData, error) {
-	_, tracks, err := d.tracks.List(d.api.GetTxn())
+func (d GovQuery) Tracks() ([]TrackWithID, error) {
+	ids, tracks, err := d.tracks.List(d.api.GetTxn())
 	if err != nil {
 		return nil, err
 	}
 
-	return tracks, nil
+	ts := make([]TrackWithID, len(ids))
+	for i := range ids {
+		ts[i] = TrackWithID{ID: ids[i], Track: tracks[i]}
+	}
+
+	return ts, nil
 }
 
 func (d GovQuery) Track(id uint32) (util.Option[TrackData], error) {

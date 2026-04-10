@@ -25,6 +25,11 @@ type TrackData struct {
 	MaxBalance         model.Amount // 保持 []byte，因为从链上读取
 }
 
+type TrackWithID struct {
+	ID    uint32
+	Track TrackData
+}
+
 // CallContent 提案内嵌调用内容。
 type CallContent struct {
 	Contract []byte
@@ -34,7 +39,7 @@ type CallContent struct {
 }
 
 type ProposalStatus struct {
-	State string
+	State uint8
 	Block int64
 }
 
