@@ -23,7 +23,7 @@
         "displayName": [
           "Balance"
         ],
-        "type": 46
+        "type": 49
       },
       "blockNumber": {
         "displayName": [
@@ -35,7 +35,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 47
+        "type": 50
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -59,12 +59,22 @@
         "args": [
           {
             "docs": [],
-            "label": "vote_i_d",
+            "label": "proposal_i_d",
             "type": {
               "displayName": [
-                "u64"
+                "u32"
               ],
-              "type": 3
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "label": "index",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
             }
           }
         ],
@@ -118,7 +128,7 @@
               "displayName": [
                 "CallContent"
               ],
-              "type": 16
+              "type": 17
             }
           },
           {
@@ -193,12 +203,22 @@
         "args": [
           {
             "docs": [],
-            "label": "vote_i_d",
+            "label": "proposal_i_d",
             "type": {
               "displayName": [
-                "u64"
+                "u32"
               ],
-              "type": 3
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "label": "index",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
             }
           }
         ],
@@ -217,7 +237,38 @@
         "selector": "0x2ab81dd1"
       },
       {
-        "args": [],
+        "args": [
+          {
+            "docs": [],
+            "label": "proposal_i_d",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "label": "start_key",
+            "type": {
+              "displayName": [
+                "Option"
+              ],
+              "type": 36
+            }
+          },
+          {
+            "docs": [],
+            "label": "size",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
+            }
+          }
+        ],
         "default": false,
         "docs": [],
         "label": "votes",
@@ -227,7 +278,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 45
+          "type": 48
         },
         "selector": "0x340f2cf4"
       },
@@ -242,7 +293,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 21
+          "type": 22
         },
         "selector": "0x3626e9bf"
       },
@@ -257,7 +308,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 40
+          "type": 43
         },
         "selector": "0x3c05be89"
       },
@@ -283,7 +334,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 20
+          "type": 21
         },
         "selector": "0x3cd4966d"
       },
@@ -345,12 +396,22 @@
         "args": [
           {
             "docs": [],
-            "label": "id",
+            "label": "proposal_i_d",
             "type": {
               "displayName": [
-                "u64"
+                "u32"
               ],
-              "type": 3
+              "type": 2
+            }
+          },
+          {
+            "docs": [],
+            "label": "index",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
             }
           }
         ],
@@ -363,7 +424,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 43
+          "type": 46
         },
         "selector": "0x4d151cf1"
       },
@@ -378,7 +439,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 25
+          "type": 26
         },
         "selector": "0x53550f05"
       },
@@ -425,7 +486,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 22
+          "type": 23
         },
         "selector": "0x76f20724"
       },
@@ -440,7 +501,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 20
+          "type": 21
         },
         "selector": "0x771771f7"
       },
@@ -466,7 +527,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 31
+          "type": 33
         },
         "selector": "0x799fe2dd"
       },
@@ -539,7 +600,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 20
+          "type": 21
         },
         "selector": "0x87e0ff32"
       },
@@ -682,7 +743,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 37
+          "type": 40
         },
         "selector": "0xb9fd54c4"
       },
@@ -903,12 +964,33 @@
           "displayName": [
             "Result"
           ],
-          "type": 33
+          "type": 35
         },
         "selector": "0xfd88907b"
       },
       {
-        "args": [],
+        "args": [
+          {
+            "docs": [],
+            "label": "start_key",
+            "type": {
+              "displayName": [
+                "Option"
+              ],
+              "type": 36
+            }
+          },
+          {
+            "docs": [],
+            "label": "size",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
+            }
+          }
+        ],
         "default": false,
         "docs": [],
         "label": "proposals",
@@ -918,7 +1000,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 35
+          "type": 38
         },
         "selector": "0xfe26fd17"
       }
@@ -1278,6 +1360,14 @@
               {
                 "name": "MaxBalance",
                 "type": 8
+              },
+              {
+                "name": "MinApproval",
+                "type": 16
+              },
+              {
+                "name": "MinSupport",
+                "type": 16
               }
             ]
           }
@@ -1307,16 +1397,78 @@
           "composite": {
             "fields": [
               {
-                "name": "Contract",
-                "type": 17
+                "name": "Type",
+                "type": 15
               },
               {
-                "name": "Selector",
+                "name": "LinearBegin",
+                "type": 2
+              },
+              {
+                "name": "LinearEnd",
+                "type": 2
+              },
+              {
+                "name": "LinearLength",
+                "type": 4
+              },
+              {
+                "name": "StepBegin",
+                "type": 2
+              },
+              {
+                "name": "StepEnd",
+                "type": 2
+              },
+              {
+                "name": "StepSize",
+                "type": 2
+              },
+              {
+                "name": "StepPeriod",
+                "type": 4
+              },
+              {
+                "name": "ReciprocalFactor",
+                "type": 2
+              },
+              {
+                "name": "ReciprocalXScale",
+                "type": 2
+              },
+              {
+                "name": "ReciprocalXOffset",
+                "type": 4
+              },
+              {
+                "name": "ReciprocalYOffset",
+                "type": 4
+              }
+            ]
+          }
+        },
+        "path": [
+          "Curve"
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "Contract",
                 "type": 18
               },
               {
-                "name": "Args",
+                "name": "Selector",
                 "type": 19
+              },
+              {
+                "name": "Args",
+                "type": 20
               },
               {
                 "name": "Amount",
@@ -1331,7 +1483,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 18,
       "type": {
         "def": {
           "sequence": {
@@ -1350,7 +1502,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 19,
       "type": {
         "def": {
           "array": {
@@ -1361,17 +1513,17 @@
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "type": {
         "def": {
           "sequence": {
-            "type": 17
+            "type": 18
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 17
+            "type": 18
           }
         ],
         "path": [
@@ -1380,7 +1532,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 21,
       "type": {
         "def": {
           "variant": {
@@ -1422,7 +1574,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 22,
       "type": {
         "def": {
           "variant": {
@@ -1464,7 +1616,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 23,
       "type": {
         "def": {
           "variant": {
@@ -1506,7 +1658,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 24,
       "type": {
         "def": {
           "composite": {
@@ -1528,17 +1680,17 @@
       }
     },
     {
-      "id": 24,
+      "id": 25,
       "type": {
         "def": {
           "sequence": {
-            "type": 23
+            "type": 24
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 23
+            "type": 24
           }
         ],
         "path": [
@@ -1547,7 +1699,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 26,
       "type": {
         "def": {
           "variant": {
@@ -1555,7 +1707,7 @@
               {
                 "fields": [
                   {
-                    "type": 24
+                    "type": 25
                   }
                 ],
                 "index": 0,
@@ -1576,7 +1728,7 @@
         "params": [
           {
             "name": "T",
-            "type": 24
+            "type": 25
           },
           {
             "name": "E",
@@ -1589,7 +1741,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 27,
       "type": {
         "def": {
           "composite": {
@@ -1599,8 +1751,26 @@
                 "type": 2
               },
               {
+                "name": "Proposal",
+                "type": 28
+              }
+            ]
+          }
+        },
+        "path": [
+          "ProposalWithID"
+        ]
+      }
+    },
+    {
+      "id": 28,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
                 "name": "Call",
-                "type": 27
+                "type": 29
               },
               {
                 "name": "TrackID",
@@ -1612,7 +1782,7 @@
               },
               {
                 "name": "Status",
-                "type": 28
+                "type": 30
               },
               {
                 "name": "SubmitBlock",
@@ -1620,7 +1790,7 @@
               },
               {
                 "name": "Deposit",
-                "type": 29
+                "type": 31
               }
             ]
           }
@@ -1631,7 +1801,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 29,
       "type": {
         "def": {
           "variant": {
@@ -1643,7 +1813,7 @@
               {
                 "fields": [
                   {
-                    "type": 16
+                    "type": 17
                   }
                 ],
                 "index": 1,
@@ -1655,7 +1825,7 @@
         "params": [
           {
             "name": "T",
-            "type": 16
+            "type": 17
           }
         ],
         "path": [
@@ -1664,7 +1834,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 30,
       "type": {
         "def": {
           "composite": {
@@ -1686,7 +1856,7 @@
       }
     },
     {
-      "id": 29,
+      "id": 31,
       "type": {
         "def": {
           "composite": {
@@ -1712,81 +1882,6 @@
       }
     },
     {
-      "id": 30,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "index": 0,
-                "name": "None"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 26
-                  }
-                ],
-                "index": 1,
-                "name": "Some"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 26
-          }
-        ],
-        "path": [
-          "Option"
-        ]
-      }
-    },
-    {
-      "id": 31,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 30
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 9
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 30
-          },
-          {
-            "name": "E",
-            "type": 9
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
       "id": 32,
       "type": {
         "def": {
@@ -1799,7 +1894,7 @@
               {
                 "fields": [
                   {
-                    "type": 28
+                    "type": 27
                   }
                 ],
                 "index": 1,
@@ -1811,7 +1906,7 @@
         "params": [
           {
             "name": "T",
-            "type": 28
+            "type": 27
           }
         ],
         "path": [
@@ -1865,18 +1960,32 @@
       "id": 34,
       "type": {
         "def": {
-          "sequence": {
-            "type": 26
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 30
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 26
+            "type": 30
           }
         ],
         "path": [
-          "Vec"
+          "Option"
         ]
       }
     },
@@ -1935,7 +2044,7 @@
               {
                 "fields": [
                   {
-                    "type": 14
+                    "type": 2
                   }
                 ],
                 "index": 1,
@@ -1947,7 +2056,7 @@
         "params": [
           {
             "name": "T",
-            "type": 14
+            "type": 2
           }
         ],
         "path": [
@@ -1959,12 +2068,31 @@
       "id": 37,
       "type": {
         "def": {
+          "sequence": {
+            "type": 27
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 27
+          }
+        ],
+        "path": [
+          "Vec"
+        ]
+      }
+    },
+    {
+      "id": 38,
+      "type": {
+        "def": {
           "variant": {
             "variants": [
               {
                 "fields": [
                   {
-                    "type": 36
+                    "type": 37
                   }
                 ],
                 "index": 0,
@@ -1985,7 +2113,7 @@
         "params": [
           {
             "name": "T",
-            "type": 36
+            "type": 37
           },
           {
             "name": "E",
@@ -1998,43 +2126,35 @@
       }
     },
     {
-      "id": 38,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "name": "ID",
-                "type": 2
-              },
-              {
-                "name": "Track",
-                "type": 14
-              }
-            ]
-          }
-        },
-        "path": [
-          "TrackWithID"
-        ]
-      }
-    },
-    {
       "id": 39,
       "type": {
         "def": {
-          "sequence": {
-            "type": 38
+          "variant": {
+            "variants": [
+              {
+                "index": 0,
+                "name": "None"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 14
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 38
+            "type": 14
           }
         ],
         "path": [
-          "Vec"
+          "Option"
         ]
       }
     },
@@ -2088,45 +2208,17 @@
             "fields": [
               {
                 "name": "ID",
-                "type": 3
-              },
-              {
-                "name": "ProposalID",
                 "type": 2
               },
               {
-                "name": "Caller",
-                "type": 13
-              },
-              {
-                "name": "Pledge",
-                "type": 8
-              },
-              {
-                "name": "OpinionYes",
-                "type": 6
-              },
-              {
-                "name": "VoteWeight",
-                "type": 8
-              },
-              {
-                "name": "UnlockBlock",
-                "type": 4
-              },
-              {
-                "name": "VoteBlock",
-                "type": 4
-              },
-              {
-                "name": "Deleted",
-                "type": 6
+                "name": "Track",
+                "type": 14
               }
             ]
           }
         },
         "path": [
-          "Vote"
+          "TrackWithID"
         ]
       }
     },
@@ -2134,22 +2226,8 @@
       "id": 42,
       "type": {
         "def": {
-          "variant": {
-            "variants": [
-              {
-                "index": 0,
-                "name": "None"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 41
-                  }
-                ],
-                "index": 1,
-                "name": "Some"
-              }
-            ]
+          "sequence": {
+            "type": 41
           }
         },
         "params": [
@@ -2159,7 +2237,7 @@
           }
         ],
         "path": [
-          "Option"
+          "Vec"
         ]
       }
     },
@@ -2209,18 +2287,49 @@
       "id": 44,
       "type": {
         "def": {
-          "sequence": {
-            "type": 41
+          "composite": {
+            "fields": [
+              {
+                "name": "Index",
+                "type": 2
+              },
+              {
+                "name": "ProposalID",
+                "type": 2
+              },
+              {
+                "name": "Caller",
+                "type": 13
+              },
+              {
+                "name": "Pledge",
+                "type": 8
+              },
+              {
+                "name": "OpinionYes",
+                "type": 6
+              },
+              {
+                "name": "VoteWeight",
+                "type": 8
+              },
+              {
+                "name": "UnlockBlock",
+                "type": 4
+              },
+              {
+                "name": "VoteBlock",
+                "type": 4
+              },
+              {
+                "name": "Deleted",
+                "type": 6
+              }
+            ]
           }
         },
-        "params": [
-          {
-            "name": "T",
-            "type": 41
-          }
-        ],
         "path": [
-          "Vec"
+          "Vote"
         ]
       }
     },
@@ -2231,9 +2340,42 @@
           "variant": {
             "variants": [
               {
+                "index": 0,
+                "name": "None"
+              },
+              {
                 "fields": [
                   {
                     "type": 44
+                  }
+                ],
+                "index": 1,
+                "name": "Some"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 44
+          }
+        ],
+        "path": [
+          "Option"
+        ]
+      }
+    },
+    {
+      "id": 46,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 45
                   }
                 ],
                 "index": 0,
@@ -2254,7 +2396,7 @@
         "params": [
           {
             "name": "T",
-            "type": 44
+            "type": 45
           },
           {
             "name": "E",
@@ -2267,7 +2409,68 @@
       }
     },
     {
-      "id": 46,
+      "id": 47,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 44
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 44
+          }
+        ],
+        "path": [
+          "Vec"
+        ]
+      }
+    },
+    {
+      "id": 48,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 47
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 47
+          },
+          {
+            "name": "E",
+            "type": 9
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 49,
       "type": {
         "def": {
           "primitive": "u128"
@@ -2278,7 +2481,7 @@
       }
     },
     {
-      "id": 47,
+      "id": 50,
       "type": {
         "def": {
           "composite": {

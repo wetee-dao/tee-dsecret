@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -36,14 +37,18 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.CancelProposal(proposalID)
 	case [4]byte{0x06, 0x99, 0x1e, 0x89}:
-		if err := model.RequireArgLen(args, 1, "cancel_vote"); err != nil {
+		if err := model.RequireArgLen(args, 2, "cancel_vote"); err != nil {
 			return err
 		}
-		voteID, err := model.DecodeScaleArgBytes[uint64](args[0])
+		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
-			return fmt.Errorf("cancel_vote: voteID: %w", err)
+			return fmt.Errorf("cancel_vote: proposalID: %w", err)
 		}
-		return m.CancelVote(voteID)
+		index, err := model.DecodeScaleArgBytes[uint32](args[1])
+		if err != nil {
+			return fmt.Errorf("cancel_vote: index: %w", err)
+		}
+		return m.CancelVote(proposalID, index)
 	case [4]byte{0xea, 0x58, 0xb3, 0x1d}:
 		if err := model.RequireArgLen(args, 2, "deposit_proposal"); err != nil {
 			return err
@@ -205,14 +210,18 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 		}
 		return m.TransferFrom(from, to, amount)
 	case [4]byte{0x2a, 0xb8, 0x1d, 0xd1}:
-		if err := model.RequireArgLen(args, 1, "unlock"); err != nil {
+		if err := model.RequireArgLen(args, 2, "unlock"); err != nil {
 			return err
 		}
-		voteID, err := model.DecodeScaleArgBytes[uint64](args[0])
+		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
-			return fmt.Errorf("unlock: voteID: %w", err)
+			return fmt.Errorf("unlock: proposalID: %w", err)
 		}
-		return m.Unlock(voteID)
+		index, err := model.DecodeScaleArgBytes[uint32](args[1])
+		if err != nil {
+			return fmt.Errorf("unlock: index: %w", err)
+		}
+		return m.Unlock(proposalID, index)
 	default:
 		return fmt.Errorf("gov: unknown method %q", methodSel)
 	}
@@ -294,7 +303,18 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0xfe, 0x26, 0xfd, 0x17}:
-		out, err := q.Proposals()
+		if err := model.RequireArgLen(args, 2, "proposals"); err != nil {
+			return nil, err
+		}
+		startKey, err := model.DecodeScaleArgBytes[util.Option[uint32]](args[0])
+		if err != nil {
+			return nil, fmt.Errorf("proposals: startKey: %w", err)
+		}
+		size, err := model.DecodeScaleArgBytes[uint32](args[1])
+		if err != nil {
+			return nil, fmt.Errorf("proposals: size: %w", err)
+		}
+		out, err := q.Proposals(startKey, size)
 		if err != nil {
 			return nil, err
 		}
@@ -325,20 +345,39 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		}
 		return codec.Encode(out)
 	case [4]byte{0x4d, 0x15, 0x1c, 0xf1}:
-		if err := model.RequireArgLen(args, 1, "vote"); err != nil {
+		if err := model.RequireArgLen(args, 2, "vote"); err != nil {
 			return nil, err
 		}
-		id, err := model.DecodeScaleArgBytes[uint64](args[0])
+		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
 		if err != nil {
-			return nil, fmt.Errorf("vote: id: %w", err)
+			return nil, fmt.Errorf("vote: proposalID: %w", err)
 		}
-		out, err := q.Vote(id)
+		index, err := model.DecodeScaleArgBytes[uint32](args[1])
+		if err != nil {
+			return nil, fmt.Errorf("vote: index: %w", err)
+		}
+		out, err := q.Vote(proposalID, index)
 		if err != nil {
 			return nil, err
 		}
 		return codec.Encode(out)
 	case [4]byte{0x34, 0x0f, 0x2c, 0xf4}:
-		out, err := q.Votes()
+		if err := model.RequireArgLen(args, 3, "votes"); err != nil {
+			return nil, err
+		}
+		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
+		if err != nil {
+			return nil, fmt.Errorf("votes: proposalID: %w", err)
+		}
+		startKey, err := model.DecodeScaleArgBytes[util.Option[uint32]](args[1])
+		if err != nil {
+			return nil, fmt.Errorf("votes: startKey: %w", err)
+		}
+		size, err := model.DecodeScaleArgBytes[uint32](args[2])
+		if err != nil {
+			return nil, fmt.Errorf("votes: size: %w", err)
+		}
+		out, err := q.Votes(proposalID, startKey, size)
 		if err != nil {
 			return nil, err
 		}
@@ -350,23 +389,21 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 
 func NewGov(api model.ContractApi) *Gov {
 	return &Gov{
-		api:                 api,
-		members:             &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_"},
-		publicJoin:          &model.StoreValue[bool]{Namespace: "gov", Key: "public_join"},
-		transferEnabled:     &model.StoreValue[bool]{Namespace: "gov", Key: "transfer_enabled"},
-		totalIssuance:       &model.StoreValue[model.Amount]{Namespace: "gov", Key: "total_issuance"},
-		defaultTrack:        &model.StoreValue[uint32]{Namespace: "gov", Key: "default_track"},
-		nextProposalIDStore: &model.StoreValue[uint32]{Namespace: "gov", Key: "next_proposal_id"},
-		nextVoteIDStore:     &model.StoreValue[uint64]{Namespace: "gov", Key: "next_vote_id"},
-		nextSpendIDStore:    &model.StoreValue[uint64]{Namespace: "gov", Key: "next_spend_id"},
-		nextTrackIDStore:    &model.StoreValue[uint32]{Namespace: "gov", Key: "next_track_id"},
-		memberLocks:         &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_lock_"},
-		allowances:          &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "allowance_"},
-		tracks:              &model.StoreMapping[uint32, TrackData]{Namespace: "gov", KeyPrefix: "track_"},
-		proposals:           &model.StoreMapping[uint32, Proposal]{Namespace: "gov", KeyPrefix: "proposal_v3"},
-		votes:               &model.StoreMapping[uint64, Vote]{Namespace: "gov", KeyPrefix: "vote_"},
-		voteUnlocks:         &model.StoreMapping[uint64, bool]{Namespace: "gov", KeyPrefix: "vote_unlock_"},
-		spends:              &model.StoreMapping[uint64, Spend]{Namespace: "gov", KeyPrefix: "spend_"},
-		proposalResults:     &model.StoreMapping[uint32, ProposalResult]{Namespace: "gov", KeyPrefix: "proposal_result_"},
+		api:              api,
+		members:          &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_"},
+		publicJoin:       &model.StoreValue[bool]{Namespace: "gov", Key: "public_join"},
+		transferEnabled:  &model.StoreValue[bool]{Namespace: "gov", Key: "transfer_enabled"},
+		totalIssuance:    &model.StoreValue[model.Amount]{Namespace: "gov", Key: "total_issuance"},
+		defaultTrack:     &model.StoreValue[uint32]{Namespace: "gov", Key: "default_track"},
+		nextSpendIDStore: &model.StoreValue[uint64]{Namespace: "gov", Key: "next_spend_id"},
+		nextTrackIDStore: &model.StoreValue[uint32]{Namespace: "gov", Key: "next_track_id"},
+		memberLocks:      &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_lock_"},
+		allowances:       &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "allowance_"},
+		tracks:           &model.StoreMapping[uint32, TrackData]{Namespace: "gov", KeyPrefix: "tracks_v2"},
+		proposals:        model.NewStoreList[uint32, Proposal]("gov", "proposals_v5next_", "proposals_v5items_"),
+		votes:            model.NewStoreList2D[uint32, uint32, Vote]("gov", "votes_v3k1_to_id_", "votes_v3k1_length_", "votes_v3k2_next_", "votes_v3store_"),
+		voteUnlocks:      &model.StoreMapping[uint64, bool]{Namespace: "gov", KeyPrefix: "vote_unlock_"},
+		spends:           &model.StoreMapping[uint64, Spend]{Namespace: "gov", KeyPrefix: "spend_"},
+		proposalResults:  &model.StoreMapping[uint32, ProposalResult]{Namespace: "gov", KeyPrefix: "proposal_result_"},
 	}
 }

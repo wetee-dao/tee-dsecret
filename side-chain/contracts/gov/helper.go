@@ -27,8 +27,8 @@ func (d Gov) proposal(id uint32) (Proposal, error) {
 	return *prop, nil
 }
 
-func (d Gov) vote(id uint64) (Vote, error) {
-	v, err := d.votes.Get(d.api.GetTxn(), id)
+func (d Gov) vote(proposalID uint32, index uint32) (Vote, error) {
+	v, err := d.votes.Get(d.api.GetTxn(), proposalID, index)
 	if err != nil {
 		return Vote{}, err
 	}

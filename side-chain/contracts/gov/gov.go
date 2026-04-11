@@ -91,10 +91,6 @@ type Gov struct {
 	totalIssuance *model.StoreValue[model.Amount]
 	// defaultTrack 默认轨道ID (key: default_track)
 	defaultTrack *model.StoreValue[uint32]
-	// nextProposalIDStore 下一个提案ID (key: next_proposal)
-	nextProposalIDStore *model.StoreValue[uint32]
-	// nextVoteIDStore 下一个投票ID (key: next_vote)
-	nextVoteIDStore *model.StoreValue[uint64]
 	// nextSpendIDStore 下一个支出ID (key: next_spend)
 	nextSpendIDStore *model.StoreValue[uint64]
 	// nextTrackIDStore 下一个轨道ID (key: next_track)
@@ -104,11 +100,12 @@ type Gov struct {
 	// allowances 授权额度映射 (keyPfx: allowance_)
 	allowances *model.StoreMapping[model.UniAddr, model.Amount]
 	// tracks 轨道数据映射 (keyPfx: track_)
-	tracks *model.StoreMapping[uint32, TrackData]
-	// proposals 提案数据映射 (keyPfx: proposal_)
-	proposals *model.StoreMapping[uint32, Proposal] `store:"keyPfx:proposal_v3"`
-	// votes 投票数据映射 (keyPfx: vote_)
-	votes *model.StoreMapping[uint64, Vote]
+	tracks *model.StoreMapping[uint32, TrackData] `store:"keyPfx:tracks_v2"`
+	// proposals 提案列表 (自增ID管理)
+	proposals *model.StoreList[uint32, Proposal] `store:"keyPfx:proposals_v5"`
+	// votes 投票数据二维列表 (keyPfx: votes_v2)
+	// K1 = proposalID, Ix = 内层索引，可按提案获取所有投票
+	votes *model.StoreList2D[uint32, uint32, Vote] `store:"keyPfx:votes_v3"`
 	// voteUnlocks 投票解锁状态映射 (keyPfx: vote_unlock_)
 	voteUnlocks *model.StoreMapping[uint64, bool]
 	// spends 支出数据映射 (keyPfx: spend_)
@@ -133,13 +130,15 @@ func (d GovMutation) Init() error {
 	publicJoin := true
 	defaultTrack := TrackData{
 		Name:               "default",
-		PreparePeriod:      0,
+		PreparePeriod:      100,
 		MaxDeciding:        100,
-		ConfirmPeriod:      1,
+		ConfirmPeriod:      100,
 		DecisionPeriod:     100,
 		MinEnactmentPeriod: 0,
-		DecisionDeposit:    model.Amount{Int: big.NewInt(1)},
+		DecisionDeposit:    model.Amount{Int: big.NewInt(100)},
 		MaxBalance:         model.Amount{Int: big.NewInt(1_000_000)},
+		MinApproval:        NewLinearDecreasingCurve(10000, 50, 100), // 从 100% 递减到 0.5%，长度 100 区块
+		MinSupport:         NewLinearDecreasingCurve(10000, 50, 100), // 从 100% 递减到 0.5%，长度 100 区块
 	}
 
 	if err := d.publicJoin.Set(d.api.GetTxn(), publicJoin); err != nil {
@@ -151,14 +150,6 @@ func (d GovMutation) Init() error {
 	}
 
 	if err := d.totalIssuance.Set(d.api.GetTxn(), total); err != nil {
-		return err
-	}
-
-	if err := d.nextProposalIDStore.Set(d.api.GetTxn(), 0); err != nil {
-		return err
-	}
-
-	if err := d.nextVoteIDStore.Set(d.api.GetTxn(), 0); err != nil {
 		return err
 	}
 

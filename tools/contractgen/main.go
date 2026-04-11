@@ -194,6 +194,7 @@ func main() {
 	fmt.Fprintf(&buf, "import (\n")
 	fmt.Fprintf(&buf, "\t\"fmt\"\n\n")
 	fmt.Fprintf(&buf, "\t\"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec\"\n")
+	fmt.Fprintf(&buf, "\t\"github.com/wetee-dao/ink.go/util\"\n")
 	fmt.Fprintf(&buf, "\t\"github.com/wetee-dao/tee-dsecret/pkg/model\"\n")
 	fmt.Fprintf(&buf, ")\n\n")
 
@@ -729,8 +730,28 @@ type storeValueField struct {
 // storeField 表示一个存储字段（StoreMapping 或 StoreValue）
 type storeField struct {
 	isMapping bool              // 是否为 StoreMapping
+	isValue   bool              // 是否为 StoreValue
+	isList    bool              // 是否为 StoreList
+	isList2D  bool              // 是否为 StoreList2D
 	mapping   storeMappingField // StoreMapping 字段
 	value     storeValueField   // StoreValue 字段
+	list      storeListField    // StoreList 字段
+	list2D    storeList2DField  // StoreList2D 字段
+}
+
+type storeListField struct {
+	name    string // 字段名
+	keyType string // K 类型
+	valType string // V 类型
+	keyPfx  string // keyPfx tag 值或自动生成的
+}
+
+type storeList2DField struct {
+	name      string // 字段名
+	key1Type  string // K1 类型
+	indexType string // Ix 类型
+	valType   string // V 类型
+	keyPfx    string // keyPfx tag 值或自动生成的
 }
 
 // parseStructFields 解析结构体中的 StoreMapping 和 StoreValue 字段
@@ -771,11 +792,48 @@ func parseStructFields(st *ast.StructType, fset *token.FileSet) []storeField {
 				key = storeKey(fieldName)
 			}
 			fields = append(fields, storeField{
-				isMapping: false,
+				isValue: true,
 				value: storeValueField{
 					name:    fieldName,
 					valType: valType,
 					key:     key,
+				},
+			})
+			continue
+		}
+
+		// 尝试解析 StoreList 类型
+		if keyType, valType, ok := parseStoreListType(typStr); ok {
+			keyPfx := extractKeyPrefix(field, "keyPfx")
+			if keyPfx == "" {
+				keyPfx = storeKeyPrefix(fieldName)
+			}
+			fields = append(fields, storeField{
+				isList: true,
+				list: storeListField{
+					name:    fieldName,
+					keyType: keyType,
+					valType: valType,
+					keyPfx:  keyPfx,
+				},
+			})
+			continue
+		}
+
+		// 尝试解析 StoreList2D 类型
+		if k1Type, ixType, valType, ok := parseStoreList2DType(typStr); ok {
+			keyPfx := extractKeyPrefix(field, "keyPfx")
+			if keyPfx == "" {
+				keyPfx = storeKeyPrefix(fieldName)
+			}
+			fields = append(fields, storeField{
+				isList2D: true,
+				list2D: storeList2DField{
+					name:      fieldName,
+					key1Type:  k1Type,
+					indexType: ixType,
+					valType:   valType,
+					keyPfx:    keyPfx,
 				},
 			})
 		}
@@ -834,6 +892,63 @@ func parseStoreValueType(typ string) (val string, ok bool) {
 	}
 	inner := typ[len("model.StoreValue[") : len(typ)-1]
 	return strings.TrimSpace(inner), true
+}
+
+// parseStoreListType 解析 *model.StoreList[K, V] 类型，返回 K, V 类型字符串
+func parseStoreListType(typ string) (key, val string, ok bool) {
+	// 匹配 *model.StoreList[K, V] 或 model.StoreList[K, V]
+	typ = strings.TrimSpace(typ)
+	typ = strings.TrimPrefix(typ, "*")
+	if !strings.HasPrefix(typ, "model.StoreList[") || !strings.HasSuffix(typ, "]") {
+		return "", "", false
+	}
+	inner := typ[len("model.StoreList[") : len(typ)-1]
+	// 解析 [K, V] 中的 K 和 V
+	k, v, ok := parseTypePair(inner)
+	if !ok {
+		return "", "", false
+	}
+	return k, v, true
+}
+
+// parseStoreList2DType 解析 *model.StoreList2D[K1, Ix, V] 类型，返回 K1, Ix, V 类型字符串
+func parseStoreList2DType(typ string) (k1, ix, val string, ok bool) {
+	// 匹配 *model.StoreList2D[K1, Ix, V] 或 model.StoreList2D[K1, Ix, V]
+	typ = strings.TrimSpace(typ)
+	typ = strings.TrimPrefix(typ, "*")
+	if !strings.HasPrefix(typ, "model.StoreList2D[") || !strings.HasSuffix(typ, "]") {
+		return "", "", "", false
+	}
+	inner := typ[len("model.StoreList2D[") : len(typ)-1]
+	// 解析 [K1, Ix, V] 中的三个类型参数
+	// 先找到第一个逗号
+	depth := 0
+	firstComma := -1
+	secondComma := -1
+	for i, c := range inner {
+		switch c {
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				if firstComma == -1 {
+					firstComma = i
+				} else {
+					secondComma = i
+					break
+				}
+			}
+		}
+	}
+	if firstComma == -1 || secondComma == -1 {
+		return "", "", "", false
+	}
+	k1 = strings.TrimSpace(inner[:firstComma])
+	ix = strings.TrimSpace(inner[firstComma+1 : secondComma])
+	val = strings.TrimSpace(inner[secondComma+1:])
+	return k1, ix, val, true
 }
 
 // extractKeyPrefix 从字段注释或 tag 中提取 key 或 keyPfx
@@ -945,9 +1060,27 @@ func writeConstructor(buf *bytes.Buffer, structName, ctorName, pkgName string, f
 		if f.isMapping {
 			fmt.Fprintf(buf, "\t\t%s: &model.StoreMapping[%s, %s]{Namespace: %q, KeyPrefix: %q},\n",
 				f.mapping.name, f.mapping.keyType, f.mapping.valType, pkgName, f.mapping.keyPfx)
-		} else {
+		} else if f.isValue {
 			fmt.Fprintf(buf, "\t\t%s: &model.StoreValue[%s]{Namespace: %q, Key: %q},\n",
 				f.value.name, f.value.valType, pkgName, f.value.key)
+		} else if f.isList {
+			// StoreList 使用 NewStoreList 构造函数
+			// prefixNextID: "{keyPfx}next_", prefixItems: "{keyPfx}items_"
+			prefixNextID := f.list.keyPfx + "next_"
+			prefixItems := f.list.keyPfx + "items_"
+			fmt.Fprintf(buf, "\t\t%s: model.NewStoreList[%s, %s](%q, %q, %q),\n",
+				f.list.name, f.list.keyType, f.list.valType, pkgName, prefixNextID, prefixItems)
+		} else if f.isList2D {
+			// StoreList2D 使用 NewStoreList2D 构造函数
+			// prefixK1ToID: "{keyPfx}k1_to_id_", prefixK1Length: "{keyPfx}k1_length_"
+			// prefixK2NextID: "{keyPfx}k2_next_", prefixStore: "{keyPfx}store_"
+			prefixK1ToID := f.list2D.keyPfx + "k1_to_id_"
+			prefixK1Length := f.list2D.keyPfx + "k1_length_"
+			prefixK2NextID := f.list2D.keyPfx + "k2_next_"
+			prefixStore := f.list2D.keyPfx + "store_"
+			fmt.Fprintf(buf, "\t\t%s: model.NewStoreList2D[%s, %s, %s](%q, %q, %q, %q, %q),\n",
+				f.list2D.name, f.list2D.key1Type, f.list2D.indexType, f.list2D.valType,
+				pkgName, prefixK1ToID, prefixK1Length, prefixK2NextID, prefixStore)
 		}
 	}
 	fmt.Fprintf(buf, "\t}\n")

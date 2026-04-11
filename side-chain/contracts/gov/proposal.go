@@ -7,23 +7,45 @@ import (
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
-func (d GovQuery) Proposal(id uint32) (util.Option[Proposal], error) {
+func (d GovQuery) Proposal(id uint32) (util.Option[ProposalWithID], error) {
 	prop, err := d.proposals.Get(d.api.GetTxn(), id)
 	if err != nil {
-		return util.NewNone[Proposal](), err
+		return util.NewNone[ProposalWithID](), err
 	}
 	if prop == nil {
-		return util.NewNone[Proposal](), ErrInvalidProposal
+		return util.NewNone[ProposalWithID](), ErrInvalidProposal
 	}
-	return util.NewSome(*prop), nil
+
+	// 填充 ID（StoreList 不自动存储 key）
+	p := ProposalWithID{
+		ID:       id,
+		Proposal: *prop,
+	}
+
+	return util.NewSome(p), nil
 }
 
-func (d GovQuery) Proposals() ([]Proposal, error) {
-	_, props, err := d.proposals.List(d.api.GetTxn())
+func (d GovQuery) Proposals(startKey util.Option[uint32], size uint32) ([]ProposalWithID, error) {
+	var startKeyPtr = new(uint32)
+	if startKey.IsSome() {
+		startKeyPtr = &startKey.V
+	}
+
+	ids, props, err := d.proposals.DescList(d.api.GetTxn(), startKeyPtr, size)
 	if err != nil {
 		return nil, err
 	}
-	return props, nil
+
+	// 填充每个 proposal 的 ID
+	ps := make([]ProposalWithID, len(ids))
+	for i := range ids {
+		ps = append(ps, ProposalWithID{
+			ID:       ids[i],
+			Proposal: props[i],
+		})
+	}
+
+	return ps, nil
 }
 
 func (d GovQuery) ProposalStatus(id uint32) (util.Option[ProposalStatus], error) {
@@ -36,7 +58,7 @@ func (d GovQuery) ProposalStatus(id uint32) (util.Option[ProposalStatus], error)
 		return util.NewSome(prop.Status), nil
 	}
 
-	confirmed, end, _, err := d.calculateProposalStatus(prop)
+	confirmed, end, _, err := d.calculateProposalStatus(id, prop)
 	if err != nil {
 		return util.NewNone[ProposalStatus](), err
 	}
@@ -78,13 +100,8 @@ func (d GovMutation) SubmitProposal(call CallContent, trackID uint32) error {
 		return ErrLowBalance
 	}
 
-	id, err := d.nextProposalIDStore.GetOrDefault(d.api.GetTxn(), uint32(0))
-	if err != nil {
-		return err
-	}
-
+	// 使用 StoreList.Insert 自动分配 ID
 	record := Proposal{
-		ID:          id,
 		Call:        util.NewSome(call),
 		TrackID:     trackID,
 		Caller:      caller,
@@ -96,10 +113,12 @@ func (d GovMutation) SubmitProposal(call CallContent, trackID uint32) error {
 			Block:     height,
 		},
 	}
-	if err := d.proposals.Set(d.api.GetTxn(), id, record); err != nil {
+	id, err := d.proposals.Insert(d.api.GetTxn(), record)
+	if err != nil {
 		return err
 	}
-	return d.nextProposalIDStore.Set(d.api.GetTxn(), id+1)
+	_ = id // ID 已由 StoreList 自动分配，无需额外处理
+	return nil
 }
 
 func (d GovMutation) CancelProposal(proposalID uint32) error {
@@ -115,7 +134,7 @@ func (d GovMutation) CancelProposal(proposalID uint32) error {
 		return ErrInvalidProposalCaller
 	}
 	prop.Status = ProposalStatus{State: ProposalCanceled}
-	return d.proposals.Set(d.api.GetTxn(), prop.ID, prop)
+	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }
 
 func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) error {
@@ -144,7 +163,7 @@ func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) err
 
 	prop.Deposit = ProposalDeposit{Depositor: caller, Amount: amount, Block: height}
 	prop.Status = ProposalStatus{State: ProposalOngoing}
-	return d.proposals.Set(d.api.GetTxn(), prop.ID, prop)
+	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }
 
 func (d GovMutation) ExecProposal(proposalID uint32) error {
@@ -158,7 +177,7 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 		return ErrPropNotOngoing
 	}
 
-	confirmed, end, track, err := d.calculateProposalStatus(prop)
+	confirmed, end, track, err := d.calculateProposalStatus(proposalID, prop)
 	if err != nil {
 		return err
 	}
@@ -166,7 +185,7 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 	if !confirmed {
 		if height > end {
 			prop.Status = ProposalStatus{State: ProposalRejected, Block: end}
-			return d.proposals.Set(d.api.GetTxn(), prop.ID, prop)
+			return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 		}
 		return ErrProposalNotConfirmed
 	}
@@ -192,12 +211,12 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 		}
 
 		// 保存执行结果
-		if err := d.proposalResults.Set(d.api.GetTxn(), prop.ID, result); err != nil {
+		if err := d.proposalResults.Set(d.api.GetTxn(), proposalID, result); err != nil {
 			return err
 		}
 	}
 
 	prop.Status = ProposalStatus{State: ProposalApproved, Block: height}
 	// prop.DecisionBlock = height
-	return d.proposals.Set(d.api.GetTxn(), prop.ID, prop)
+	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }

@@ -585,6 +585,17 @@ func (r *inkRegistry) goTypeToABIRefNamed(goType string) (abiTypeRef, error) {
 		return abiTypeRef{Display: []string{"UniAddr"}, TypeID: r.addressID}, nil
 	}
 
+	// 处理 util.Option[T] 类型
+	if strings.HasPrefix(goType, "util.Option[") && strings.HasSuffix(goType, "]") {
+		innerType := goType[len("util.Option[") : len(goType)-1]
+		innerID, err := r.ensureInnerQueryReturn(innerType)
+		if err != nil {
+			return abiTypeRef{}, err
+		}
+		optionID := r.ensureOption(innerID)
+		return abiTypeRef{Display: []string{"Option"}, TypeID: optionID}, nil
+	}
+
 	// 检查缓存
 	if id, ok := r.goTypeToID[goType]; ok {
 		// 使用简短的 displayName

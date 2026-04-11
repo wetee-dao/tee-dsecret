@@ -11,9 +11,9 @@ import (
 	"github.com/cockroachdb/pebble"
 )
 
-// MappingKey 约束 mapping 的 key 类型：string、[]byte、uint64、uint32。
+// MappingKey 约束 mapping 的 key 类型：string、[]byte、uint64、uint32、uint16、uint8。
 type MappingKey interface {
-	string | []byte | uint64 | uint32 | UniAddr
+	string | []byte | uint64 | uint32 | uint16 | uint8 | UniAddr
 }
 
 // StoreMapping 类似 Solidity mapping(key => value)。
@@ -38,6 +38,10 @@ func (m *StoreMapping[K, V]) keySuffix(key K) string {
 		return strconv.FormatUint(v, 10)
 	case uint32:
 		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
 	case UniAddr:
 		k, _ := codec.EncodeToHex(v)
 		return k
@@ -61,6 +65,12 @@ func parseKeySuffix[K MappingKey](suffix string) K {
 	case uint32:
 		v, _ := strconv.ParseUint(suffix, 10, 32)
 		return any(uint32(v)).(K)
+	case uint16:
+		v, _ := strconv.ParseUint(suffix, 10, 16)
+		return any(uint16(v)).(K)
+	case uint8:
+		v, _ := strconv.ParseUint(suffix, 10, 8)
+		return any(uint8(v)).(K)
 	case UniAddr:
 		var addr UniAddr
 		codec.DecodeFromHex(suffix, &addr)

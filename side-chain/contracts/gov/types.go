@@ -15,14 +15,16 @@ type Member struct {
 
 // TrackData 治理轨道参数。
 type TrackData struct {
-	Name               string
-	PreparePeriod      uint32
-	MaxDeciding        uint32
-	ConfirmPeriod      uint32
-	DecisionPeriod     uint32
-	MinEnactmentPeriod uint32
-	DecisionDeposit    model.Amount // 保持 []byte，因为从链上读取
-	MaxBalance         model.Amount // 保持 []byte，因为从链上读取
+	Name               string       // 轨道名称
+	PreparePeriod      uint32       // 准备期（区块数），提案提交后需要等待的准备时间
+	MaxDeciding        uint32       // 最大决策期（区块数），投票持续的最大时间
+	ConfirmPeriod      uint32       // 确认期（区块数），阈值满足后需要持续的时间才能通过
+	DecisionPeriod     uint32       // 决定期（区块数）
+	MinEnactmentPeriod uint32       // 最小执行期（区块数），提案通过后到执行的最短时间
+	DecisionDeposit    model.Amount // 决定押金金额，提案人需要质押的金额
+	MaxBalance         model.Amount // 最大能执行的金额，提案涉及金额的上限
+	MinApproval        Curve        // 投票通过阈值曲线，yes/(yes+no) 需达到的比例
+	MinSupport         Curve        // 投票参与率曲线，support/totalSupply 需达到的比例
 }
 
 type TrackWithID struct {
@@ -50,7 +52,6 @@ type ProposalDeposit struct {
 }
 
 type Proposal struct {
-	ID          uint32
 	Call        util.Option[CallContent]
 	TrackID     uint32
 	Caller      model.UniAddr
@@ -59,13 +60,18 @@ type Proposal struct {
 	Deposit     ProposalDeposit
 }
 
+type ProposalWithID struct {
+	ID       uint32
+	Proposal Proposal
+}
+
 type ProposalResult struct {
 	Result    util.Option[[]byte]
 	ExecError util.Option[[]byte]
 }
 
 type Vote struct {
-	ID          uint64
+	Index       uint32
 	ProposalID  uint32
 	Caller      model.UniAddr
 	Pledge      model.Amount
