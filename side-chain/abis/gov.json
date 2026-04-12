@@ -23,7 +23,7 @@
         "displayName": [
           "Balance"
         ],
-        "type": 49
+        "type": 50
       },
       "blockNumber": {
         "displayName": [
@@ -35,7 +35,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 50
+        "type": 51
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -255,7 +255,7 @@
               "displayName": [
                 "Option"
               ],
-              "type": 36
+              "type": 37
             }
           },
           {
@@ -278,7 +278,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 48
+          "type": 49
         },
         "selector": "0x340f2cf4"
       },
@@ -308,7 +308,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 43
+          "type": 44
         },
         "selector": "0x3c05be89"
       },
@@ -424,7 +424,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 46
+          "type": 47
         },
         "selector": "0x4d151cf1"
       },
@@ -743,7 +743,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 40
+          "type": 41
         },
         "selector": "0xb9fd54c4"
       },
@@ -964,7 +964,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 35
+          "type": 36
         },
         "selector": "0xfd88907b"
       },
@@ -977,7 +977,7 @@
               "displayName": [
                 "Option"
               ],
-              "type": 36
+              "type": 37
             }
           },
           {
@@ -1000,7 +1000,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 38
+          "type": 39
         },
         "selector": "0xfe26fd17"
       }
@@ -1960,6 +1960,36 @@
       "id": 34,
       "type": {
         "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "State",
+                "type": 0
+              },
+              {
+                "name": "BlockHeight",
+                "type": 4
+              },
+              {
+                "name": "ConfirmedNumber",
+                "type": 2
+              },
+              {
+                "name": "LastConfirmedBlock",
+                "type": 4
+              }
+            ]
+          }
+        },
+        "path": [
+          "ProposalStatusQuery"
+        ]
+      }
+    },
+    {
+      "id": 35,
+      "type": {
+        "def": {
           "variant": {
             "variants": [
               {
@@ -1969,7 +1999,7 @@
               {
                 "fields": [
                   {
-                    "type": 30
+                    "type": 34
                   }
                 ],
                 "index": 1,
@@ -1981,7 +2011,7 @@
         "params": [
           {
             "name": "T",
-            "type": 30
+            "type": 34
           }
         ],
         "path": [
@@ -1990,7 +2020,7 @@
       }
     },
     {
-      "id": 35,
+      "id": 36,
       "type": {
         "def": {
           "variant": {
@@ -1998,7 +2028,7 @@
               {
                 "fields": [
                   {
-                    "type": 34
+                    "type": 35
                   }
                 ],
                 "index": 0,
@@ -2019,7 +2049,7 @@
         "params": [
           {
             "name": "T",
-            "type": 34
+            "type": 35
           },
           {
             "name": "E",
@@ -2032,7 +2062,7 @@
       }
     },
     {
-      "id": 36,
+      "id": 37,
       "type": {
         "def": {
           "variant": {
@@ -2065,7 +2095,7 @@
       }
     },
     {
-      "id": 37,
+      "id": 38,
       "type": {
         "def": {
           "sequence": {
@@ -2084,7 +2114,7 @@
       }
     },
     {
-      "id": 38,
+      "id": 39,
       "type": {
         "def": {
           "variant": {
@@ -2092,7 +2122,7 @@
               {
                 "fields": [
                   {
-                    "type": 37
+                    "type": 38
                   }
                 ],
                 "index": 0,
@@ -2113,7 +2143,7 @@
         "params": [
           {
             "name": "T",
-            "type": 37
+            "type": 38
           },
           {
             "name": "E",
@@ -2126,7 +2156,7 @@
       }
     },
     {
-      "id": 39,
+      "id": 40,
       "type": {
         "def": {
           "variant": {
@@ -2159,7 +2189,7 @@
       }
     },
     {
-      "id": 40,
+      "id": 41,
       "type": {
         "def": {
           "variant": {
@@ -2167,7 +2197,7 @@
               {
                 "fields": [
                   {
-                    "type": 39
+                    "type": 40
                   }
                 ],
                 "index": 0,
@@ -2188,7 +2218,7 @@
         "params": [
           {
             "name": "T",
-            "type": 39
+            "type": 40
           },
           {
             "name": "E",
@@ -2201,7 +2231,7 @@
       }
     },
     {
-      "id": 41,
+      "id": 42,
       "type": {
         "def": {
           "composite": {
@@ -2223,17 +2253,17 @@
       }
     },
     {
-      "id": 42,
+      "id": 43,
       "type": {
         "def": {
           "sequence": {
-            "type": 41
+            "type": 42
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 41
+            "type": 42
           }
         ],
         "path": [
@@ -2242,7 +2272,7 @@
       }
     },
     {
-      "id": 43,
+      "id": 44,
       "type": {
         "def": {
           "variant": {
@@ -2250,7 +2280,7 @@
               {
                 "fields": [
                   {
-                    "type": 42
+                    "type": 43
                   }
                 ],
                 "index": 0,
@@ -2271,7 +2301,7 @@
         "params": [
           {
             "name": "T",
-            "type": 42
+            "type": 43
           },
           {
             "name": "E",
@@ -2284,7 +2314,7 @@
       }
     },
     {
-      "id": 44,
+      "id": 45,
       "type": {
         "def": {
           "composite": {
@@ -2334,7 +2364,7 @@
       }
     },
     {
-      "id": 45,
+      "id": 46,
       "type": {
         "def": {
           "variant": {
@@ -2346,7 +2376,7 @@
               {
                 "fields": [
                   {
-                    "type": 44
+                    "type": 45
                   }
                 ],
                 "index": 1,
@@ -2358,7 +2388,7 @@
         "params": [
           {
             "name": "T",
-            "type": 44
+            "type": 45
           }
         ],
         "path": [
@@ -2367,7 +2397,7 @@
       }
     },
     {
-      "id": 46,
+      "id": 47,
       "type": {
         "def": {
           "variant": {
@@ -2375,7 +2405,7 @@
               {
                 "fields": [
                   {
-                    "type": 45
+                    "type": 46
                   }
                 ],
                 "index": 0,
@@ -2396,7 +2426,7 @@
         "params": [
           {
             "name": "T",
-            "type": 45
+            "type": 46
           },
           {
             "name": "E",
@@ -2409,17 +2439,17 @@
       }
     },
     {
-      "id": 47,
+      "id": 48,
       "type": {
         "def": {
           "sequence": {
-            "type": 44
+            "type": 45
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 44
+            "type": 45
           }
         ],
         "path": [
@@ -2428,7 +2458,7 @@
       }
     },
     {
-      "id": 48,
+      "id": 49,
       "type": {
         "def": {
           "variant": {
@@ -2436,7 +2466,7 @@
               {
                 "fields": [
                   {
-                    "type": 47
+                    "type": 48
                   }
                 ],
                 "index": 0,
@@ -2457,7 +2487,7 @@
         "params": [
           {
             "name": "T",
-            "type": 47
+            "type": 48
           },
           {
             "name": "E",
@@ -2470,7 +2500,7 @@
       }
     },
     {
-      "id": 49,
+      "id": 50,
       "type": {
         "def": {
           "primitive": "u128"
@@ -2481,7 +2511,7 @@
       }
     },
     {
-      "id": 50,
+      "id": 51,
       "type": {
         "def": {
           "composite": {

@@ -50,7 +50,7 @@ func (d GovMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount m
 	if err != nil {
 		return err
 	}
-	if prop.Status.State != ProposalOngoing {
+	if prop.Status.State != ProposalStatusOngoing {
 		return ErrPropNotOngoing
 	}
 	track, err := d.track(prop.TrackID)
@@ -116,7 +116,7 @@ func (d GovMutation) CancelVote(proposalID uint32, index uint32) error {
 	if err != nil {
 		return err
 	}
-	if prop.Status.State != ProposalOngoing {
+	if prop.Status.State != ProposalStatusOngoing {
 		return ErrPropNotOngoing
 	}
 	vote.Deleted = true
@@ -186,23 +186,43 @@ func (d GovMutation) Unlock(proposalID uint32, index uint32) error {
 }
 
 // calculateProposalStatus 计算提案状态
-// 返回：是否确认通过、结束区块、轨道数据
-func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (bool, int64, TrackData, error) {
+// 返回提案状态码（uint8）
+//
+// 提案状态流转：
+//
+//	Pending(0) -> 待存款，提案已提交但尚未支付押金
+//	Ongoing(1) -> 进行中，正在投票阶段
+//	Confirming(2) -> 确认中，阈值已满足，正在等待确认期结束
+//	Confirmed(3) -> 已确认，确认期结束，等待执行
+//	Approved(4) -> 已批准，提案通过
+//	Rejected(5) -> 已拒绝，提案被否决
+//	Canceled(6) -> 已取消，提案被取消
+//
+// 投票计算公式：
+//
+//	Approval = yes / (yes + no) * 10000（万分比）
+//	Support = support / totalSupply * 10000（万分比）
+//
+// 通过条件：
+//  1. approvalRatio >= minApproval && supportRatio >= minSupport
+//  2. 连续满足条件的时间 > confirmPeriod
+func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (ProposalStatusQuery, error) {
 	track, err := d.track(prop.TrackID)
 	if err != nil {
-		return false, 0, TrackData{}, err
+		return ProposalStatusQuery{}, err
 	}
 	end := prop.Deposit.Block + int64(track.MaxDeciding)
+	height := d.api.GetHeight()
 
 	// 使用 ListAll 获取该提案的所有投票
 	_, votes, err := d.votes.ListAll(d.api.GetTxn(), id)
 	if err != nil {
-		return false, 0, TrackData{}, err
+		return ProposalStatusQuery{}, err
 	}
 
 	totalSupply, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
 	if err != nil {
-		return false, 0, TrackData{}, err
+		return ProposalStatusQuery{}, err
 	}
 
 	// 统计结果
@@ -212,9 +232,10 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (bool, int64, Tra
 	all := totalSupply.Int
 
 	// 确认期逻辑
-	isConfirm := false
 	var lastAchieveBlock int64 = 0
 	confirmPeriod := int64(track.ConfirmPeriod)
+	decisionPeriod := int64(track.DecisionPeriod)
+	confirmed := 0
 
 	for _, vote := range votes {
 		if vote.Deleted {
@@ -252,13 +273,19 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (bool, int64, Tra
 			if approvalRatio.Uint64() >= minApproval && supportRatio.Uint64() >= minSupport {
 				// 检查确认期
 				if lastAchieveBlock > 0 && voteBlock-lastAchieveBlock > confirmPeriod {
-					isConfirm = true
-					break
+					// 已确认，等待执行
+					return ProposalStatusQuery{
+						State:              ProposalStatusConfirmed,
+						BlockHeight:        height,
+						ConfirmedNumber:    uint32(confirmed),
+						LastConfirmedBlock: lastAchieveBlock,
+					}, nil
 				}
 
 				// 记录首次满足阈值的区块
 				if lastAchieveBlock == 0 {
 					lastAchieveBlock = voteBlock
+					confirmed++
 				}
 			} else {
 				// 不满足阈值，重置
@@ -267,26 +294,79 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (bool, int64, Tra
 		}
 	}
 
-	return isConfirm, end, track, nil
+	// 检查当前区块与最后满足阈值区块之间是否已超过确认期
+	if lastAchieveBlock > 0 && height-lastAchieveBlock > confirmPeriod {
+		// 检查是否有足够时间完成确认期（必须在 decisionPeriod 结束前）
+		if lastAchieveBlock+confirmPeriod <= end+decisionPeriod {
+			// 已确认，等待执行
+			return ProposalStatusQuery{
+				State:              ProposalStatusConfirmed,
+				BlockHeight:        height,
+				ConfirmedNumber:    uint32(confirmed),
+				LastConfirmedBlock: lastAchieveBlock,
+			}, nil
+		}
+		// 确认期时间不够，拒绝
+		return ProposalStatusQuery{
+			State:              ProposalStatusRejected,
+			BlockHeight:        height,
+			ConfirmedNumber:    uint32(confirmed),
+			LastConfirmedBlock: 0,
+		}, nil
+	}
+
+	// 超过截止区块，拒绝
+	if height > end {
+		return ProposalStatusQuery{
+			State:              ProposalStatusRejected,
+			BlockHeight:        height,
+			ConfirmedNumber:    uint32(confirmed),
+			LastConfirmedBlock: 0,
+		}, nil
+	}
+
+	// 正在确认中，检查是否有足够时间完成确认期
+	if lastAchieveBlock > 0 {
+		if lastAchieveBlock+confirmPeriod > end+decisionPeriod {
+			// 确认期时间不够，拒绝
+			return ProposalStatusQuery{
+				State:              ProposalStatusRejected,
+				BlockHeight:        height,
+				ConfirmedNumber:    uint32(confirmed),
+				LastConfirmedBlock: 0,
+			}, nil
+		}
+		return ProposalStatusQuery{
+			State:              ProposalStatusConfirming,
+			BlockHeight:        height,
+			ConfirmedNumber:    uint32(confirmed),
+			LastConfirmedBlock: lastAchieveBlock,
+		}, nil
+	}
+
+	// 进行中
+	return ProposalStatusQuery{
+		State:              ProposalStatusOngoing,
+		BlockHeight:        height,
+		ConfirmedNumber:    uint32(confirmed),
+		LastConfirmedBlock: lastAchieveBlock,
+	}, nil
 }
 
 // calculateProposalEndBlock 计算提案结束区块
 func (d Gov) calculateProposalEndBlock(id uint32) (int64, error) {
-	height := d.api.GetHeight()
 	prop, err := d.proposal(id)
 	if err != nil {
 		return 0, err
 	}
 	switch prop.Status.State {
-	case ProposalRejected, ProposalApproved:
+	case ProposalStatusRejected, ProposalStatusApproved:
 		return prop.Status.Block, nil
-	case ProposalOngoing:
-		confirmed, end, _, err := d.calculateProposalStatus(id, prop)
-		if err != nil {
-			return 0, err
-		}
-		if !confirmed && height > end {
-			return end, nil
+	case ProposalStatusOngoing:
+		status, _ := d.calculateProposalStatus(id, prop)
+		if status.State == ProposalStatusRejected {
+			track, _ := d.track(prop.TrackID)
+			return prop.Deposit.Block + int64(track.MaxDeciding), nil
 		}
 	}
 	return 0, ErrInvalidProposalStatus

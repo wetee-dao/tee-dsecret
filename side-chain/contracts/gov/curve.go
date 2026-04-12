@@ -1,36 +1,43 @@
 package gov
 
 // Curve 投票曲线，用于计算批准/支持阈值
+// 返回值为万分比（10000 = 100%）
+//
+// 支持三种曲线类型：
+//   - LinearDecreasing: 线性递减，从 begin 线性递减到 end
+//   - SteppedDecreasing: 阶梯递减，每隔 period 区块下降 step
+//   - Reciprocal: 倒数曲线，公式 K/(x/S + x_offset) - y_offset
 type Curve struct {
-	// 曲线类型：LinearDecreasing, SteppedDecreasing, Reciprocal
-	Type string
+	Type string // 曲线类型：LinearDecreasing, SteppedDecreasing, Reciprocal
 
 	// LinearDecreasing 参数
+	// 公式: Y = begin - (begin - end) * x / length
 	// 从 (0, begin) 开始，线性递减到 (length, end)，然后保持在 end
-	LinearBegin  uint32
-	LinearEnd    uint32
-	LinearLength int64
+	LinearBegin  uint32 // 起始值（万分比）
+	LinearEnd    uint32 // 结束值（万分比）
+	LinearLength int64  // 线性递减的长度（区块数）
 
 	// SteppedDecreasing 参数
+	// 公式: Y = begin - step * floor(x / period)
 	// 从 (0, begin) 开始，保持 period 个区块不变，然后下降 step
-	StepBegin  uint32
-	StepEnd    uint32
-	StepSize   uint32
-	StepPeriod int64
+	StepBegin  uint32 // 起始值（万分比）
+	StepEnd    uint32 // 最小值（万分比）
+	StepSize   uint32 // 每步下降值（万分比）
+	StepPeriod int64  // 每步持续的区块数
 
 	// Reciprocal 参数
-	// 公式：K/(x/S + x_offset) - y_offset
-	ReciprocalFactor  uint32
-	ReciprocalXScale  uint32
-	ReciprocalXOffset int64
-	ReciprocalYOffset int64
+	// 公式: Y = K/(x/S + x_offset) - y_offset
+	ReciprocalFactor  uint32 // K 常数
+	ReciprocalXScale  uint32 // S X轴缩放因子
+	ReciprocalXOffset int64  // X轴偏移
+	ReciprocalYOffset int64  // Y轴偏移
 }
 
-// CurveType 常量
+// CurveType 曲线类型常量
 const (
-	CurveTypeLinearDecreasing  = "LinearDecreasing"
-	CurveTypeSteppedDecreasing = "SteppedDecreasing"
-	CurveTypeReciprocal        = "Reciprocal"
+	CurveTypeLinearDecreasing  = "LinearDecreasing"  // 线性递减
+	CurveTypeSteppedDecreasing = "SteppedDecreasing" // 阶梯递减
+	CurveTypeReciprocal        = "Reciprocal"        // 倒数曲线
 )
 
 // NewLinearDecreasingCurve 创建线性递减曲线
@@ -65,7 +72,9 @@ func NewReciprocalCurve(factor, xScale uint32, xOffset, yOffset int64) Curve {
 	}
 }
 
-// Y 计算曲线在给定 X（区块号）处的 Y 值（阈值百分比）
+// Y 计算曲线在给定 X（区块号）处的 Y 值（阈值，万分比）
+// 参数 x: 相对于存款区块的偏移量
+// 返回: 阈值百分比（10000 = 100%）
 func (c *Curve) Y(x int64) uint32 {
 	switch c.Type {
 	case CurveTypeLinearDecreasing:

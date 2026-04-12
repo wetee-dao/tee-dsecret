@@ -61,22 +61,6 @@ var (
 	ErrSpendAlreadyExecuted = errors.New("spend already executed")
 )
 
-// 提案状态常量
-const (
-	// ProposalPending 待处理状态
-	ProposalPending uint8 = 0
-	// ProposalOngoing 进行中状态
-	ProposalOngoing uint8 = 1
-	// ProposalConfirming 确认中状态
-	ProposalConfirming uint8 = 2
-	// ProposalApproved 已通过状态
-	ProposalApproved uint8 = 3
-	// ProposalRejected 已拒绝状态
-	ProposalRejected uint8 = 4
-	// ProposalCanceled 已取消状态
-	ProposalCanceled uint8 = 5
-)
-
 // Gov 治理合约结构体，包含所有存储状态
 type Gov struct {
 	// api 合约API接口

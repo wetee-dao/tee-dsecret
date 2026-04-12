@@ -2,6 +2,7 @@ package gov
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -36,41 +37,35 @@ func (d GovQuery) Proposals(startKey util.Option[uint32], size uint32) ([]Propos
 		return nil, err
 	}
 
+	fmt.Println("ids:", ids)
+
 	// 填充每个 proposal 的 ID
 	ps := make([]ProposalWithID, len(ids))
 	for i := range ids {
-		ps = append(ps, ProposalWithID{
+		ps[i] = ProposalWithID{
 			ID:       ids[i],
 			Proposal: props[i],
-		})
+		}
 	}
 
 	return ps, nil
 }
 
-func (d GovQuery) ProposalStatus(id uint32) (util.Option[ProposalStatus], error) {
-	height := d.api.GetHeight()
+func (d GovQuery) ProposalStatus(id uint32) (util.Option[ProposalStatusQuery], error) {
 	prop, err := d.proposal(id)
 	if err != nil {
-		return util.NewNone[ProposalStatus](), err
+		return util.NewNone[ProposalStatusQuery](), err
 	}
-	if prop.Status.State != ProposalOngoing {
-		return util.NewSome(prop.Status), nil
+	if prop.Status.State != ProposalStatusOngoing {
+		return util.NewSome(ProposalStatusQuery{
+			State:              prop.Status.State,
+			BlockHeight:        prop.Status.Block,
+			ConfirmedNumber:    0,
+			LastConfirmedBlock: 0,
+		}), nil
 	}
 
-	confirmed, end, _, err := d.calculateProposalStatus(id, prop)
-	if err != nil {
-		return util.NewNone[ProposalStatus](), err
-	}
-	if !confirmed && height > end {
-		status := ProposalStatus{State: ProposalRejected, Block: end}
-		return util.NewSome(status), nil
-	}
-	if confirmed {
-		status := ProposalStatus{State: ProposalApproved, Block: 0}
-		return util.NewSome(status), nil
-	}
-	status := ProposalStatus{State: ProposalOngoing, Block: 0}
+	status, _ := d.calculateProposalStatus(id, prop)
 	return util.NewSome(status), nil
 }
 
@@ -101,11 +96,11 @@ func (d GovMutation) SubmitProposal(call CallContent, trackID uint32) error {
 	}
 
 	// 使用 StoreList.Insert 自动分配 ID
-	record := Proposal{
+	p := Proposal{
 		Call:        util.NewSome(call),
 		TrackID:     trackID,
 		Caller:      caller,
-		Status:      ProposalStatus{State: ProposalPending},
+		Status:      ProposalStatus{State: ProposalStatusPending},
 		SubmitBlock: height,
 		Deposit: ProposalDeposit{
 			Depositor: caller,
@@ -113,7 +108,7 @@ func (d GovMutation) SubmitProposal(call CallContent, trackID uint32) error {
 			Block:     height,
 		},
 	}
-	id, err := d.proposals.Insert(d.api.GetTxn(), record)
+	id, err := d.proposals.Insert(d.api.GetTxn(), p)
 	if err != nil {
 		return err
 	}
@@ -127,13 +122,13 @@ func (d GovMutation) CancelProposal(proposalID uint32) error {
 	if err != nil {
 		return err
 	}
-	if prop.Status.State != ProposalPending {
+	if prop.Status.State != ProposalStatusPending {
 		return ErrInvalidProposalStatus
 	}
 	if !bytes.Equal(prop.Caller.V, caller.V) {
 		return ErrInvalidProposalCaller
 	}
-	prop.Status = ProposalStatus{State: ProposalCanceled}
+	prop.Status = ProposalStatus{State: ProposalStatusCanceled}
 	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }
 
@@ -145,7 +140,7 @@ func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) err
 	if err != nil {
 		return err
 	}
-	if prop.Status.State != ProposalPending {
+	if prop.Status.State != ProposalStatusPending {
 		return ErrInvalidProposalStatus
 	}
 	track, err := d.track(prop.TrackID)
@@ -162,7 +157,7 @@ func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) err
 	}
 
 	prop.Deposit = ProposalDeposit{Depositor: caller, Amount: amount, Block: height}
-	prop.Status = ProposalStatus{State: ProposalOngoing}
+	prop.Status = ProposalStatus{State: ProposalStatusOngoing}
 	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }
 
@@ -173,24 +168,29 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 		return err
 	}
 
-	if prop.Status.State != ProposalOngoing {
+	if prop.Status.State != ProposalStatusOngoing {
 		return ErrPropNotOngoing
 	}
 
-	confirmed, end, track, err := d.calculateProposalStatus(proposalID, prop)
+	status, _ := d.calculateProposalStatus(proposalID, prop)
+	track, err := d.track(prop.TrackID)
 	if err != nil {
 		return err
 	}
+	end := prop.Deposit.Block + int64(track.MaxDeciding)
 
-	if !confirmed {
-		if height > end {
-			prop.Status = ProposalStatus{State: ProposalRejected, Block: end}
-			return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
-		}
+	switch status.State {
+	case ProposalStatusRejected:
+		prop.Status = ProposalStatus{State: ProposalStatusRejected, Block: end}
+		return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
+	case ProposalStatusConfirming:
+		return ErrProposalNotConfirmed
+	case ProposalStatusOngoing:
 		return ErrProposalNotConfirmed
 	}
 
-	if height < end+int64(track.DecisionPeriod) {
+	// ProposalStatusConfirmed - 检查决策期
+	if height < end+int64(track.MinEnactmentPeriod) {
 		return ErrProposalInDecision
 	}
 
@@ -216,7 +216,6 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 		}
 	}
 
-	prop.Status = ProposalStatus{State: ProposalApproved, Block: height}
-	// prop.DecisionBlock = height
+	prop.Status = ProposalStatus{State: ProposalStatusApproved, Block: height}
 	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)
 }
