@@ -242,10 +242,12 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (ProposalStatusQu
 			continue
 		}
 
-		// 使用投票时的区块号计算阈值
+		// 使用投票时的相对区块偏移量计算阈值
+		// x = voteBlock - depositBlock，表示从投票期开始后的第几个区块
 		voteBlock := vote.VoteBlock
-		minApproval := uint64(track.MinApproval.Y(voteBlock))
-		minSupport := uint64(track.MinSupport.Y(voteBlock))
+		voteOffset := voteBlock - prop.Deposit.Block
+		minApproval := uint64(track.MinApproval.Y(voteOffset))
+		minSupport := uint64(track.MinSupport.Y(voteOffset))
 
 		// 累计投票
 		pledge := vote.Pledge.Int

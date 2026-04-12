@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -278,4 +279,69 @@ func TestGovMutation_LeaveWithBurn_Success(t *testing.T) {
 	supply, err := GovQuery{Gov: m.Gov}.TotalSupply()
 	require.NoError(t, err)
 	require.Equal(t, 0, supply.Int.Sign())
+}
+
+func TestGovMutation_SubmitProposal_Multiple(t *testing.T) {
+	rt, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	m := GovMutation{Gov: *NewGov(rt)}
+	_ = m.Init()
+
+	// 设置 sudo 账户并加入成员
+	sudo := addr([]byte{0xff})
+	rt.sudoAccount = sudo
+	rt.caller = sudo
+	err := m.Join(addr([]byte{1}), amount(big.NewInt(1000)))
+	require.NoError(t, err)
+
+	// 使用普通成员提交提案
+	rt.caller = addr([]byte{1})
+
+	// 第一次提交提案
+	call1 := CallContent{
+		Contract: []byte("test1"),
+		Selector: [4]byte{0x01, 0x02, 0x03, 0x04},
+		Amount:   model.ZeroAmount,
+	}
+	err = m.SubmitProposal(call1, 0)
+	require.NoError(t, err)
+
+	// 检查提案数量
+	q := GovQuery{Gov: m.Gov}
+	proposals, err := q.Proposals(util.NewNone[uint32](), 10)
+	require.NoError(t, err)
+	require.Len(t, proposals, 1)
+	require.Equal(t, uint32(0), proposals[0].ID)
+
+	// 第二次提交提案
+	call2 := CallContent{
+		Contract: []byte("test2"),
+		Selector: [4]byte{0x05, 0x06, 0x07, 0x08},
+		Amount:   model.ZeroAmount,
+	}
+	err = m.SubmitProposal(call2, 0)
+	require.NoError(t, err)
+
+	// 检查提案数量
+	proposals, err = q.Proposals(util.NewNone[uint32](), 10)
+	require.NoError(t, err)
+	require.Len(t, proposals, 2)
+
+	// 验证两个提案的 ID 不同
+	require.Equal(t, uint32(0), proposals[1].ID) // 第一个提案
+	require.Equal(t, uint32(1), proposals[0].ID) // 第二个提案 (DescList 倒序返回)
+
+	// 验证提案内容未被覆盖
+	prop0, err := q.Proposal(0)
+	require.NoError(t, err)
+	require.True(t, prop0.IsSome())
+	call0Val, _ := prop0.V.Proposal.Call.UnWrap()
+	require.Equal(t, []byte("test1"), call0Val.Contract)
+
+	prop1, err := q.Proposal(1)
+	require.NoError(t, err)
+	require.True(t, prop1.IsSome())
+	call1Val, _ := prop1.V.Proposal.Call.UnWrap()
+	require.Equal(t, []byte("test2"), call1Val.Contract)
 }

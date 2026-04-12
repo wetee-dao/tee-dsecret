@@ -2,7 +2,6 @@ package gov
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/wetee-dao/ink.go/util"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -27,7 +26,7 @@ func (d GovQuery) Proposal(id uint32) (util.Option[ProposalWithID], error) {
 }
 
 func (d GovQuery) Proposals(startKey util.Option[uint32], size uint32) ([]ProposalWithID, error) {
-	var startKeyPtr = new(uint32)
+	var startKeyPtr *uint32
 	if startKey.IsSome() {
 		startKeyPtr = &startKey.V
 	}
@@ -36,8 +35,6 @@ func (d GovQuery) Proposals(startKey util.Option[uint32], size uint32) ([]Propos
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("ids:", ids)
 
 	// 填充每个 proposal 的 ID
 	ps := make([]ProposalWithID, len(ids))
