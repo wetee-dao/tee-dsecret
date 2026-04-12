@@ -180,13 +180,13 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 }
 
 func (app *SideChain) ExtendVote(_ context.Context, _ *abci.ExtendVoteRequest) (*abci.ExtendVoteResponse, error) {
-	LogWithTime("💊 Issue TEE report")
+	// LogWithTime("💊 Issue TEE report")
 
 	return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
 }
 
 func (app *SideChain) VerifyVoteExtension(_ context.Context, req *abci.VerifyVoteExtensionRequest) (*abci.VerifyVoteExtensionResponse, error) {
-	LogWithTime("💊 Verify TEE report")
+	// LogWithTime("💊 Verify TEE report")
 
 	// if len(curseWords) > CurseWordsLimitVE {
 	// 	return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil

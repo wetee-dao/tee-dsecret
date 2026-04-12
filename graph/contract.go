@@ -39,11 +39,18 @@ func decodeArgs(args []string) ([][]byte, error) {
 
 // SubmitContractCall 提交合约调用
 func SubmitContractCall(caller []byte, callerType uint32, contract string, method [4]byte, argsBytes [][]byte, signature []byte) error {
-	contractPayload, err := codec.Encode(model.ContractCall{
+	call := &model.ContractCall{
 		Contract: contract,
 		Method:   method,
 		Args:     argsBytes,
-	})
+	}
+
+	err := model.SideContractVerify(caller, callerType, call, signature)
+	if err != nil {
+		return fmt.Errorf("SubmitContractCall: contract verify: %w", err)
+	}
+
+	contractPayload, err := codec.Encode(call)
 	if err != nil {
 		return fmt.Errorf("SubmitContractCall: encode contract payload: %w", err)
 	}
