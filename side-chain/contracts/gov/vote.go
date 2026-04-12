@@ -162,11 +162,18 @@ func (d GovMutation) Unlock(proposalID uint32, index uint32) error {
 		return ErrInvalidVoteUser
 	}
 
-	end, err := d.calculateProposalEndBlock(proposalID)
+	prop, err := d.proposal(proposalID)
 	if err != nil {
-		return err
+		return ErrInvalidDeposit
 	}
-	if height < end+vote.UnlockBlock {
+
+	track, err := d.track(prop.TrackID)
+	if err != nil {
+		return ErrNoTrack
+	}
+
+	end := prop.Deposit.Block + int64(track.MaxDeciding) + int64(track.MinEnactmentPeriod)
+	if height < end {
 		return ErrInvalidVoteUnlockTime
 	}
 
@@ -353,25 +360,6 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (ProposalStatusQu
 		ConfirmedNumber:    uint32(confirmed),
 		LastConfirmedBlock: lastAchieveBlock,
 	}, nil
-}
-
-// calculateProposalEndBlock 计算提案结束区块
-func (d Gov) calculateProposalEndBlock(id uint32) (int64, error) {
-	prop, err := d.proposal(id)
-	if err != nil {
-		return 0, err
-	}
-	switch prop.Status.State {
-	case ProposalStatusRejected, ProposalStatusApproved:
-		return prop.Status.Block, nil
-	case ProposalStatusOngoing:
-		status, _ := d.calculateProposalStatus(id, prop)
-		if status.State == ProposalStatusRejected {
-			track, _ := d.track(prop.TrackID)
-			return prop.Deposit.Block + int64(track.MaxDeciding), nil
-		}
-	}
-	return 0, ErrInvalidProposalStatus
 }
 
 // voteUnlockKey 生成投票解锁状态的 key

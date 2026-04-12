@@ -17,12 +17,39 @@ import (
 )
 
 // StartEpoch is the resolver for the start_epoch field.
+// 使用 DKG Signer 签名交易并提交空块，触发新区块生成
 func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
-	sidechain.SubmitTx(&model.Tx{
+	// 获取 DKG Signer
+	dkg := sideChain.GetDKG()
+	if dkg == nil || dkg.Signer == nil {
+		return false, gqlerror.Errorf("DKG not initialized")
+	}
+	signer := dkg.Signer.ToSigner()
+
+	// 创建空块交易
+	tx := &model.Tx{
+		Caller:     signer.PublicKey,
+		CallerType: 0, // ed25519 签名类型
 		Payload: &model.Tx_Empty{
 			Empty: time.Now().Unix(),
 		},
-	})
+	}
+
+	// 计算签名数据并签名
+	txBytes, err := model.TxBytesForSigning(tx)
+	if err != nil {
+		return false, gqlerror.Errorf("TxBytesForSigning: %v", err)
+	}
+	signature, err := signer.Sign(txBytes)
+	if err != nil {
+		return false, gqlerror.Errorf("Sign: %v", err)
+	}
+	tx.Signature = signature
+
+	// 提交交易
+	if _, err := sidechain.SubmitTx(tx); err != nil {
+		return false, gqlerror.Errorf("SubmitTx: %v", err)
+	}
 
 	return true, nil
 }

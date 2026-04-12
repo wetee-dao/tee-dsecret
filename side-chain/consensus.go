@@ -2,11 +2,13 @@ package sidechain
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/version"
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
@@ -179,18 +181,63 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.CommitRequest) (*abci.Co
 	return &abci.CommitResponse{}, nil
 }
 
-func (app *SideChain) ExtendVote(_ context.Context, _ *abci.ExtendVoteRequest) (*abci.ExtendVoteResponse, error) {
-	// LogWithTime("💊 Issue TEE report")
+func (app *SideChain) ExtendVote(_ context.Context, req *abci.ExtendVoteRequest) (*abci.ExtendVoteResponse, error) {
+	// 检查 DKG 是否初始化
+	if app.dkg == nil || app.dkg.Signer == nil {
+		return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
+	}
 
-	return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
+	// 构造投票数据用于 TEE 证明
+	voteData := make([]byte, 16)
+	binary.BigEndian.PutUint64(voteData[0:8], uint64(req.Height))
+	copy(voteData[8:16], req.Hash[:8])
+
+	// 创建 TEE 调用
+	teeCall := &model.TeeCall{
+		Tx: &model.TeeCall_Text{Text: voteData},
+	}
+
+	// 生成 TEE 证明
+	signer := app.dkg.Signer.ToSigner()
+	if err := model.IssueReport(signer, teeCall); err != nil {
+		LogWithTime("💊 ExtendVote: IssueReport error: " + err.Error())
+		return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
+	}
+
+	// 序列化 TEE 证明
+	voteExtension, err := proto.Marshal(teeCall)
+	if err != nil {
+		LogWithTime("💊 ExtendVote: Marshal error: " + err.Error())
+		return &abci.ExtendVoteResponse{VoteExtension: []byte("")}, nil
+	}
+
+	LogWithTime("💊 Issue TEE report")
+	return &abci.ExtendVoteResponse{VoteExtension: voteExtension}, nil
 }
 
 func (app *SideChain) VerifyVoteExtension(_ context.Context, req *abci.VerifyVoteExtensionRequest) (*abci.VerifyVoteExtensionResponse, error) {
-	// LogWithTime("💊 Verify TEE report")
+	// 解析 TEE 证明
+	teeCall := &model.TeeCall{}
+	if err := proto.Unmarshal(req.VoteExtension, teeCall); err != nil {
+		LogWithTime("💊 VerifyVoteExtension: Unmarshal error: " + err.Error())
+		return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil
+	}
 
-	// if len(curseWords) > CurseWordsLimitVE {
-	// 	return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil
-	// }
+	// 验证 TEE 证明
+	result, err := model.VerifyReport(teeCall)
+	if err != nil {
+		LogWithTime("💊 VerifyVoteExtension: VerifyReport error: " + err.Error())
+		return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil
+	}
 
+	// 验证时间戳在合理范围内（5分钟内）
+	if time.Now().Unix()-teeCall.Time > 300 {
+		LogWithTime("💊 VerifyVoteExtension: timestamp too old")
+		return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_REJECT}, nil
+	}
+
+	// 记录验证结果
+	_ = result // TeeVerifyResult 包含 CodeSigner, CodeSignature 等信息
+	LogWithTime("💊 Verify TEE report")
 	return &abci.VerifyVoteExtensionResponse{Status: abci.VERIFY_VOTE_EXTENSION_STATUS_ACCEPT}, nil
 }
