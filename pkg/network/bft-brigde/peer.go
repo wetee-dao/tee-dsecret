@@ -69,11 +69,11 @@ func (p *BTFReactor) AvailableNodes() []*model.PubKey {
 	peers := p.Switch.Peers()
 	nodes := make([]*model.PubKey, 0, peers.Size())
 	for _, n := range p.nodekeys {
-		peers.ForEach(func(peer p2p.Peer) {
+		for _, peer := range peers.List() {
 			if peer.ID() == n.SideChainNodeID() {
 				nodes = append(nodes, n)
 			}
-		})
+		}
 	}
 
 	return nodes

@@ -8,7 +8,7 @@ package dkg
 
 // 	stypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 // 	uuid "github.com/satori/go.uuid"
-// 	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/ink/generated/types"
+// 	gtypes "github.com/wetee-dao/tee-dsecret/pkg/chains/revives/generated/types"
 // 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 // )
 

@@ -29,7 +29,7 @@ type DKG struct {
 	// epoch data
 	Nodes       []*model.Validator
 	Epoch       uint32
-	DkgPubKey   *model.PubKey // dkg key
+	DkgPubKey   *model.PubKey
 	DkgKeyShare *model.DistKeyShare
 
 	// next epoch data

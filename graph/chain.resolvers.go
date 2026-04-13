@@ -47,7 +47,7 @@ func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
 	tx.Signature = signature
 
 	// 提交交易
-	if _, err := sidechain.SubmitTx(tx); err != nil {
+	if err := sidechain.SubmitTx(tx); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 
@@ -85,7 +85,7 @@ func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType
 func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
 	validators, _, err := sideChain.GetValidators()
 	if err != nil {
-		return nil, gqlerror.Errorf("GetValidators:" + err.Error())
+		return nil, gqlerror.Errorf("%s", "GetValidators:"+err.Error())
 	}
 
 	list := make([]string, 0, len(validators))

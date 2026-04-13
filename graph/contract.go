@@ -62,7 +62,7 @@ func SubmitContractCall(caller []byte, callerType uint32, contract string, metho
 		Signature:  signature,
 	}
 
-	_, err = sidechain.SubmitTx(tx)
+	err = sidechain.SubmitTx(tx)
 	return err
 }
 

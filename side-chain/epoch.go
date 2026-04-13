@@ -205,8 +205,8 @@ func (app *SideChain) initValidators(vs []abci.ValidatorUpdate) error {
 	var err error
 	for i, v := range vs {
 		if err = model.TxnSetProtoMessage(tx, []byte("G_validator"+fmt.Sprint(i)), &model.SideValidator{
-			Pubkey: v.GetPubKeyBytes(),
-			Power:  v.GetPower(),
+			Pubkey: v.PubKey.GetEd25519(),
+			Power:  v.Power,
 		}); err != nil {
 			return err
 		}
@@ -253,11 +253,7 @@ func (app *SideChain) calcValidatorUpdates(epoch *model.EpochEnd) {
 
 	ongoing := make([]abci.ValidatorUpdate, 0, len(oldValidators))
 	for _, v := range oldValidators {
-		ongoing = append(ongoing, abci.ValidatorUpdate{
-			PubKeyType:  "ed25519",
-			PubKeyBytes: v.Pubkey,
-			Power:       v.Power,
-		})
+		ongoing = append(ongoing, abci.Ed25519ValidatorUpdate(v.Pubkey, v.Power))
 	}
 
 	app.onGoingValidators = ongoing

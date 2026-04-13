@@ -239,6 +239,32 @@ func TestSetSubnetSolt(t *testing.T) {
 	})
 }
 
+func TestQueryEpochInfo(t *testing.T) {
+	client, err := chain.InitClient([]string{TestChainUrl}, true)
+	if err != nil {
+		panic(err)
+	}
+
+	pk, err := chain.Sr25519PairFromSecret("//Alice", 42)
+	if err != nil {
+		util.LogWithPurple("Sr25519PairFromSecret", err)
+		panic(err)
+	}
+
+	subnetIns, err := subnet.InitSubnetContract(client, SubnetAddress)
+	if err != nil {
+		util.LogWithPurple("InitSubnetContract", err)
+		panic(err)
+	}
+
+	epochInfo, _, err := subnetIns.QueryEpochInfo(chain.DefaultParamWithOrigin(pk.AccountID()))
+	if err != nil {
+		util.LogWithPurple("QueryEpochInfo", err)
+		panic(err)
+	}
+	fmt.Println(epochInfo)
+}
+
 func TestCloudUpdate(t *testing.T) {
 	// TODO
 }

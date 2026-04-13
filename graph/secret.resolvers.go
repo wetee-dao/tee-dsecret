@@ -24,20 +24,20 @@ import (
 func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secret string, hash string, user string) (bool, error) {
 	pubkey, err := model.PubKeyFromSS58(user)
 	if err != nil {
-		return false, gqlerror.Errorf("PubKeyFromSS58 error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "PubKeyFromSS58 error:"+err.Error())
 	}
 	pubAddr := pubkey.H160Address()
 
 	// parse index
 	indexNum, err := strconv.ParseUint(index, 10, 64)
 	if err != nil {
-		return false, gqlerror.Errorf("ParseUint error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "ParseUint error:"+err.Error())
 	}
 
 	// decrypt sign data
 	msg, err := rsaDecryptWithKey(rsaKey, secret)
 	if err != nil {
-		return false, gqlerror.Errorf("RsaDecryptWithKey error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "RsaDecryptWithKey error:"+err.Error())
 	}
 
 	h := blake2b.Sum256(msg)
@@ -50,7 +50,7 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secre
 	// encrypt secret
 	encData, err := sideChain.Encrypt(msg)
 	if err != nil {
-		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "EncryptSecret error:"+err.Error())
 	}
 
 	// build side chain call
@@ -63,17 +63,17 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secre
 	}}}
 	err = model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
 	if err != nil {
-		return false, gqlerror.Errorf("GetReport error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "GetReport error:"+err.Error())
 	}
 
 	// send upload secret call to side chain
-	_, err = sidechain.SubmitTx(&model.Tx{
+	err = sidechain.SubmitTx(&model.Tx{
 		Payload: &model.Tx_HubCall{
 			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
 		},
 	})
 	if err != nil {
-		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
+		return false, gqlerror.Errorf("SubmitTx error: %v", err)
 	}
 
 	return true, nil
@@ -83,14 +83,14 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secre
 func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user string) (bool, error) {
 	pubkey, err := model.PubKeyFromSS58(user)
 	if err != nil {
-		return false, gqlerror.Errorf("PubKeyFromSS58 error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "PubKeyFromSS58 error:"+err.Error())
 	}
 	pubAddr := pubkey.H160Address()
 
 	// parse index
 	indexNum, err := strconv.ParseUint(index, 10, 64)
 	if err != nil {
-		return false, gqlerror.Errorf("ParseUint error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "ParseUint error:"+err.Error())
 	}
 
 	// 创建一个 32 字节的切片
@@ -103,7 +103,7 @@ func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user s
 	// encrypt secret
 	encData, err := sideChain.Encrypt(key)
 	if err != nil {
-		return false, gqlerror.Errorf("EncryptSecret error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "EncryptSecret error:"+err.Error())
 	}
 
 	h := blake2b.Sum256(key)
@@ -118,17 +118,17 @@ func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user s
 	}}}
 	err = model.IssueReport(sideChain.GetDKG().Signer.ToSigner(), &call)
 	if err != nil {
-		return false, gqlerror.Errorf("GetReport error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "GetReport error:"+err.Error())
 	}
 
 	// send upload secret call to side chain
-	_, err = sidechain.SubmitTx(&model.Tx{
+	err = sidechain.SubmitTx(&model.Tx{
 		Payload: &model.Tx_HubCall{
 			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
 		},
 	})
 	if err != nil {
-		return false, gqlerror.Errorf("SubmitTx error:" + err.Error())
+		return false, gqlerror.Errorf("%s", "SubmitTx error:"+err.Error())
 	}
 
 	return true, nil
@@ -143,7 +143,7 @@ func (r *queryResolver) TeeReport(ctx context.Context, hash string) (string, err
 	}
 	bt, err := json.Marshal(result)
 	if err != nil {
-		return "", gqlerror.Errorf("Marshal:" + err.Error())
+		return "", gqlerror.Errorf("%s", "Marshal:"+err.Error())
 	}
 	return string(bt), nil
 }

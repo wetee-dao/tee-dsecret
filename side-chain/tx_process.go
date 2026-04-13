@@ -10,18 +10,18 @@ import (
 )
 
 // Process tx
-func (app *SideChain) ProcessTx(txs [][]byte) abci.ProcessProposalStatus {
+func (app *SideChain) ProcessTx(txs [][]byte) abci.ResponseProcessProposal_ProposalStatus {
 	for _, txbt := range txs {
 		txbox := new(model.TxBox)
 		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
 		if err != nil {
-			return abci.PROCESS_PROPOSAL_STATUS_REJECT
+			return abci.ResponseProcessProposal_REJECT
 		}
 
 		tx := new(model.Tx)
 		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
 		if err != nil {
-			return abci.PROCESS_PROPOSAL_STATUS_REJECT
+			return abci.ResponseProcessProposal_REJECT
 		}
 
 		switch tx.Payload.(type) {
@@ -38,5 +38,5 @@ func (app *SideChain) ProcessTx(txs [][]byte) abci.ProcessProposalStatus {
 		}
 	}
 
-	return abci.PROCESS_PROPOSAL_STATUS_ACCEPT
+	return abci.ResponseProcessProposal_ACCEPT
 }

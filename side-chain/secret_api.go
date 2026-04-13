@@ -63,7 +63,7 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 		select {
 		case d := <-preRecerve[req.Id]:
 			if d.Error != nil {
-				return nil, fmt.Errorf("HandleDecryptSecret error: " + string(d.Error))
+				return nil, fmt.Errorf("%s", "HandleDecryptSecret error: "+string(d.Error))
 			}
 			dshares = append(dshares, d)
 		case <-time.After(30 * time.Second):

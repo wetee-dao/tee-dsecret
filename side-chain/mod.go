@@ -1,7 +1,6 @@
 package sidechain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -62,7 +61,7 @@ func InitSideChain(
 	// init BFT node config
 	config := &cfg.Config{
 		BaseConfig: cfg.BaseConfig{
-			Version:            version.CMTSemVer,
+			Version:            version.TMCoreSemVer,
 			Genesis:            "config/genesis.json",
 			PrivValidatorKey:   "config/priv_validator_key.json",
 			PrivValidatorState: "data/priv_validator_state.json",
@@ -73,11 +72,10 @@ func InitSideChain(
 			LogLevel:           "error",
 			LogFormat:          cfg.LogFormatPlain,
 			FilterPeers:        false,
-			DBBackend:          "pebbledb",
+			DBBackend:          "goleveldb",
 			DBPath:             "BFT",
 		},
 		RPC:             rpcConf,
-		GRPC:            cfg.DefaultGRPCConfig(),
 		P2P:             p2pConf,
 		Mempool:         cfg.DefaultMempoolConfig(),
 		StateSync:       cfg.DefaultStateSyncConfig(),
@@ -129,7 +127,6 @@ func InitSideChain(
 	var StartSideChain = func() (*nm.Node, error) {
 		// init BFT node
 		SideChainNode, err = nm.NewNode(
-			context.Background(),
 			config,
 			validatorKey,
 			nodeKey,

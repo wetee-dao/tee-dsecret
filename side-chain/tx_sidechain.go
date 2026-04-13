@@ -3,14 +3,16 @@ package sidechain
 import (
 	"bytes"
 
-	abcicli "github.com/cometbft/cometbft/abci/client"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/mempool"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
 // Submit tx to sidechain
-func SubmitTx(tx *model.Tx) (*abcicli.ReqRes, error) {
-	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), SideChainNode.NodeInfo().ID())
+func SubmitTx(tx *model.Tx) error {
+	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), func(r *abci.ResponseCheckTx) {}, mempool.TxInfo{
+		SenderP2PID: SideChainNode.NodeInfo().ID(),
+	})
 }
 
 // Get tx bytes
