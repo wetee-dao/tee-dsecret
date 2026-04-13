@@ -2,6 +2,7 @@ package gov
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/wetee-dao/ink.go/util"
@@ -20,6 +21,30 @@ func (d GovQuery) Vote(proposalID uint32, index uint32) (util.Option[Vote], erro
 	return util.NewSome(*v), nil
 }
 
+// VotesOfUser 获取用户的所有投票引用（分页）
+func (d GovQuery) VotesOfUser(user model.UniAddr, startKey util.Option[uint32], size uint32) ([]Vote, error) {
+	var startKeyPtr *uint32
+	if startKey.IsSome() {
+		startKeyPtr = &startKey.V
+	}
+
+	_, refs, err := d.votesOfUser.DescList(d.api.GetTxn(), user, startKeyPtr, size)
+	if err != nil {
+		return nil, err
+	}
+
+	votes := make([]Vote, 0, len(refs))
+	for _, ref := range refs {
+		vote, err := d.vote(ref.ProposalID, ref.VoteIndex)
+		if err != nil {
+			return nil, err
+		}
+		votes = append(votes, vote)
+	}
+
+	return votes, nil
+}
+
 // Votes 获取提案的所有投票（分页）
 func (d GovQuery) Votes(proposalID uint32, startKey util.Option[uint32], size uint32) ([]Vote, error) {
 	var startKeyPtr *uint32
@@ -31,6 +56,27 @@ func (d GovQuery) Votes(proposalID uint32, startKey util.Option[uint32], size ui
 		return nil, err
 	}
 	return votes, nil
+}
+
+// VoteUnlockStatuses 批量获取投票解锁状态
+// keys: 投票标识数组，每个元素包含 proposalID 和 VoteIndex
+func (d GovQuery) VoteUnlockStatuses(keys []VoteRef) ([]VoteUnlockStatus, error) {
+	result := make([]VoteUnlockStatus, len(keys))
+	for i, key := range keys {
+		unlockKey := voteUnlockKey(key.ProposalID, key.VoteIndex)
+		unlocked, err := d.voteUnlocks.GetOrDefault(d.api.GetTxn(), unlockKey, false)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println("key.ProposalID, key.VoteIndex, unlocked", key.ProposalID, " ", key.VoteIndex, " ", unlocked)
+		result[i] = VoteUnlockStatus{
+			ProposalID: key.ProposalID,
+			VoteIndex:  key.VoteIndex,
+			Unlocked:   unlocked,
+		}
+	}
+	return result, nil
 }
 
 // SubmitVote 提交投票
@@ -99,6 +145,14 @@ func (d GovMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount m
 		return err
 	}
 
+	// 记录用户投票引用，方便用户查询自己的投票
+	if _, err := d.votesOfUser.Insert(d.api.GetTxn(), caller, VoteRef{
+		ProposalID: proposalID,
+		VoteIndex:  index,
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -143,11 +197,11 @@ func (d GovMutation) Unlock(proposalID uint32, index uint32) error {
 
 	// 使用组合 key (proposalID, index) 检查解锁状态
 	unlockKey := voteUnlockKey(proposalID, index)
-	unlocked, err := d.voteUnlocks.Get(d.api.GetTxn(), unlockKey)
+	unlocked, err := d.voteUnlocks.GetOrDefault(d.api.GetTxn(), unlockKey, false)
 	if err != nil {
 		return err
 	}
-	if unlocked != nil && *unlocked {
+	if unlocked {
 		return ErrVoteAlreadyUnlocked
 	}
 
@@ -299,6 +353,45 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (ProposalStatusQu
 			} else {
 				// 不满足阈值，重置
 				lastAchieveBlock = 0
+			}
+		}
+	}
+
+	// 最后一次投票到现在也需要验证一下是否符合阈值，还需要推算出来已经符合的期限
+	// 因为阈值在不断下降，可能在最后一次投票之后就已经满足条件
+	if len(votes) > 0 && lastAchieveBlock == 0 {
+		// 使用最后一次投票时的累计票数计算当前比率
+		totalVotes := new(big.Int).Add(yes, no)
+		if totalVotes.Sign() > 0 && all.Sign() > 0 {
+			approvalRatio := new(big.Int).Mul(yes, big.NewInt(10000))
+			approvalRatio.Div(approvalRatio, totalVotes)
+
+			supportRatio := new(big.Int).Mul(support, big.NewInt(10000))
+			supportRatio.Div(supportRatio, all)
+
+			approvalRatioU64 := approvalRatio.Uint64()
+			supportRatioU64 := supportRatio.Uint64()
+
+			// 如果当前比率大于0，计算阈值曲线何时下降到可以满足条件
+			if approvalRatioU64 > 0 && supportRatioU64 > 0 {
+				currentOffset := height - prop.Deposit.Block
+
+				// 使用反推函数计算达到当前比率所需的区块偏移量
+				// 需要同时满足 approval 和 support，取较大的偏移量
+				approvalOffset := track.MinApproval.InverseY(uint32(approvalRatioU64), currentOffset)
+				supportOffset := track.MinSupport.InverseY(uint32(supportRatioU64), currentOffset)
+
+				// 取较大的偏移量（需要同时满足两个条件）
+				requiredOffset := approvalOffset
+				if supportOffset > requiredOffset {
+					requiredOffset = supportOffset
+				}
+
+				// 如果所需偏移量在当前区块之前，说明已经满足条件
+				if requiredOffset < currentOffset {
+					lastAchieveBlock = prop.Deposit.Block + requiredOffset
+					confirmed++
+				}
 			}
 		}
 	}

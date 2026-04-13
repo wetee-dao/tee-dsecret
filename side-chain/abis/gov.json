@@ -23,7 +23,7 @@
         "displayName": [
           "Balance"
         ],
-        "type": 50
+        "type": 55
       },
       "blockNumber": {
         "displayName": [
@@ -35,7 +35,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 51
+        "type": 56
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -278,7 +278,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 49
+          "type": 54
         },
         "selector": "0x340f2cf4"
       },
@@ -530,6 +530,32 @@
           "type": 33
         },
         "selector": "0x799fe2dd"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "label": "keys",
+            "type": {
+              "displayName": [
+                "Vec"
+              ],
+              "type": 49
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "vote_unlock_statuses",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 52
+        },
+        "selector": "0x7b5a66ef"
       },
       {
         "args": [
@@ -1003,6 +1029,52 @@
           "type": 39
         },
         "selector": "0xfe26fd17"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "label": "user",
+            "type": {
+              "displayName": [
+                "UniAddr"
+              ],
+              "type": 13
+            }
+          },
+          {
+            "docs": [],
+            "label": "start_key",
+            "type": {
+              "displayName": [
+                "Option"
+              ],
+              "type": 37
+            }
+          },
+          {
+            "docs": [],
+            "label": "size",
+            "type": {
+              "displayName": [
+                "u32"
+              ],
+              "type": 2
+            }
+          }
+        ],
+        "default": false,
+        "docs": [],
+        "label": "votes_of_user",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 54
+        },
+        "selector": "0xfeadee12"
       }
     ]
   },
@@ -2442,14 +2514,36 @@
       "id": 48,
       "type": {
         "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "ProposalID",
+                "type": 2
+              },
+              {
+                "name": "VoteIndex",
+                "type": 2
+              }
+            ]
+          }
+        },
+        "path": [
+          "VoteRef"
+        ]
+      }
+    },
+    {
+      "id": 49,
+      "type": {
+        "def": {
           "sequence": {
-            "type": 45
+            "type": 48
           }
         },
         "params": [
           {
             "name": "T",
-            "type": 45
+            "type": 48
           }
         ],
         "path": [
@@ -2458,7 +2552,52 @@
       }
     },
     {
-      "id": 49,
+      "id": 50,
+      "type": {
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "ProposalID",
+                "type": 2
+              },
+              {
+                "name": "VoteIndex",
+                "type": 2
+              },
+              {
+                "name": "Unlocked",
+                "type": 6
+              }
+            ]
+          }
+        },
+        "path": [
+          "VoteUnlockStatus"
+        ]
+      }
+    },
+    {
+      "id": 51,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 50
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 50
+          }
+        ],
+        "path": [
+          "Vec"
+        ]
+      }
+    },
+    {
+      "id": 52,
       "type": {
         "def": {
           "variant": {
@@ -2466,7 +2605,7 @@
               {
                 "fields": [
                   {
-                    "type": 48
+                    "type": 51
                   }
                 ],
                 "index": 0,
@@ -2487,7 +2626,7 @@
         "params": [
           {
             "name": "T",
-            "type": 48
+            "type": 51
           },
           {
             "name": "E",
@@ -2500,7 +2639,68 @@
       }
     },
     {
-      "id": 50,
+      "id": 53,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 45
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 45
+          }
+        ],
+        "path": [
+          "Vec"
+        ]
+      }
+    },
+    {
+      "id": 54,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 53
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 53
+          },
+          {
+            "name": "E",
+            "type": 9
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 55,
       "type": {
         "def": {
           "primitive": "u128"
@@ -2511,7 +2711,7 @@
       }
     },
     {
-      "id": 51,
+      "id": 56,
       "type": {
         "def": {
           "composite": {

@@ -117,3 +117,17 @@ type Spend struct {
 	TrackID uint32        // 所属轨道ID
 	Payout  bool          // 是否已支付
 }
+
+// VoteRef 投票引用，用于记录用户的投票
+// 存储在 votesOfUser 中，方便用户查询自己的投票
+type VoteRef struct {
+	ProposalID uint32 // 提案ID
+	VoteIndex  uint32 // 投票索引
+}
+
+// VoteUnlockStatus 投票解锁状态
+type VoteUnlockStatus struct {
+	ProposalID uint32 // 提案ID
+	VoteIndex  uint32 // 投票索引
+	Unlocked   bool   // 是否已解锁
+}

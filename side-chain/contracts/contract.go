@@ -4,7 +4,6 @@
 package contracts
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -25,12 +24,20 @@ import (
 //
 // 支持的合约:
 //   - "dao": 去中心化自治组织合约，提供提案查询、投票状态等功能
-func Query(call *model.ContractCall, runtime model.ContractApi) ([]byte, error) {
+func Query(call *model.ContractCall, runtime model.ContractApi) (data []byte, err error) {
+	var method string
+	defer func() {
+		if r := recover(); r != nil {
+			util.LogError("Contract Query "+call.Contract+"."+method+" -> panic", r)
+		}
+	}()
+
 	switch call.Contract {
 	case "gov":
 		// 创建 DAO 合约实例并执行查询
 		ins := gov.NewGov(runtime)
 		query := gov.GovQuery{Gov: *ins}
+		method = gov.MethodMap[call.Method]
 		return query.ExecQuery(call)
 	default:
 		return nil, fmt.Errorf("unsupported contract: %s", call.Contract)
@@ -57,13 +64,13 @@ func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
 	}
 
 	var err error
-
+	var method string
 	switch call.Contract {
 	case "gov":
-		// 创建 GOV 合约实例并执行状态变更
 		ins := gov.NewGov(runtime)
 		mutation := gov.GovMutation{Gov: *ins}
 		err = mutation.ExecCall(call)
+		method = gov.MethodMap[call.Method]
 	default:
 		return fmt.Errorf("unsupported contract: %s", call.Contract)
 	}
@@ -72,7 +79,7 @@ func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
 		return SetContractInited(runtime.GetTxn(), call.Contract)
 	}
 
-	util.LogOk("Contract Call "+call.Contract+":"+hex.EncodeToString(call.Method[:])+" -> err", err)
+	util.LogOk("Contract Call "+call.Contract+"."+method+" -> err", err)
 
 	return err
 }

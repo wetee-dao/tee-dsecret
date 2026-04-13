@@ -207,6 +207,8 @@ func main() {
 		}
 		writeConstructor(&buf, *structName, ctorName, pkgName, storeFields, *ctorApiType, *ctorApiField)
 	}
+	// 生成 methodMap（方法选择器到方法名的映射，仅包含 query 方法）
+	writeMethodMap(&buf, qMethods)
 
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
@@ -1114,4 +1116,18 @@ func findDuplicateLabels(mutMethods, qMethods []*methodSig) []duplicateLabel {
 		}
 	}
 	return duplicates
+}
+
+// writeMethodMap 生成 MethodMap 变量，用于方法选择器到方法名的映射
+func writeMethodMap(buf *bytes.Buffer, methods []*methodSig) {
+	if len(methods) == 0 {
+		return
+	}
+
+	fmt.Fprintf(buf, "\nvar MethodMap = map[[4]byte]string{\n")
+	for _, m := range methods {
+		fmt.Fprintf(buf, "\t[4]byte{0x%02x, 0x%02x, 0x%02x, 0x%02x}: %q,\n",
+			m.selector[0], m.selector[1], m.selector[2], m.selector[3], m.caseName)
+	}
+	fmt.Fprintf(buf, "}\n")
 }

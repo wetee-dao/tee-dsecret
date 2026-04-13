@@ -86,10 +86,13 @@ type Gov struct {
 	// tracks 轨道数据映射 (keyPfx: track_)
 	tracks *model.StoreMapping[uint32, TrackData] `store:"keyPfx:tracks_v2"`
 	// proposals 提案列表 (自增ID管理)
-	proposals *model.StoreList[uint32, Proposal] `store:"keyPfx:proposals_v5"`
+	proposals *model.StoreList[uint32, Proposal] `store:"keyPfx:proposals_v6"`
+	// votesOfUser 用户投票列表映射 (keyPfx: votes_of_user_v1)
+	// K1 = 用户地址，Ix = 投票索引，可按用户查询其所有投票
+	votesOfUser *model.StoreList2D[model.UniAddr, uint32, VoteRef] `store:"keyPfx:votes_of_user_v1"`
 	// votes 投票数据二维列表 (keyPfx: votes_v2)
 	// K1 = proposalID, Ix = 内层索引，可按提案获取所有投票
-	votes *model.StoreList2D[uint32, uint32, Vote] `store:"keyPfx:votes_v3"`
+	votes *model.StoreList2D[uint32, uint32, Vote] `store:"keyPfx:votes_v4"`
 	// voteUnlocks 投票解锁状态映射 (keyPfx: vote_unlock_)
 	voteUnlocks *model.StoreMapping[uint64, bool]
 	// spends 支出数据映射 (keyPfx: spend_)

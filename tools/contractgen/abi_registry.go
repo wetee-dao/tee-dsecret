@@ -596,6 +596,17 @@ func (r *inkRegistry) goTypeToABIRefNamed(goType string) (abiTypeRef, error) {
 		return abiTypeRef{Display: []string{"Option"}, TypeID: optionID}, nil
 	}
 
+	// 处理 slice 类型 []T
+	if strings.HasPrefix(goType, "[]") && len(goType) > 2 {
+		innerType := strings.TrimPrefix(goType, "[]")
+		innerID, err := r.ensureInnerQueryReturn(innerType)
+		if err != nil {
+			return abiTypeRef{}, err
+		}
+		vecID := r.ensureVec(innerID)
+		return abiTypeRef{Display: []string{"Vec"}, TypeID: vecID}, nil
+	}
+
 	// 检查缓存
 	if id, ok := r.goTypeToID[goType]; ok {
 		// 使用简短的 displayName

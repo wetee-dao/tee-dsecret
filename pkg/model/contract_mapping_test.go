@@ -777,3 +777,24 @@ func TestStoreMapping_ManyKeys(t *testing.T) {
 	require.Len(t, keys, count)
 	require.Len(t, values, count)
 }
+
+func TestStoreMappingBool(t *testing.T) {
+	os.RemoveAll(dbPath)
+	NewDB()
+	defer DBINS.Close()
+
+	txn := DBINS.NewTransaction()
+	sm := StoreMapping[string, bool]{
+		Namespace: "x",
+		KeyPrefix: "yy",
+	}
+	b, err := sm.GetOrDefault(txn, "key", false)
+	require.False(t, b)
+
+	err = sm.Set(txn, "key", true)
+	require.NoError(t, err)
+
+	val, err := sm.Get(txn, "key")
+	require.NoError(t, err)
+	require.True(t, *val)
+}
