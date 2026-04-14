@@ -52,7 +52,8 @@ func SubmitContractCall(caller []byte, callerType uint32, contract string, metho
 	call := &model.SysCall{
 		Payload: &model.SysCall_Contract{
 			Contract: c,
-		}}
+		},
+	}
 
 	err := model.SideContractVerify(caller, callerType, c, signature)
 	if err != nil {

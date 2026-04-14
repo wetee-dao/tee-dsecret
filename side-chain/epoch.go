@@ -174,8 +174,8 @@ func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 	txn.SetKey(GLOABL_STATE, "epoch", bytesBuffer.Bytes())
 
 	// Save DKG pub key
-	txn.SetKey(GLOABL_STATE, "dkg_pub_key", epoch.DkgPub)
-	txn.SetKey(GLOABL_STATE, "dkg_pub_commits", epoch.DkgCommits)
+	txn.SetKey(GLOABL_STATE, DKG_PUB_KEY, epoch.DkgPub)
+	txn.SetKey(GLOABL_STATE, DKG_PUB_COMMITS, epoch.DkgCommits)
 
 	// Delete old epoch validators
 	err := txn.DeletekeysByPrefix([]byte("G_validator"))

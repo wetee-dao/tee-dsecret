@@ -22,7 +22,9 @@ const (
 )
 
 const (
-	GLOABL_STATE = "G"
+	GLOABL_STATE    = "G"
+	DKG_PUB_KEY     = "dkg_pub_key"
+	DKG_PUB_COMMITS = "dkg_pub_commits"
 )
 
 func LogWithTime(a ...any) {
@@ -43,7 +45,7 @@ func (s *SideChain) ProposerAddressToNodeKey(proposer []byte) *model.PubKey {
 }
 
 func GetDkgPubkey() (*types.AccountID, error) {
-	key, err := model.GetKey(GLOABL_STATE, "dkg_pub_key")
+	key, err := model.GetKey(GLOABL_STATE, DKG_PUB_KEY)
 	if err != nil {
 		return nil, errors.New("get G-dkg_pub_key error")
 	}
@@ -56,15 +58,15 @@ func GetDkgPubkey() (*types.AccountID, error) {
 }
 
 func GetDkgCommits() (*model.KyberPoints, error) {
-	bt, err := model.GetKey(GLOABL_STATE, "dkg_pub_commits")
+	bt, err := model.GetKey(GLOABL_STATE, DKG_PUB_COMMITS)
 	if err != nil {
-		return nil, errors.New("get G-dkg_pub_key error")
+		return nil, errors.New("get G-dkg_pub_commits error")
 	}
 
 	points := &model.KyberPoints{}
 	err = json.Unmarshal(bt, points)
 	if err != nil {
-		return nil, errors.New("get G-dkg_pub_key error")
+		return nil, errors.New("get G-dkg_pub_commits error")
 	}
 
 	return points, nil

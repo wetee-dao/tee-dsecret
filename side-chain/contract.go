@@ -20,8 +20,9 @@ func (app *SideChain) ContractMutation(caller []byte, callerType uint32, txn *mo
 		V: caller,
 	}
 
+	pub, _ := GetDkgPubkey()
 	runtime := contracts.NewRuntime(height, txn, address, model.UniAddr{
-		V: app.dkg.DkgPubKey.Byte(),
+		V: pub.ToBytes(),
 	})
 
 	err = contracts.Mutation(call, runtime)
