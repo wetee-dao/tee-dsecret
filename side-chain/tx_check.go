@@ -9,42 +9,40 @@ import (
 )
 
 func (app *SideChain) checkTx(txbt []byte) uint32 {
-	txbox := new(model.TxBox)
+	txbox := new(model.Tx)
 	err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
 	if err != nil {
 		fmt.Println("SideChain CheckTx protoio.ReadMessage TxBox error")
 		return CodeTypeEncodingError
 	}
 
-	innerTx := new(model.Tx)
-	err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), innerTx)
-	if err != nil {
-		fmt.Println("SideChain CheckTx protoio.ReadMessage Tx error")
-		return CodeTypeEncodingError
-	}
-
+	_, err = model.VerifyTxSigner(txbox)
 	// 验证交易签名
-	if err := model.VerifyTxSigner(innerTx); err != nil {
+	if err != nil {
 		fmt.Println("SideChain CheckTx VerifyTxSigner error", err)
 		return CodeTypeInvalidTxFormat
 	}
 
-	if len(txbox.Org) == 0 {
-		fmt.Println("invalid node1")
-		return CodeInvalidNode
-	}
-
-	keys := app.p2p.AllNodes()
-	isIn := false
-	for _, key := range keys {
-		if bytes.Equal(txbox.Org, key.Byte()) {
-			isIn = true
-			break
+	// 验证节点之间的数据交换需要验证彼此的节点ID
+	if txbox.CallerType == 0 {
+		if len(txbox.Caller) == 0 {
+			fmt.Println("invalid node1")
+			return CodeInvalidNode
 		}
-	}
 
-	if !isIn {
-		return CodeInvalidNode
+		// keys := app.p2p.AllNodes()
+		// isIn := false
+		// for _, key := range keys {
+		// 	if bytes.Equal(txbox.Caller, key.Byte()) {
+		// 		isIn = true
+		// 		break
+		// 	}
+		// }
+
+		// if !isIn {
+		// 	fmt.Println("invalid node2")
+		// 	return CodeInvalidNode
+		// }
 	}
 
 	return CodeTypeOK

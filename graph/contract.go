@@ -1,12 +1,13 @@
 package graph
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
@@ -39,31 +40,35 @@ func decodeArgs(args []string) ([][]byte, error) {
 
 // SubmitContractCall 提交合约调用
 func SubmitContractCall(caller []byte, callerType uint32, contract string, method [4]byte, argsBytes [][]byte, signature []byte) error {
-	call := &model.ContractCall{
-		Contract: contract,
-		Method:   method,
-		Args:     argsBytes,
+	if callerType == 0 {
+		return fmt.Errorf("SubmitContractCall: only caller type >0 is supported")
 	}
 
-	err := model.SideContractVerify(caller, callerType, call, signature)
+	c := &model.ContractCall{
+		Name:   []byte(contract),
+		Method: method[:],
+		Args:   argsBytes,
+	}
+	call := &model.SysCall{
+		Payload: &model.SysCall_Contract{
+			Contract: c,
+		}}
+
+	err := model.SideContractVerify(caller, callerType, c, signature)
 	if err != nil {
 		return fmt.Errorf("SubmitContractCall: contract verify: %w", err)
 	}
 
-	contractPayload, err := codec.Encode(call)
-	if err != nil {
-		return fmt.Errorf("SubmitContractCall: encode contract payload: %w", err)
-	}
-
+	buf := new(bytes.Buffer)
+	protoio.WriteMessage(call, buf)
 	tx := &model.Tx{
 		Caller:     caller,
 		CallerType: callerType,
-		Payload:    &model.Tx_Contract{Contract: contractPayload},
+		Call:       buf.Bytes(),
 		Signature:  signature,
 	}
 
-	err = sidechain.SubmitTx(tx)
-	return err
+	return sidechain.SubmitTx(tx)
 }
 
 // ContractQuery 只读查询
@@ -77,9 +82,9 @@ func ContractDryRun(caller []byte, callerType int, contract string, mut bool, me
 		}
 	} else {
 		err = sideChain.ContractDryRun(caller, uint32(callerType), &model.ContractCall{
-			Contract: contract,
-			Method:   model.MethodToSelector(method),
-			Args:     args,
+			Name:   []byte(contract),
+			Method: model.MethodToSelectorBytes(method),
+			Args:   args,
 		})
 		if err != nil {
 			return "", err

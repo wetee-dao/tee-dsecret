@@ -8,7 +8,8 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/version"
-	"github.com/gogo/protobuf/proto"
+	"github.com/cosmos/gogoproto/proto"
+	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/dkg"
@@ -205,7 +206,7 @@ func (app *SideChain) ExtendVote(_ context.Context, req *abci.RequestExtendVote)
 	}
 
 	// 序列化 TEE 证明
-	voteExtension, err := proto.Marshal(teeCall)
+	voteExtension, err := protoio.MarshalDeterministic(teeCall)
 	if err != nil {
 		LogWithTime("💊 ExtendVote: Marshal error: " + err.Error())
 		return &abci.ResponseExtendVote{VoteExtension: []byte("")}, nil
@@ -230,11 +231,12 @@ func (app *SideChain) VerifyVoteExtension(_ context.Context, req *abci.RequestVe
 		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
 	}
 
-	// 验证时间戳在合理范围内（5分钟内）
-	if time.Now().Unix()-teeCall.Time > 300 {
-		LogWithTime("💊 VerifyVoteExtension: timestamp too old")
-		return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
-	}
+	// 只对当前高度附近的投票检查时间戳有效性（5分钟内）
+	// 历史区块的投票扩展可能已经过期，但仍然需要验证其签名有效性
+	// if time.Now().Unix()-teeCall.Time > 300 {
+	// 	LogWithTime("💊 VerifyVoteExtension: timestamp too old")
+	// 	return &abci.ResponseVerifyVoteExtension{Status: abci.ResponseVerifyVoteExtension_REJECT}, nil
+	// }
 
 	// 记录验证结果
 	_ = result // TeeVerifyResult 包含 CodeSigner, CodeSignature 等信息

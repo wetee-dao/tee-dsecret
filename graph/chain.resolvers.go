@@ -6,79 +6,28 @@ package graph
 
 import (
 	"context"
-	"math/big"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 // StartEpoch is the resolver for the start_epoch field.
 // 使用 DKG Signer 签名交易并提交空块，触发新区块生成
 func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
-	// 获取 DKG Signer
-	dkg := sideChain.GetDKG()
-	if dkg == nil || dkg.Signer == nil {
-		return false, gqlerror.Errorf("DKG not initialized")
-	}
-	signer := dkg.Signer.ToSigner()
-
 	// 创建空块交易
-	tx := &model.Tx{
-		Caller:     signer.PublicKey,
-		CallerType: 0, // ed25519 签名类型
-		Payload: &model.Tx_Empty{
+	call := &model.SysCall{
+		Payload: &model.SysCall_Empty{
 			Empty: time.Now().Unix(),
 		},
 	}
 
-	// 计算签名数据并签名
-	txBytes, err := model.TxBytesForSigning(tx)
-	if err != nil {
-		return false, gqlerror.Errorf("TxBytesForSigning: %v", err)
-	}
-	signature, err := signer.Sign(txBytes)
-	if err != nil {
-		return false, gqlerror.Errorf("Sign: %v", err)
-	}
-	tx.Signature = signature
-
 	// 提交交易
-	if err := sidechain.SubmitTx(tx); err != nil {
+	if err := sideChain.SubmitCallFromNode(call); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 
 	return true, nil
-}
-
-// Faucet is the resolver for the faucet field.
-func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType int) (bool, error) {
-	callerBytes, err := DecodeCaller(caller)
-	if err != nil {
-		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
-	}
-
-	const contract = "gov"
-
-	var to model.UniAddr = model.UniAddr{
-		V: callerBytes,
-		T: uint32(callerType),
-	}
-	tobt, _ := codec.Encode(to)
-	var value model.Amount = types.NewU256(*big.NewInt(100000000))
-	valuebt, _ := codec.Encode(value)
-
-	argBytes := [][]byte{tobt, valuebt}
-	sig := []byte{}
-
-	if err := SubmitContractCall(callerBytes, uint32(callerType), contract, model.MethodToSelector("Mint"), argBytes, sig); err != nil {
-		return false, gqlerror.Errorf("SubmitTx: %v", err)
-	}
-
-	return true, err
 }
 
 // Validators is the resolver for the validators field.

@@ -196,9 +196,9 @@ func (d GovMutation) ExecProposal(proposalID uint32) error {
 	if prop.Call.IsSome() {
 		call, _ := prop.Call.UnWrap()
 		res, err := d.api.Call(model.UniAddr{}, model.ContractCall{
-			Contract: string(call.Contract),
-			Method:   call.Selector,
-			Args:     call.Args,
+			Name:   call.Contract,
+			Method: call.Selector[:],
+			Args:   call.Args,
 		})
 		if err != nil {
 			// 记录错误但不返回，提案仍标记为已批准

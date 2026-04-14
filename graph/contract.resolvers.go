@@ -7,11 +7,58 @@ package graph
 import (
 	"context"
 	"encoding/hex"
+	"math/big"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/side-chain/contracts"
 )
+
+// Faucet is the resolver for the faucet field.
+func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType int) (bool, error) {
+	callerBytes, err := DecodeCaller(caller)
+	if err != nil {
+		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
+	}
+
+	var to model.UniAddr = model.UniAddr{
+		V: callerBytes,
+		T: uint32(callerType),
+	}
+	tobt, _ := codec.Encode(to)
+	var value model.Amount = types.NewU256(*big.NewInt(100000000))
+	valuebt, _ := codec.Encode(value)
+
+	// 创建合同调用
+	argBytes := [][]byte{tobt, valuebt}
+	contract := "gov"
+	method := model.MethodToSelectorBytes("Mint")
+	call := &model.ContractCall{
+		Name:   []byte(contract),
+		Method: method,
+		Args:   argBytes,
+	}
+
+	// 获取 DKG Signer
+	dkg := sideChain.GetDKG()
+	if dkg == nil || dkg.DkgPubKey == nil {
+		return false, gqlerror.Errorf("DKG not initialized")
+	}
+
+	signer := dkg.Signer.ToSigner()
+	signature, err := model.SideContractPolkadotSign(signer, call)
+	if err != nil {
+		return false, gqlerror.Errorf("SideContractPolkadotSign: %v", err)
+	}
+
+	if err := SubmitContractCall(signer.PublicKey, 1, contract, model.MethodToSelector("Mint"), argBytes, signature); err != nil {
+		return false, gqlerror.Errorf("SubmitTx: %v", err)
+	}
+
+	return true, err
+}
 
 // SystemContractInit is the resolver for the systemContractInit field.
 func (r *mutationResolver) SystemContractInit(ctx context.Context, contract string) (bool, error) {
@@ -22,7 +69,31 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 		return false, gqlerror.Errorf("contract is inited")
 	}
 
-	err := SubmitContractCall(sideChain.GetDKG().DkgPubKey.Byte(), 0, "gov", model.MethodToSelector("Init"), [][]byte{}, []byte{})
+	if sideChain.GetDKG().DkgPubKey == nil {
+		return false, gqlerror.Errorf("DKG not initialized")
+	}
+
+	// 创建合同调用
+	argBytes := [][]byte{}
+	method := model.MethodToSelector("Init")
+	call := &model.ContractCall{
+		Name:   []byte(contract),
+		Method: method[:],
+		Args:   argBytes,
+	}
+
+	// 获取 DKG Signer
+	dkg := sideChain.GetDKG()
+	if dkg == nil || dkg.Signer == nil {
+		return false, gqlerror.Errorf("DKG not initialized")
+	}
+	signer := dkg.Signer.ToSigner()
+	signature, err := model.SideContractPolkadotSign(signer, call)
+	if err != nil {
+		return false, gqlerror.Errorf("SideContractPolkadotSign: %v", err)
+	}
+
+	err = SubmitContractCall(signer.PublicKey, 1, contract, method, argBytes, signature)
 	if err != nil {
 		return false, gqlerror.Errorf("SystemContractInit DecodeCaller: %v", err)
 	}

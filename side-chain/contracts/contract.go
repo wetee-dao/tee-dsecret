@@ -25,22 +25,14 @@ import (
 // 支持的合约:
 //   - "dao": 去中心化自治组织合约，提供提案查询、投票状态等功能
 func Query(call *model.ContractCall, runtime model.ContractApi) (data []byte, err error) {
-	var method string
-	defer func() {
-		if r := recover(); r != nil {
-			util.LogError("Contract Query "+call.Contract+"."+method+" -> panic", r)
-		}
-	}()
-
-	switch call.Contract {
+	switch string(call.Name) {
 	case "gov":
 		// 创建 DAO 合约实例并执行查询
 		ins := gov.NewGov(runtime)
 		query := gov.GovQuery{Gov: *ins}
-		method = gov.MethodMap[call.Method]
 		return query.ExecQuery(call)
 	default:
-		return nil, fmt.Errorf("unsupported contract: %s", call.Contract)
+		return nil, fmt.Errorf("unsupported contract: %s", string(call.Name))
 	}
 }
 
@@ -58,28 +50,28 @@ func Query(call *model.ContractCall, runtime model.ContractApi) (data []byte, er
 // 支持的合约:
 //   - "dao": 去中心化自治组织合约，提供提案创建、投票执行等功能
 func Mutation(call *model.ContractCall, runtime model.ContractApi) error {
-	// 判断是否是初始化函数
-	if call.Method == model.MethodToSelector("Init") && IsContractIsInited(runtime.GetTxn(), call.Contract) {
+	var selector [4]byte = [4]byte(call.Method[:4])
+	if selector == model.MethodToSelector("Init") && IsContractIsInited(runtime.GetTxn(), string(call.Name)) {
 		return nil
 	}
 
 	var err error
 	var method string
-	switch call.Contract {
+	switch string(call.Name) {
 	case "gov":
 		ins := gov.NewGov(runtime)
 		mutation := gov.GovMutation{Gov: *ins}
 		err = mutation.ExecCall(call)
-		method = gov.MethodMap[call.Method]
+		method = gov.MethodMap[selector]
 	default:
-		return fmt.Errorf("unsupported contract: %s", call.Contract)
+		return fmt.Errorf("unsupported contract: %s", string(call.Name))
 	}
 
-	if call.Method == model.MethodToSelector("Init") && err == nil {
-		return SetContractInited(runtime.GetTxn(), call.Contract)
+	if selector == model.MethodToSelector("Init") && err == nil {
+		return SetContractInited(runtime.GetTxn(), string(call.Name))
 	}
 
-	util.LogOk("Contract Call "+call.Contract+"."+method+" -> err", err)
+	util.LogOk("Contract Call "+string(call.Name)+"."+method+" -> err", err)
 
 	return err
 }

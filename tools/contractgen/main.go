@@ -549,7 +549,7 @@ func writeExecCall(buf *bytes.Buffer, mutation string, methods []*methodSig, pre
 		fmt.Fprintf(buf, "\tdao := NewDAO(d.api)\n")
 		fmt.Fprintf(buf, "\tm := %s{gov: *dao}\n\n", shortName)
 	}
-	fmt.Fprintf(buf, "\tmethodSel := call.Method\n")
+	fmt.Fprintf(buf, "\tmethodSel := [4]byte(call.Method[:4])\n")
 	fmt.Fprintf(buf, "\targs := call.Args\n")
 	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 	for _, m := range methods {
@@ -665,7 +665,7 @@ func writeExecQuery(buf *bytes.Buffer, query string, methods []*methodSig, prefi
 	fmt.Fprintf(buf, "// ExecuteQuery 按 method 将字符串参数解析为合约查询实参，返回 SCALE 编码结果。\n")
 	fmt.Fprintf(buf, "func (q %s) ExecQuery(call *model.ContractCall) ([]byte, error) {\n", shortName)
 	fmt.Fprintf(buf, "\targs := call.Args\n")
-	fmt.Fprintf(buf, "\tmethodSel := call.Method\n")
+	fmt.Fprintf(buf, "\tmethodSel := [4]byte(call.Method[:4])\n")
 	fmt.Fprintf(buf, "\tswitch methodSel {\n")
 
 	for _, m := range methods {

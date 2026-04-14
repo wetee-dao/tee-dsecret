@@ -51,9 +51,9 @@ func (app *SideChain) ContractQuery(caller []byte, callerType uint32, contract s
 	})
 
 	data, err = contracts.Query(&model.ContractCall{
-		Contract: contract,
-		Method:   model.MethodToSelector(method),
-		Args:     args,
+		Name:   []byte(contract),
+		Method: model.MethodToSelectorBytes(method),
+		Args:   args,
 	}, runtime)
 
 	return data, err

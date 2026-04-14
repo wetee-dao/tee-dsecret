@@ -52,11 +52,11 @@ type BlockNumber uint32
 // Bytes 为存储/消息中的变长字节，SCALE 为 compact 长度前缀 + 负载；语义同 types.rs 的 Vec<u8>。
 type Bytes []byte
 
-type ContractCall struct {
-	Contract string
-	Method   [4]byte
-	Args     [][]byte
-}
+// type ContractCall struct {
+// 	Contract string
+// 	Method   [4]byte
+// 	Args     [][]byte
+// }
 
 // ContractApi 侧链合约运行时：区块高度、读写事务、已解析的调用方（如由 TxBox 回填）。
 type ContractApi interface {
@@ -113,6 +113,11 @@ func DecodeScaleArgBytes[T any](s []byte) (T, error) {
 // 注意：普通字符串默认使用 mutates=true，如果需要区分，请使用 MethodToSelectorWithMutates。
 func MethodToSelector(method string) [4]byte {
 	return MethodToSelectorWithMutates(method, true)
+}
+
+func MethodToSelectorBytes(method string) []byte {
+	bt := MethodToSelector(method)
+	return bt[:]
 }
 
 // MethodToSelectorWithMutates 将 method 字符串转换为 4 字节 selector，可指定 mutates。

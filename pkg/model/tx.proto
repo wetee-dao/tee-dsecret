@@ -4,29 +4,32 @@ package model;
 
 option go_package = "";
 
-// transaction
-message TxBox {
-  bytes tee_sig = 1;
-  bytes org = 2; 
-  bytes tx = 3;
-}
 
 // side chain transaction
 message Tx{
+  bytes caller = 10;   // 交易发起方（公钥，用于验证签名）
+  uint32 caller_type = 12; // 0 => TEE, 10000 => ed25519, 1 => polkadot_sign(contract)
+  bytes call = 13; // call bytes
+  bytes signature = 11; // 对 Tx 的签名（签名为空时签名字段不参与序列化，即对 payload+caller 的序列化结果签名）
+}
+
+message SysCall{
   oneof payload {
     int64 empty = 99;
     EpochEnd epoch_end = 1;
     int64 epoch_start = 2;
-    HubCall hub_call = 4;
-    int64 sync_tx_start  = 5;
-    int64 sync_tx_end = 6;
-    int64 sync_tx_retry = 7;
-    // SCALE: codec.Encode(struct{ Method string; Args []byte })，Args 为各 method 的独立 SCALE 编码
-    bytes contract = 8;
+    HubCall hub_call = 3;
+    int64 sync_tx_start  = 4;
+    int64 sync_tx_end = 5;
+    int64 sync_tx_retry = 6;
+    ContractCall contract = 7;
   }
-  bytes caller = 10;   // 交易发起方（公钥，用于验证签名）
-  uint32 caller_type = 12; // 0 => TEE, 1 => user_sign 
-  bytes signature = 11; // 对 Tx 的签名（签名为空时签名字段不参与序列化，即对 payload+caller 的序列化结果签名）
+}
+
+message ContractCall{
+  bytes name = 1;
+  bytes method = 2;
+  repeated bytes args = 3;
 }
 
 // side validator

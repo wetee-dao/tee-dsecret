@@ -16,7 +16,6 @@ import (
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -66,12 +65,14 @@ func (r *mutationResolver) UploadSecret(ctx context.Context, index string, secre
 		return false, gqlerror.Errorf("%s", "GetReport error:"+err.Error())
 	}
 
-	// send upload secret call to side chain
-	err = sidechain.SubmitTx(&model.Tx{
-		Payload: &model.Tx_HubCall{
+	tx := &model.SysCall{
+		Payload: &model.SysCall_HubCall{
 			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
 		},
-	})
+	}
+
+	// send upload secret call to side chain
+	err = sideChain.SubmitCallFromNode(tx)
 	if err != nil {
 		return false, gqlerror.Errorf("SubmitTx error: %v", err)
 	}
@@ -121,12 +122,14 @@ func (r *mutationResolver) InitDiskKey(ctx context.Context, index string, user s
 		return false, gqlerror.Errorf("%s", "GetReport error:"+err.Error())
 	}
 
-	// send upload secret call to side chain
-	err = sidechain.SubmitTx(&model.Tx{
-		Payload: &model.Tx_HubCall{
+	tx := &model.SysCall{
+		Payload: &model.SysCall_HubCall{
 			HubCall: &model.HubCall{Call: []*model.TeeCall{&call}},
 		},
-	})
+	}
+
+	// send upload secret call to side chain
+	err = sideChain.SubmitCallFromNode(tx)
 	if err != nil {
 		return false, gqlerror.Errorf("%s", "SubmitTx error:"+err.Error())
 	}

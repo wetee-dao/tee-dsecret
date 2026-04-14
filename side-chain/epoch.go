@@ -48,8 +48,8 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		}
 
 		commits, _ := json.Marshal(app.dkg.NewDkgKeyShare.CommitsWrap)
-		return GetTxBytes(&model.Tx{
-			Payload: &model.Tx_EpochEnd{
+		tx := &model.SysCall{
+			Payload: &model.SysCall_EpochEnd{
 				EpochEnd: &model.EpochEnd{
 					Epoch:      epoch,
 					Validators: sideValidators,
@@ -57,7 +57,13 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 					DkgCommits: commits,
 				},
 			},
-		})
+		}
+
+		bt, err := app.GetCallBytesFromNode(tx)
+		if err != nil {
+			return nil
+		}
+		return bt
 	}
 
 	// Check if sync tx is submiting
@@ -84,11 +90,17 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 				Epoch:      epoch + 1,
 			}, app.newEpochSucceded, app.newEpochFail)
 			if err == nil {
-				return GetTxBytes(&model.Tx{
-					Payload: &model.Tx_EpochStart{
+				tx := &model.SysCall{
+					Payload: &model.SysCall_EpochStart{
 						EpochStart: time.Now().Unix(), // start epoch, stop submit main chain tx
 					},
-				})
+				}
+
+				bt, err := app.GetCallBytesFromNode(tx)
+				if err != nil {
+					return nil
+				}
+				return bt
 			}
 		}
 		return nil

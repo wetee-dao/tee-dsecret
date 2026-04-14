@@ -15,7 +15,7 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 	gov := NewGov(d.api)
 	m := GovMutation{Gov: *gov}
 
-	methodSel := call.Method
+	methodSel := [4]byte(call.Method[:4])
 	args := call.Args
 	switch methodSel {
 	case [4]byte{0xdf, 0x60, 0xa5, 0x15}:
@@ -230,7 +230,7 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 // ExecuteQuery 按 method 将字符串参数解析为合约查询实参，返回 SCALE 编码结果。
 func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 	args := call.Args
-	methodSel := call.Method
+	methodSel := [4]byte(call.Method[:4])
 	switch methodSel {
 	case [4]byte{0x87, 0xe0, 0xff, 0x32}:
 		if err := model.RequireArgLen(args, 1, "balance_of"); err != nil {

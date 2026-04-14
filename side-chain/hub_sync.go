@@ -38,22 +38,26 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 		// 提交失败时，将 SyncTxRetry 提交到 mempool，由下一轮 proposer 打包进块
 		// （只有本节点会执行 SyncToHub，故只提交一次；mempool 会广播给其他节点）
 		util.LogWithYellow("Sync to polkadot hub", "submitting SyncTxRetry to mempool", "txIndex:", txIndex)
-		SubmitTx(&model.Tx{
-			Payload: &model.Tx_SyncTxRetry{
+
+		tx := &model.SysCall{
+			Payload: &model.SysCall_SyncTxRetry{
 				SyncTxRetry: txIndex,
 			},
-		})
-		return err
+		}
+
+		return s.SubmitCallFromNode(tx)
 	}
 
 	util.LogWithGreen("Sync to polkadot hub", "success at batch tx id", fmt.Sprint(txIndex))
 	// 仅成功后提交 SyncHubEnd，使所有节点在 FinalizeTx 处理时统一清理 tx_index_ 储存
-	SubmitTx(&model.Tx{
-		Payload: &model.Tx_SyncTxEnd{
+
+	tx := &model.SysCall{
+		Payload: &model.SysCall_SyncTxEnd{
 			SyncTxEnd: txIndex,
 		},
-	})
-	return nil
+	}
+
+	return s.SubmitCallFromNode(tx)
 }
 
 // deleteTxIndexStore 删除 tx_index_<id> 相关储存（call + hubCalls）。应在所有节点共识到提交成功（即处理 SyncTxEnd）时调用。
@@ -87,7 +91,7 @@ func IsHubSyncRuning() bool {
 }
 
 // sync transaction step1
-func HubSyncStep1() ([]byte, error) {
+func HubSyncStep1(s *SideChain) ([]byte, error) {
 	tx, err := model.GetJson[AsyncBatchState](GLOABL_STATE, HubSyncIndexKey)
 	if err != nil {
 		return nil, err
@@ -104,11 +108,13 @@ func HubSyncStep1() ([]byte, error) {
 		return nil, errors.New("sync step1 one transaction is runing")
 	}
 
-	return GetTxBytes(&model.Tx{
-		Payload: &model.Tx_SyncTxStart{
+	ntx := &model.SysCall{
+		Payload: &model.SysCall_SyncTxStart{
 			SyncTxStart: tx.Going + 1,
 		},
-	}), nil
+	}
+
+	return s.GetCallBytesFromNode(ntx)
 }
 
 // sync transaction step2

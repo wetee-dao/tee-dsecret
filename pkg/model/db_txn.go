@@ -7,7 +7,6 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
-	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -181,7 +180,7 @@ func TxnGetProtoMessage[T any](txn *Txn, key []byte) (*T, error) {
 
 func TxnSetProtoMessage[T proto.Message](txn *Txn, key []byte, value T) error {
 	buf := new(bytes.Buffer)
-	err := types.WriteMessage(value, buf)
+	err := protoio.WriteMessage(value, buf)
 	if err != nil {
 		return err
 	}

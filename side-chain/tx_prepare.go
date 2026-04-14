@@ -15,49 +15,50 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 
 	// 第一步：收集所有HubCall并检查正在提交到主链的块中是否有相同caller
 	for _, txbt := range txs {
-		txbox := new(model.TxBox)
+		txbox := new(model.Tx)
 		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
 		if err != nil {
 			continue
 		}
 
-		tx := new(model.Tx)
-		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
+		tx := new(model.SysCall)
+		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Call), tx)
 		if err != nil {
 			continue
 		}
 
 		switch tx.Payload.(type) {
-		case *model.Tx_Empty:
+		case *model.SysCall_Empty:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_EpochStart:
+		case *model.SysCall_EpochStart:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_EpochEnd:
+		case *model.SysCall_EpochEnd:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_SyncTxStart:
+		case *model.SysCall_SyncTxStart:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_SyncTxEnd:
+		case *model.SysCall_SyncTxEnd:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_SyncTxRetry:
+		case *model.SysCall_SyncTxRetry:
 			*finaltx = append(*finaltx, txbt)
-		case *model.Tx_HubCall:
+		case *model.SysCall_HubCall:
 			if addMainChainTx {
 				hubCall := tx.GetHubCall()
 				hubCalls = append(hubCalls, hubCall)
 				hubtx = append(hubtx, txbt)
 			}
-		case *model.Tx_Contract:
+		case *model.SysCall_Contract:
 			*finaltx = append(*finaltx, txbt)
 		default:
 			break
 		}
+
 	}
 
 	// 第二步：在同一块内去重相同caller的HubCall，只保留第一个
 	hubtx = s.deduplicateCallersInBlock(hubtx, hubCalls)
 
 	if len(hubtx) > 0 {
-		tx, err := HubSyncStep1()
+		tx, err := HubSyncStep1(s)
 		if err != nil {
 			util.LogWithRed("PrepareTx", "TryTxStart err:", err)
 			time.Sleep(time.Second * 2)
