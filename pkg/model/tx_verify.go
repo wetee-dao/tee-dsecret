@@ -2,9 +2,9 @@ package model
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 	"github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
@@ -35,11 +35,11 @@ func VerifyTxSigner(tx *Tx) (*SysCall, error) {
 	switch tx.CallerType {
 	case 0: // node ed25519
 		if !SignVerify(caller, call.BytesForSig(), sig) {
-			return nil, errors.New("tx: invalid signature")
+			return nil, errors.Wrap(err, "node")
 		}
 	case 1: // side contract
 		if err := SideContractPolkadotVerify(caller, call.BytesForSig(), sig); err != nil {
-			return nil, errors.New("tx: contrtact invalid signature")
+			return nil, errors.Wrap(err, "contract")
 		}
 	default:
 		return nil, errors.New("unknown caller type")
@@ -49,11 +49,7 @@ func VerifyTxSigner(tx *Tx) (*SysCall, error) {
 }
 
 func SideContractVerify(caller []byte, callerType uint32, call *ContractCall, signature []byte) error {
-	bt, err := call.XXX_Marshal(nil, true)
-	if err != nil {
-		return err
-	}
-
+	bt := ContractForSig(call)
 	switch callerType {
 	case 1:
 		return SideContractPolkadotVerify(caller, bt, signature)

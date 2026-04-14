@@ -144,7 +144,7 @@ func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) err
 	if err != nil {
 		return err
 	}
-	if height < prop.Deposit.Block+int64(track.PreparePeriod) {
+	if height > prop.SubmitBlock+int64(track.PreparePeriod) {
 		return ErrInvalidDepositTime
 	}
 

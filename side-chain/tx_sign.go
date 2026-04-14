@@ -47,9 +47,7 @@ func (s *SideChain) SubmitCallFromNode(call *model.SysCall) error {
 		Signature:  signature,
 	}
 
-	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), func(r *abci.ResponseCheckTx) {}, mempool.TxInfo{
-		SenderP2PID: SideChainNode.NodeInfo().ID(),
-	})
+	return SubmitTx(tx)
 }
 
 func (s *SideChain) GetCallBytesFromNode(call *model.SysCall) ([]byte, error) {
