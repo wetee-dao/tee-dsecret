@@ -189,7 +189,10 @@ func (dkg *DKG) sendToNode(to *model.To, message *model.DkgMessage) error {
 	// 	return nil
 	// }
 
-	return dkg.Peer.Send(to, message)
+	return dkg.Peer.Send(&model.PeerMsg{
+		To: to,
+		Payload: &model.PeerMsg_DkgMessage{DkgMessage: message},
+	})
 }
 
 // Get node by string id

@@ -65,7 +65,7 @@ func main() {
 	}
 
 	// Init node
-	nodeFunc, sideChain, dkgReactor, err := sidechain.InitSideChain(chainPort, false, func() {
+	nodeFunc, sideChain, dkgReactor, err := sidechain.InitSideChain(nodePriv, chainPort, false, func() {
 		util.LogWithYellow("Main Chain", chainAddr)
 	})
 	if err != nil {
@@ -97,11 +97,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Println("------------------------------ LoadChains")
+
 	node, err := nodeFunc()
 	if err != nil {
 		log.Fatalf("failed to create BFT node: %v", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("------------------------------ nodeFunc")
 
 	// Start BFT node
 	if err := node.Start(); err != nil {
@@ -112,6 +116,8 @@ func main() {
 		_ = node.Stop()
 		node.Wait()
 	}()
+
+	fmt.Println("------------------------------ Start")
 
 	// 启动 graphql 服务器
 	go graph.StartServer(sideChain, gqlPort)

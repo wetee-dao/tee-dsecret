@@ -27,12 +27,8 @@ func GetTxBytes(tx *model.Tx) []byte {
 
 func (s *SideChain) SubmitCallFromNode(call *model.SysCall) error {
 	sigbt := call.BytesForSig()
-	dkg := s.GetDKG()
-	if dkg == nil || dkg.Signer == nil {
-		return errors.Errorf("DKG signer not initialized")
-	}
 
-	signer := dkg.Signer.ToSigner()
+	signer := s.NodePriv.ToSigner()
 	signature, err := signer.Sign(sigbt)
 	if err != nil {
 		return errors.Errorf("Sign: %v", err)

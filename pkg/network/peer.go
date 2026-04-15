@@ -5,7 +5,7 @@ import (
 )
 
 type Peer interface {
-	Send(to *model.To, message any) error
+	Send(message *model.PeerMsg) error
 	Sub(topic string, handler func(any) error) error
 
 	AvailableNodes() []*model.PubKey

@@ -26,6 +26,7 @@ var P2PKey *model.PubKey
 
 // init side chain
 func InitSideChain(
+	nodePriv *model.PrivKey,
 	chainPort int,
 	light bool,
 	callback func(),
@@ -139,6 +140,7 @@ func InitSideChain(
 				"DKG": p2pReactor,
 			}),
 		)
+
 		if err != nil {
 			return nil, errors.New("init BFT node error: " + err.Error())
 		}
@@ -150,12 +152,12 @@ func InitSideChain(
 	callback()
 
 	sideChain.p2p = p2pReactor
+	sideChain.NodePriv = nodePriv
 	if !light {
 		// add hook for partial sign
 		p2pReactor.Sub("block-partial-sign", sideChain.revPartialSign)
 		go sideChain.txCh.Start(sideChain.handlePartialSign)
 	}
-
 	p2pReactor.Sub("secret", sideChain.revSecret)
 
 	return StartSideChain, sideChain, p2pReactor, err

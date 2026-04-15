@@ -24,8 +24,9 @@ type SideChain struct {
 	abci.BaseApplication
 	state AppState
 
-	dkg *dkg.DKG
-	p2p *bftbrigde.BTFReactor
+	dkg      *dkg.DKG
+	p2p      *bftbrigde.BTFReactor
+	NodePriv *model.PrivKey
 
 	txCh *model.PersistChan[*model.BlockPartialSign]
 
