@@ -190,7 +190,7 @@ func (dkg *DKG) sendToNode(to *model.To, message *model.DkgMessage) error {
 	// }
 
 	return dkg.Peer.Send(&model.PeerMsg{
-		To: to,
+		To:      to,
 		Payload: &model.PeerMsg_DkgMessage{DkgMessage: message},
 	})
 }
