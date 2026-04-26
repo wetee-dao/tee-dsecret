@@ -49,9 +49,12 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 
 	// send decrypt secret request to all nodes
 	dshares := make([]*model.DecryptSharesResp, 0, threshold)
-	err = s.p2p.Send(model.SendToNodes(validatorP2Pkeys), &model.SecretBox{
-		Payload: &model.SecretBox_Req{
-			Req: req,
+	err = s.p2p.Send(&model.PeerMsg{
+		To: model.SendToNodes(validatorP2Pkeys),
+		Payload: &model.PeerMsg_SecretBox{
+			SecretBox: &model.SecretBox{
+				Payload: &model.SecretBox_Req{Req: req},
+			},
 		},
 	})
 	if err != nil {
@@ -63,7 +66,7 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 		select {
 		case d := <-preRecerve[req.Id]:
 			if d.Error != nil {
-				return nil, fmt.Errorf("HandleDecryptSecret error: " + string(d.Error))
+				return nil, fmt.Errorf("%s", "HandleDecryptSecret error: "+string(d.Error))
 			}
 			dshares = append(dshares, d)
 		case <-time.After(30 * time.Second):
@@ -225,12 +228,17 @@ func (s *SideChain) HandleReencryptReq(req *model.PodStart, from string) error {
 	if err != nil {
 		return fmt.Errorf("pubkey from hex: %w", err)
 	}
-	err = s.p2p.Send(model.SendToNode(formPubKey), &model.SecretBox{
-		Payload: &model.SecretBox_SharesResp{
-			SharesResp: &model.DecryptSharesResp{
-				Req:          req,
-				SecretShares: secretShares,
-				DiskShares:   diskShares,
+	err = s.p2p.Send(&model.PeerMsg{
+		To: model.SendToNode(formPubKey),
+		Payload: &model.PeerMsg_SecretBox{
+			SecretBox: &model.SecretBox{
+				Payload: &model.SecretBox_SharesResp{
+					SharesResp: &model.DecryptSharesResp{
+						Req:          req,
+						SecretShares: secretShares,
+						DiskShares:   diskShares,
+					},
+				},
 			},
 		},
 	})

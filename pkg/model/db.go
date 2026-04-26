@@ -7,7 +7,6 @@ import (
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
-	"github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 	"github.com/wetee-dao/tee-dsecret/pkg/util"
@@ -78,7 +77,7 @@ func GetCodec[T any](namespace, key string) (*T, error) {
 	bt, err := GetKey(namespace, key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
-			return new(T), nil
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -86,6 +85,18 @@ func GetCodec[T any](namespace, key string) (*T, error) {
 	val := new(T)
 	err = codec.Decode(bt, val)
 	return val, err
+}
+
+func GetCodecOrDefault[T any](namespace, key string, defaultVal T) (T, error) {
+	val, err := GetCodec[T](namespace, key)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	if val == nil {
+		return defaultVal, nil
+	}
+	return *val, nil
 }
 
 func GetKey(namespace, key string) ([]byte, error) {
@@ -212,7 +223,7 @@ func GetProtoMessage[T any](namespace, key string) (*T, error) {
 
 func SetProtoMessage[T proto.Message](namespace, key string, value T) error {
 	buf := new(bytes.Buffer)
-	err := types.WriteMessage(value, buf)
+	err := protoio.WriteMessage(value, buf)
 	if err != nil {
 		return err
 	}

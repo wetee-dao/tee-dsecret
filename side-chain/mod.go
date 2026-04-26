@@ -1,7 +1,6 @@
 package sidechain
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -27,10 +26,11 @@ var P2PKey *model.PubKey
 
 // init side chain
 func InitSideChain(
+	nodePriv *model.PrivKey,
 	chainPort int,
 	light bool,
 	callback func(),
-) (*nm.Node, *SideChain, *bftbrigde.BTFReactor, error) {
+) (func() (*nm.Node, error), *SideChain, *bftbrigde.BTFReactor, error) {
 	// Get boot peers
 	boots, err := chains.MainChain.GetBootPeers()
 	if err != nil {
@@ -62,7 +62,7 @@ func InitSideChain(
 	// init BFT node config
 	config := &cfg.Config{
 		BaseConfig: cfg.BaseConfig{
-			Version:            version.CMTSemVer,
+			Version:            version.TMCoreSemVer,
 			Genesis:            "config/genesis.json",
 			PrivValidatorKey:   "config/priv_validator_key.json",
 			PrivValidatorState: "data/priv_validator_state.json",
@@ -73,11 +73,10 @@ func InitSideChain(
 			LogLevel:           "error",
 			LogFormat:          cfg.LogFormatPlain,
 			FilterPeers:        false,
-			DBBackend:          "pebbledb",
+			DBBackend:          "goleveldb",
 			DBPath:             "BFT",
 		},
 		RPC:             rpcConf,
-		GRPC:            cfg.DefaultGRPCConfig(),
 		P2P:             p2pConf,
 		Mempool:         cfg.DefaultMempoolConfig(),
 		StateSync:       cfg.DefaultStateSyncConfig(),
@@ -107,6 +106,8 @@ func InitSideChain(
 		seeds = append(seeds, boot.SideChainUrl())
 	}
 	config.P2P.Seeds = strings.Join(seeds, ",")
+	// 将 boot 节点同时设置为 PersistentPeers，确保断开后自动重连
+	config.P2P.PersistentPeers = strings.Join(seeds, ",")
 
 	// load validator key
 	validatorKey := privval.LoadFilePV(
@@ -124,38 +125,42 @@ func InitSideChain(
 	// add DKG to chain node
 	p2pReactor := bftbrigde.NewBTFReactor("DKG")
 
-	// init BFT node
-	SideChainNode, err = nm.NewNode(
-		context.Background(),
-		config,
-		validatorKey,
-		nodeKey,
-		proxy.NewLocalClientCreator(sideChain),
-		nm.DefaultGenesisDocProviderFunc(config),
-		cfg.DefaultDBProvider,
-		nm.DefaultMetricsProvider(config.Instrumentation),
-		logger,
-		nm.CustomReactors(map[string]p2p.Reactor{
-			"DKG": p2pReactor,
-		}),
-	)
-	if err != nil {
-		return nil, nil, nil, errors.New("init BFT node error: " + err.Error())
+	var StartSideChain = func() (*nm.Node, error) {
+		// init BFT node
+		SideChainNode, err = nm.NewNode(
+			config,
+			validatorKey,
+			nodeKey,
+			proxy.NewLocalClientCreator(sideChain),
+			nm.DefaultGenesisDocProviderFunc(config),
+			cfg.DefaultDBProvider,
+			nm.DefaultMetricsProvider(config.Instrumentation),
+			logger,
+			nm.CustomReactors(map[string]p2p.Reactor{
+				"DKG": p2pReactor,
+			}),
+		)
+
+		if err != nil {
+			return nil, errors.New("init BFT node error: " + err.Error())
+		}
+
+		return SideChainNode, nil
 	}
 
 	// call callback function
 	callback()
 
 	sideChain.p2p = p2pReactor
+	sideChain.NodePriv = nodePriv
 	if !light {
 		// add hook for partial sign
 		p2pReactor.Sub("block-partial-sign", sideChain.revPartialSign)
 		go sideChain.txCh.Start(sideChain.handlePartialSign)
 	}
-
 	p2pReactor.Sub("secret", sideChain.revSecret)
 
-	return SideChainNode, sideChain, p2pReactor, err
+	return StartSideChain, sideChain, p2pReactor, err
 }
 
 func (s *SideChain) SetDKG(dkg *dkg.DKG) {

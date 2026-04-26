@@ -107,7 +107,10 @@ func (s *SideChain) sendPartialSign(chainId uint32, tx_index int64, hubs []*mode
 	}
 
 	// Send the partial signature to the proposer vio the proposer via P2P.
-	err = s.p2p.Send(model.SendToNode(proposer), psig)
+	err = s.p2p.Send(&model.PeerMsg{
+		To:      model.SendToNode(proposer),
+		Payload: &model.PeerMsg_BlockPartialSign{BlockPartialSign: psig},
+	})
 	if err != nil {
 		return errors.Wrap(err, "P2P Send error")
 	}

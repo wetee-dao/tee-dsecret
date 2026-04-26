@@ -10,16 +10,22 @@ import (
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
-	sidechain "github.com/wetee-dao/tee-dsecret/side-chain"
 )
 
 // StartEpoch is the resolver for the start_epoch field.
+// 使用 DKG Signer 签名交易并提交空块，触发新区块生成
 func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
-	sidechain.SubmitTx(&model.Tx{
-		Payload: &model.Tx_Empty{
+	// 创建空块交易
+	call := &model.SysCall{
+		Payload: &model.SysCall_Empty{
 			Empty: time.Now().Unix(),
 		},
-	})
+	}
+
+	// 提交交易
+	if err := sideChain.SubmitCallFromNode(call); err != nil {
+		return false, gqlerror.Errorf("SubmitTx: %v", err)
+	}
 
 	return true, nil
 }
@@ -28,7 +34,7 @@ func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
 func (r *queryResolver) Validators(ctx context.Context) ([]string, error) {
 	validators, _, err := sideChain.GetValidators()
 	if err != nil {
-		return nil, gqlerror.Errorf("GetValidators:" + err.Error())
+		return nil, gqlerror.Errorf("%s", "GetValidators:"+err.Error())
 	}
 
 	list := make([]string, 0, len(validators))

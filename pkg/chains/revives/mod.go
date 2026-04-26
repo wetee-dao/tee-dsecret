@@ -69,6 +69,7 @@ func NewContract(urls []string, pk *model.PrivKey) (*Contract, error) {
 			return nil, err
 		}
 
+		util.LogWithYellow("MakeMapAccount", p.SS58Address(42))
 		err = client.SignAndSubmit(p, call, true, 0)
 		if err != nil {
 			return nil, err

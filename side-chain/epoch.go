@@ -48,8 +48,8 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 		}
 
 		commits, _ := json.Marshal(app.dkg.NewDkgKeyShare.CommitsWrap)
-		return GetTxBytes(&model.Tx{
-			Payload: &model.Tx_EpochEnd{
+		tx := &model.SysCall{
+			Payload: &model.SysCall_EpochEnd{
 				EpochEnd: &model.EpochEnd{
 					Epoch:      epoch,
 					Validators: sideValidators,
@@ -57,7 +57,13 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 					DkgCommits: commits,
 				},
 			},
-		})
+		}
+
+		bt, err := app.GetCallBytesFromNode(tx)
+		if err != nil {
+			return nil
+		}
+		return bt
 	}
 
 	// Check if sync tx is submiting
@@ -84,11 +90,17 @@ func (app *SideChain) CheckEpochFromValidator() []byte {
 				Epoch:      epoch + 1,
 			}, app.newEpochSucceded, app.newEpochFail)
 			if err == nil {
-				return GetTxBytes(&model.Tx{
-					Payload: &model.Tx_EpochStart{
+				tx := &model.SysCall{
+					Payload: &model.SysCall_EpochStart{
 						EpochStart: time.Now().Unix(), // start epoch, stop submit main chain tx
 					},
-				})
+				}
+
+				bt, err := app.GetCallBytesFromNode(tx)
+				if err != nil {
+					return nil
+				}
+				return bt
 			}
 		}
 		return nil
@@ -162,8 +174,8 @@ func (app *SideChain) SetEpoch(epoch *model.EpochEnd, txn *model.Txn) error {
 	txn.SetKey(GLOABL_STATE, "epoch", bytesBuffer.Bytes())
 
 	// Save DKG pub key
-	txn.SetKey(GLOABL_STATE, "dkg_pub_key", epoch.DkgPub)
-	txn.SetKey(GLOABL_STATE, "dkg_pub_commits", epoch.DkgCommits)
+	txn.SetKey(GLOABL_STATE, DKG_PUB_KEY, epoch.DkgPub)
+	txn.SetKey(GLOABL_STATE, DKG_PUB_COMMITS, epoch.DkgCommits)
 
 	// Delete old epoch validators
 	err := txn.DeletekeysByPrefix([]byte("G_validator"))
@@ -205,8 +217,8 @@ func (app *SideChain) initValidators(vs []abci.ValidatorUpdate) error {
 	var err error
 	for i, v := range vs {
 		if err = model.TxnSetProtoMessage(tx, []byte("G_validator"+fmt.Sprint(i)), &model.SideValidator{
-			Pubkey: v.GetPubKeyBytes(),
-			Power:  v.GetPower(),
+			Pubkey: v.PubKey.GetEd25519(),
+			Power:  v.Power,
 		}); err != nil {
 			return err
 		}
@@ -253,11 +265,7 @@ func (app *SideChain) calcValidatorUpdates(epoch *model.EpochEnd) {
 
 	ongoing := make([]abci.ValidatorUpdate, 0, len(oldValidators))
 	for _, v := range oldValidators {
-		ongoing = append(ongoing, abci.ValidatorUpdate{
-			PubKeyType:  "ed25519",
-			PubKeyBytes: v.Pubkey,
-			Power:       v.Power,
-		})
+		ongoing = append(ongoing, abci.Ed25519ValidatorUpdate(v.Pubkey, v.Power))
 	}
 
 	app.onGoingValidators = ongoing

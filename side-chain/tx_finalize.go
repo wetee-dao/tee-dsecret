@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
-	"github.com/wetee-dao/tee-dsecret/side-chain/pallets/dao"
 )
 
 func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, proposer []byte) ([]*abci.ExecTxResult, error) {
@@ -18,32 +17,27 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 	var txIndex int64 = 0
 
 	for _, txbt := range txs {
-		txbox := new(model.TxBox)
-		err := protoio.ReadMessage(bytes.NewBuffer(txbt), txbox)
-		if err != nil {
-			return nil, err
-		}
-
 		tx := new(model.Tx)
-		err = protoio.ReadMessage(bytes.NewBuffer(txbox.Tx), tx)
+		err := protoio.ReadMessage(bytes.NewBuffer(txbt), tx)
 		if err != nil {
 			return nil, err
 		}
 
 		// 所有交易必须验证签名
-		if err := model.VerifyTxSigner(tx); err != nil {
+		call, err := model.VerifyTxSigner(tx)
+		if err != nil {
 			return nil, errors.Wrap(err, "verify tx signer")
 		}
 
-		switch p := tx.Payload.(type) {
-		case *model.Tx_Empty:
+		switch p := call.Payload.(type) {
+		case *model.SysCall_Empty:
 			LogWithTime("Empty TX:", p.Empty)
-		case *model.Tx_EpochStart: // set epoch last time
+		case *model.SysCall_EpochStart: // set epoch last time
 			err := app.SetEpochStatus(p.EpochStart)
 			if err != nil {
 				return nil, err
 			}
-		case *model.Tx_EpochEnd:
+		case *model.SysCall_EpochEnd:
 			app.calcValidatorUpdates(p.EpochEnd) // calc validator updates
 			err = app.SetEpoch(p.EpochEnd, txn)  // set epoch and validators
 			if err != nil {
@@ -53,20 +47,20 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			if err != nil {
 				return nil, err
 			}
-		case *model.Tx_SyncTxStart: // start hub sync tx
+		case *model.SysCall_SyncTxStart: // start hub sync tx
 			txIndex = p.SyncTxStart
 			err = HubSyncStep2(p.SyncTxStart, txn)
 			if err != nil {
 				return nil, err
 			}
-		case *model.Tx_SyncTxEnd: // end hub sync tx
+		case *model.SysCall_SyncTxEnd: // end hub sync tx
 			err = HubSyncEnd(p.SyncTxEnd, txn)
 			if err != nil {
 				return nil, err
 			}
-			// 所有节点在处理 SyncTxEnd 时统一清理 tx_index_ 储存
+			// 所有节点在处理 SyncTxEnd 时统一清理 SysCall_index_ 储存
 			deleteTxIndexStore(p.SyncTxEnd)
-		case *model.Tx_SyncTxRetry: // retry hub sync tx，重新收集签名
+		case *model.SysCall_SyncTxRetry: // retry hub sync tx，重新收集签名
 			if app.dkg == nil {
 				LogWithTime("SyncTxRetry", "dkg is nil, skipping retry for txIndex:", p.SyncTxRetry)
 				break
@@ -88,23 +82,17 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			if err != nil {
 				return nil, errors.Wrap(err, "SyncTxRetry: sendPartialSign")
 			}
-		case *model.Tx_HubCall: // add hub call
+		case *model.SysCall_HubCall: // add hub call
 			err := app.finalizeHubCall(p.HubCall, txn)
 			if err != nil {
 				return nil, err
 			}
+
 			hubCalls = append(hubCalls, p.HubCall)
-		case *model.Tx_DaoCall: // DAO 治理/成员/代币/提案/国库
-			caller := tx.GetCaller()
-			if len(caller) == 0 {
-				caller = txbox.Org
-			}
-			if len(caller) == 0 {
-				return nil, errors.New("dao_call: missing caller (tx.caller or txbox.org)")
-			}
-			err := dao.ApplyDaoCall(caller, p.DaoCall, height, txn)
+		case *model.SysCall_Contract:
+			err = app.ContractMutation(tx.GetCaller(), tx.GetCallerType(), txn, height, p.Contract)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "contract mutation error")
 			}
 		default:
 			return nil, errors.New("invalid tx type")

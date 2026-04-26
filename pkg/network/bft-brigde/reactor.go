@@ -2,6 +2,7 @@ package bftbrigde
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/p2p"
@@ -51,13 +52,28 @@ type BTFReactor struct {
 	dkgHandler              func(any) error
 	blockPartialSignHandler func(any) error
 	secretHandler           func(any) error
+
+	// P2P网络就绪回调（Switch设置后触发）
+	onSwitchReady func()
+
+	// 启动期间的消息暂存队列（P2P就绪前使用）
+	pendingMsgs []*model.PeerMsg
+	pendingMu   sync.Mutex
 }
 
 func NewBTFReactor(name string) *BTFReactor {
 	r := &BTFReactor{}
 	r.BaseService = *service.NewBaseService(nil, name, r)
 
+	// 加载持久化的待发送消息
+	r.loadPendingMsgs()
+
 	return r
+}
+
+// SetOnSwitchReady 设置P2P网络就绪回调
+func (r *BTFReactor) SetOnSwitchReady(callback func()) {
+	r.onSwitchReady = callback
 }
 
 // 实现 Service 接口的 OnStart 生命周期钩子
@@ -82,6 +98,14 @@ func (r *BTFReactor) OnReset() error {
 
 func (dr *BTFReactor) SetSwitch(sw *p2p.Switch) {
 	dr.Switch = sw
+
+	// 发送启动期间暂存的所有消息
+	dr.flushPendingMsgs()
+
+	// 通知所有监听者P2P网络已就绪
+	if dr.onSwitchReady != nil {
+		dr.onSwitchReady()
+	}
 }
 
 func (*BTFReactor) GetChannels() []*conn.ChannelDescriptor {

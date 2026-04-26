@@ -4,27 +4,32 @@ package model;
 
 option go_package = "";
 
-// transaction
-message TxBox {
-  bytes tee_sig = 1;
-  bytes org = 2; 
-  bytes tx = 3;
-}
 
 // side chain transaction
 message Tx{
+  bytes caller = 10;   // 交易发起方（公钥，用于验证签名）
+  uint32 caller_type = 12; // 0 => TEE, 10000 => ed25519, 1 => polkadot_sign(contract)
+  bytes call = 13; // call bytes
+  bytes signature = 11; // 对 Tx 的签名（签名为空时签名字段不参与序列化，即对 payload+caller 的序列化结果签名）
+}
+
+message SysCall{
   oneof payload {
     int64 empty = 99;
     EpochEnd epoch_end = 1;
     int64 epoch_start = 2;
-    HubCall hub_call = 4;
-    int64 sync_tx_start  = 5;
-    int64 sync_tx_end = 6;
-    int64 sync_tx_retry = 7;
-    bytes dao_call = 8;  // 序列化后的 DaoCallPayload（见 side-chain/dao_store.go）
+    HubCall hub_call = 3;
+    int64 sync_tx_start  = 4;
+    int64 sync_tx_end = 5;
+    int64 sync_tx_retry = 6;
+    ContractCall contract = 7;
   }
-  bytes caller = 10;   // 交易发起方（公钥，用于验证签名）
-  bytes signature = 11; // 对 Tx 的签名（签名为空时签名字段不参与序列化，即对 payload+caller 的序列化结果签名）
+}
+
+message ContractCall{
+  bytes name = 1;
+  bytes method = 2;
+  repeated bytes args = 3;
 }
 
 // side validator
@@ -210,4 +215,17 @@ message ApiReq {
 message ApiResp {
   int32 code = 2;
   bytes data = 3;
+}
+
+// P2P 消息包装器，用于持久化存储待发送的消息
+message PeerMsg {
+  // 目标节点
+  To to = 1;
+  
+  // 消息内容（oneof 确保只能有一种类型）
+  oneof payload {
+    DkgMessage dkg_message = 2;
+    BlockPartialSign block_partial_sign = 3;
+    SecretBox secret_box = 4;
+  }
 }
