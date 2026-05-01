@@ -20,21 +20,13 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/vedhavyas/go-subkey/v2 v2.0.0
 	github.com/vektah/gqlparser/v2 v2.5.27
-	github.com/wetee-dao/ink.go v0.1.36
+	github.com/wetee-dao/ink.go v0.1.38
 	go.dedis.ch/kyber/v4 v4.0.0-pre2.0.20250414164612-66d4dee8d2e6
 	golang.org/x/crypto v0.38.0
 	google.golang.org/protobuf v1.36.6
 )
 
 require (
-	github.com/cometbft/cometbft-db v0.14.1 // indirect
-	github.com/dgraph-io/badger/v4 v4.5.1 // indirect
-	github.com/fsnotify/fsnotify v1.8.0 // indirect
-	github.com/go-kit/kit v0.13.0 // indirect
-	github.com/google/go-configfs-tsm v0.2.2 // indirect
-	github.com/google/logger v1.1.1 // indirect
-	github.com/onsi/gomega v1.36.2 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.0.0 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
@@ -42,11 +34,12 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.0 // indirect
-	github.com/cockroachdb/errors v1.11.3 // indirect
+	github.com/cockroachdb/errors v1.11.3
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
+	github.com/cometbft/cometbft-db v0.14.1 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
@@ -54,11 +47,14 @@ require (
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
+	github.com/dgraph-io/badger/v4 v4.5.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ethereum/go-ethereum v1.10.20 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
+	github.com/go-kit/kit v0.13.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
@@ -70,6 +66,8 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/flatbuffers v24.12.23+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/go-configfs-tsm v0.2.2 // indirect
+	github.com/google/logger v1.1.1 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
@@ -95,6 +93,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220708102147-0a8a51822cae
+	github.com/onsi/gomega v1.36.2 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
 	github.com/pierrec/xxHash v0.1.5 // indirect
 	github.com/pkg/errors v0.9.1
@@ -117,6 +116,7 @@ require (
 	go.dedis.ch/fixbuf v1.0.3 // indirect
 	go.etcd.io/bbolt v1.4.0-beta.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.40.0 // indirect

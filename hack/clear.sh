@@ -6,9 +6,9 @@ while [ -h "$SOURCE"  ]; do
     [[ $SOURCE != /*  ]] && SOURCE="$DIR/$SOURCE"
 done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
-cd $DIR/../
+ROOT_DIR=/srv
 
-cd $DIR/../hack/node0
+cd $ROOT_DIR/node0
 rm -rf ./chain_data/BFT
 rm -rf ./chain_data/wetee
 rm -rf ./chain_data/data/cs.wal
@@ -20,7 +20,7 @@ cat <<EOF > ./chain_data/data/priv_validator_state.json
 }
 EOF
 
-cd $DIR/../hack/node1
+cd $ROOT_DIR/node1
 rm -rf ./chain_data/BFT
 rm -rf ./chain_data/wetee
 rm -rf ./chain_data/data/cs.wal
@@ -32,7 +32,7 @@ cat <<EOF > ./chain_data/data/priv_validator_state.json
 }
 EOF
 
-cd $DIR/../hack/node2
+cd $ROOT_DIR/node2
 rm -rf ./chain_data/BFT
 rm -rf ./chain_data/wetee
 rm -rf ./chain_data/data/cs.wal

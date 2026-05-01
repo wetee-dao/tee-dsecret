@@ -45,21 +45,36 @@ type Peer struct {
 	PreCommits []kyber.Point
 }
 
-func (p *Peer) Send(to *model.To, message any) error {
-	var topic string
-	switch message.(type) {
-	case *model.DkgMessage:
-		topic = "dkg"
-	case *model.BlockPartialSign:
-		topic = "block-partial-sign"
-	default:
-		return errors.New("unknown message type")
+// Send implements pkg/network/peer.Peer.
+// It routes messages to local in-memory peers based on PeerMsg.To and payload type.
+func (p *Peer) Send(message *model.PeerMsg) error {
+	if message == nil {
+		return errors.New("nil peer message")
+	}
+	to := message.GetTo()
+	if to == nil {
+		return errors.New("nil peer message to")
 	}
 
-	// util.LogSendmsg(">>>>>> P2P Send()", "to", node.String(), "-", node.SS58(), "| type:", topic+"."+message.Type)
+	switch payload := message.GetPayload().(type) {
+	case *model.PeerMsg_DkgMessage:
+		return p.sendTo(to, "dkg", payload.DkgMessage)
+	case *model.PeerMsg_BlockPartialSign:
+		return p.sendTo(to, "block-partial-sign", payload.BlockPartialSign)
+	case *model.PeerMsg_SecretBox:
+		return p.sendTo(to, "secret-box", payload.SecretBox)
+	default:
+		return errors.New("unknown peer payload type")
+	}
+}
+
+func (p *Peer) sendTo(to *model.To, topic string, message any) error {
 	switch to.Payload.(type) {
 	case *model.To_Node:
 		peer := peers[hex.EncodeToString(to.GetNode())]
+		if peer == nil {
+			return fmt.Errorf("peer not found: %x", to.GetNode())
+		}
 		if handler, ok := peer.handlers[topic]; ok {
 			go handler(message)
 		} else {
@@ -68,6 +83,9 @@ func (p *Peer) Send(to *model.To, message any) error {
 	case *model.To_Nodes:
 		for _, node := range p.nodes {
 			peer := peers[node.String()]
+			if peer == nil {
+				continue
+			}
 			if handler, ok := peer.handlers[topic]; ok {
 				go handler(message)
 			} else {
@@ -77,6 +95,9 @@ func (p *Peer) Send(to *model.To, message any) error {
 	case *model.To_Broadcast:
 		for _, node := range p.nodes {
 			peer := peers[node.String()]
+			if peer == nil {
+				continue
+			}
 			if handler, ok := peer.handlers[topic]; ok {
 				go handler(message)
 			} else {

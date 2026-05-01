@@ -34,7 +34,7 @@ func (s *SideChain) LoadChains() error {
 	}
 
 	// 使用 GetJsonList 获取所有链配置和对应的 keys
-	chainConfigs, keys, err := model.GetJsonList[model.ChainConfig]("", chainKeyPrefix)
+	chainConfigs, keys, err := model.GetJsonList[model.ChainConfigType]("", chainKeyPrefix)
 	if err != nil && !errors.Is(err, pebble.ErrNotFound) {
 		return fmt.Errorf("failed to load chains from database: %w", err)
 	}
@@ -64,7 +64,7 @@ func (s *SideChain) LoadChains() error {
 		}
 
 		// 连接到区块链
-		chainApi, err := chains.ConnectChain(config.Urls, s.dkg.Signer)
+		chainApi, err := chains.ConnectChain(config, s.dkg.Signer)
 		if err != nil {
 			return fmt.Errorf("failed to connect to chain %d: %w", chainId, err)
 		}
@@ -76,7 +76,7 @@ func (s *SideChain) LoadChains() error {
 	return nil
 }
 
-func (s *SideChain) addChain(chainId uint32, chain *model.ChainConfig) error {
+func (s *SideChain) addChain(chainId uint32, chain *model.ChainConfigType) error {
 	// 如果 chains map 未初始化，先初始化
 	if s.chains == nil {
 		s.chains = make(map[uint32]*chains.ChainApi)
@@ -93,7 +93,7 @@ func (s *SideChain) addChain(chainId uint32, chain *model.ChainConfig) error {
 	}
 
 	// 连接到区块链
-	chainApi, err := chains.ConnectChain(chain.Urls, s.dkg.Signer)
+	chainApi, err := chains.ConnectChain(chain, s.dkg.Signer)
 	if err != nil {
 		return fmt.Errorf("failed to connect to chain %d: %w", chainId, err)
 	}

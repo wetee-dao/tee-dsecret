@@ -27,8 +27,8 @@ spec:
               value: '$SIDE_CHAIN_PORT'
             - name: GQL_PORT
               value: '$GQL_PORT'
-            - name: CHAIN_ADDR
-              value: $CHAIN_ADDR
+            - name: CHAIN_ENV
+              value: $CHAIN_ENV
           volumeMounts:
             - name: $NAME
               mountPath: /chain_data

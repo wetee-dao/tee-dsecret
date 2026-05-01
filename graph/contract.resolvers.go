@@ -48,12 +48,18 @@ func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType
 	}
 
 	signer := dkg.Signer.ToSigner()
-	signature, err := model.SideContractPolkadotSign(signer, call)
-	if err != nil {
-		return false, gqlerror.Errorf("SideContractPolkadotSign: %v", err)
+	sysCall := &model.SysCall{
+		Payload: &model.SysCall_Contract{
+			Contract: call,
+		},
 	}
 
-	if err := SubmitContractCall(signer.PublicKey, 1, contract, model.MethodToSelector("Mint"), argBytes, signature); err != nil {
+	signature, err := signer.Sign(sysCall.BytesForSig())
+	if err != nil {
+		return false, gqlerror.Errorf("Sign: %v", err)
+	}
+
+	if err := SubmitContractCall(signer.PublicKey, 0, contract, model.MethodToSelector("Mint"), argBytes, signature); err != nil {
 		return false, gqlerror.Errorf("SubmitTx: %v", err)
 	}
 
@@ -87,13 +93,20 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 	if dkg == nil || dkg.Signer == nil {
 		return false, gqlerror.Errorf("DKG not initialized")
 	}
+
 	signer := dkg.Signer.ToSigner()
-	signature, err := model.SideContractPolkadotSign(signer, call)
-	if err != nil {
-		return false, gqlerror.Errorf("SideContractPolkadotSign: %v", err)
+	sysCall := &model.SysCall{
+		Payload: &model.SysCall_Contract{
+			Contract: call,
+		},
 	}
 
-	err = SubmitContractCall(signer.PublicKey, 1, contract, method, argBytes, signature)
+	signature, err := signer.Sign(sysCall.BytesForSig())
+	if err != nil {
+		return false, gqlerror.Errorf("Sign: %v", err)
+	}
+
+	err = SubmitContractCall(signer.PublicKey, 0, contract, method, argBytes, signature)
 	if err != nil {
 		return false, gqlerror.Errorf("SystemContractInit DecodeCaller: %v", err)
 	}
@@ -103,6 +116,10 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 
 // ContractCall is the resolver for the contractCall field.
 func (r *mutationResolver) ContractCall(ctx context.Context, caller string, callerType int, contract string, method string, args []string, signature string) (bool, error) {
+	if callerType == 0 {
+		return false, gqlerror.Errorf("ContractCall: only caller type >0 is supported")
+	}
+
 	callerBytes, err := DecodeCaller(caller)
 	if err != nil {
 		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
@@ -126,6 +143,10 @@ func (r *mutationResolver) ContractCall(ctx context.Context, caller string, call
 
 // ContractQuery is the resolver for the contractDryRun field.
 func (r *queryResolver) ContractDryRun(ctx context.Context, caller string, callerType int, contract string, mut bool, method string, args []string) (string, error) {
+	if callerType == 0 {
+		return "", gqlerror.Errorf("ContractDryRun: only caller type >0 is supported")
+	}
+
 	callerBt, err := DecodeCaller(caller)
 	if err != nil {
 		return "", err

@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	"github.com/vedhavyas/go-subkey/v2/sr25519"
 	"github.com/wetee-dao/ink.go"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
+	"golang.org/x/crypto/blake2b"
 )
 
 // VerifyTxSigner 验证交易发起方：caller 对 Tx（不含 signature）的签名必须有效
@@ -32,31 +34,51 @@ func VerifyTxSigner(tx *Tx) (*SysCall, error) {
 		return nil, err
 	}
 
-	switch tx.CallerType {
-	case 0: // node ed25519
-		if !SignVerify(caller, call.BytesForSig(), sig) {
-			return nil, errors.Wrap(err, "node")
-		}
-	case 1: // side contract
-		if err := SideContractPolkadotVerify(caller, call.BytesForSig(), sig); err != nil {
-			return nil, errors.Wrap(err, "contract")
-		}
-	default:
-		return nil, errors.New("unknown caller type")
+	// switch tx.CallerType {
+	// case 0: // node ed25519
+	// 	if !Ed25519SignVerify(caller, call.BytesForSig(), sig) {
+	// 		return nil, errors.Wrap(err, "node")
+	// 	}
+	// case 1: // polkadot sign sr25519 side contract
+	// 	if err := SideContractPolkadotVerify(caller, call.BytesForSig(), sig); err != nil {
+	// 		return nil, errors.Wrap(err, "contract")
+	// 	}
+	// default:
+	// 	return nil, errors.New("unknown caller type")
+	// }
+	err = SideSysCallVerify(caller, tx.CallerType, call, sig)
+	if err != nil {
+		return nil, err
 	}
 
 	return call, nil
 }
 
-func SideContractVerify(caller []byte, callerType uint32, call *ContractCall, signature []byte) error {
-	bt := ContractForSig(call)
+func SideSysCallVerify(caller []byte, callerType uint32, call *SysCall, signature []byte) error {
 	switch callerType {
-	case 1:
-		return SideContractPolkadotVerify(caller, bt, signature)
+	case 0: // node ed25519
+		if !Ed25519SignVerify(caller, call.BytesForSig(), signature) {
+			return errors.New("invalid signature")
+		}
+	case 1: // polkadot sign sr25519 side contract
+		if err := SideContractPolkadotVerify(caller, call.BytesForSig(), signature); err != nil {
+			return errors.Wrap(err, "contract")
+		}
 	default:
 		return errors.New("unknown caller type")
 	}
+	return nil
 }
+
+// func SideContractVerify(caller []byte, callerType uint32, call *ContractCall, signature []byte) error {
+// 	bt := ContractForSig(call)
+// 	switch callerType {
+// 	case 1:
+// 		return SideContractPolkadotVerify(caller, bt, signature)
+// 	default:
+// 		return errors.New("unknown caller type")
+// 	}
+// }
 
 func SideContractPolkadotVerify(caller []byte, call []byte, signature []byte) error {
 	// 解析公钥
@@ -83,4 +105,18 @@ func SideContractPolkadotSign(caller *ink.Signer, call *ContractCall) ([]byte, e
 	result := bytes.Join(parts, nil)
 
 	return caller.Sign(result)
+}
+
+func Ed25519SignVerify(pubkeyBt []byte, msg []byte, signature []byte) bool {
+	pubkey, err := ed25519.Scheme{}.FromPublicKey(pubkeyBt)
+	if err != nil {
+		return false
+	}
+
+	if len(msg) > 256 {
+		h := blake2b.Sum256(msg)
+		msg = h[:]
+	}
+
+	return pubkey.Verify(msg, signature)
 }

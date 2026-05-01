@@ -11,13 +11,13 @@ cd $DIR/../
 img=$(cat ./hack/.version)
 
 export DSECRET_IMAGE=$img
-export DSECRET_DIR=/home/wetee/work/wetee/tee-dsecret/hack/node2/chain_data
+export DSECRET_DIR=/srv/node2/chain_data
 export NAME=dsecret-2
 
 export SIDE_CHAIN_PORT=30130
 export SIDE_CHAIN_RPC_PORT=30131
 export GQL_PORT=30135
-export CHAIN_ADDR=ws://192.168.110.205:30002/ws
+export CHAIN_ENV=test
 
 
 echo '' > ./hack/k8s.yaml

@@ -1,11 +1,12 @@
 package chains
 
 import (
-
 	// pallets "github.com/wetee-dao/tee-dsecret/pkg/chains/pallets"
+	"fmt"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	chain "github.com/wetee-dao/ink.go"
-	contracts "github.com/wetee-dao/tee-dsecret/pkg/chains/revives"
+	revive "github.com/wetee-dao/tee-dsecret/pkg/chains/revive"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 )
 
@@ -64,17 +65,22 @@ type MainChainApi interface {
 	GetMintWorker(user types.AccountID) (*model.K8sCluster, error)
 }
 
-// ConnectMainChain 连接主链
-func ConnectMainChain(urls []string, pk *model.PrivKey) (MainChainApi, error) {
-	var err error
+// ConnectMainChain 连接核心主链
+func ConnectMainChain(env string, pk *model.PrivKey) (MainChainApi, error) {
+	config := model.GetChainConfig(env)
+	if config == nil {
+		return nil, fmt.Errorf("invalid environment: %s", env)
+	}
 
-	MainChain, err = contracts.NewContract(urls, pk)
+	var err error
+	MainChain, err = revive.NewContract(config, pk)
 	return MainChain, err
 }
 
-func ConnectChain(urls []string, pk *model.PrivKey) (ChainApi, error) {
+// ConnectChain 连接主链
+func ConnectChain(config *model.ChainConfigType, pk *model.PrivKey) (ChainApi, error) {
 	var err error
 
-	chain, err := contracts.NewContract(urls, pk)
+	chain, err := revive.NewContract(config, pk)
 	return chain, err
 }

@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/cometbft/cometbft/privval"
@@ -22,7 +21,7 @@ var DefaultChainUrl string = "ws://wetee-node.worker-addon.svc.cluster.local:994
 func main() {
 	// 获取环境变量
 	gqlPort := util.GetEnvInt("GQL_PORT", 61000)
-	chainAddr := strings.Split(util.GetEnv("CHAIN_ADDR", DefaultChainUrl), ",")
+	chainEnv := util.GetEnv("CHAIN_ENV", "local")
 	chainPort := util.GetEnvInt("SIDE_CHAIN_PORT", 61001)
 
 	// Init app db
@@ -57,8 +56,14 @@ func main() {
 	util.LogWithYellow("Mainchain Key", nodePriv.GetPublic().SS58())
 	util.LogWithYellow("P2P Key", p2pKey.GetPublic().SS58())
 
+	chainConfig := model.GetChainConfig(chainEnv)
+	if chainConfig == nil {
+		fmt.Println("Invalid chain environment:", chainEnv)
+		os.Exit(1)
+	}
+
 	// Link to polkadot
-	_, err = chain.ConnectMainChain(chainAddr, nodePriv)
+	_, err = chain.ConnectMainChain(chainEnv, nodePriv)
 	if err != nil {
 		fmt.Println("Connect to chain error:", err)
 		os.Exit(1)
@@ -66,7 +71,7 @@ func main() {
 
 	// Init node
 	nodeFunc, sideChain, dkgReactor, err := sidechain.InitSideChain(nodePriv, chainPort, false, func() {
-		util.LogWithYellow("Main Chain", chainAddr)
+		util.LogWithYellow("Main Chain", chainConfig.Urls)
 	})
 	if err != nil {
 		log.Fatalf("failed to init node: %v", err)
@@ -97,15 +102,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("------------------------------ LoadChains")
-
 	node, err := nodeFunc()
 	if err != nil {
 		log.Fatalf("failed to create BFT node: %v", err)
 		os.Exit(1)
 	}
-
-	fmt.Println("------------------------------ nodeFunc")
 
 	// Start BFT node
 	if err := node.Start(); err != nil {
@@ -116,8 +117,6 @@ func main() {
 		_ = node.Stop()
 		node.Wait()
 	}()
-
-	fmt.Println("------------------------------ Start")
 
 	// 启动 graphql 服务器
 	go graph.StartServer(sideChain, gqlPort)

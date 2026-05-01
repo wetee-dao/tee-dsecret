@@ -40,10 +40,6 @@ func decodeArgs(args []string) ([][]byte, error) {
 
 // SubmitContractCall 提交合约调用
 func SubmitContractCall(caller []byte, callerType uint32, contract string, method [4]byte, argsBytes [][]byte, signature []byte) error {
-	if callerType == 0 {
-		return fmt.Errorf("SubmitContractCall: only caller type >0 is supported")
-	}
-
 	c := &model.ContractCall{
 		Name:   []byte(contract),
 		Method: method[:],
@@ -55,7 +51,7 @@ func SubmitContractCall(caller []byte, callerType uint32, contract string, metho
 		},
 	}
 
-	err := model.SideContractVerify(caller, callerType, c, signature)
+	err := model.SideSysCallVerify(caller, callerType, call, signature)
 	if err != nil {
 		return fmt.Errorf("SubmitContractCall: contract verify: %w", err)
 	}

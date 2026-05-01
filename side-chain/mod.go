@@ -31,6 +31,10 @@ func InitSideChain(
 	light bool,
 	callback func(),
 ) (func() (*nm.Node, error), *SideChain, *bftbrigde.BTFReactor, error) {
+	if chains.MainChain == nil {
+		return nil, nil, nil, errors.New("MainChain is nil")
+	}
+
 	// Get boot peers
 	boots, err := chains.MainChain.GetBootPeers()
 	if err != nil {
@@ -106,6 +110,9 @@ func InitSideChain(
 		seeds = append(seeds, boot.SideChainUrl())
 	}
 	config.P2P.Seeds = strings.Join(seeds, ",")
+
+	util.LogWithYellow("PersistentPeers", strings.Join(seeds, ","))
+
 	// 将 boot 节点同时设置为 PersistentPeers，确保断开后自动重连
 	config.P2P.PersistentPeers = strings.Join(seeds, ",")
 

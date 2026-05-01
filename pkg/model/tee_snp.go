@@ -94,7 +94,7 @@ func SnpVerify(callData *TeeCall) (result *TeeVerifyResult, err error) {
 
 	// 验证签名
 	sig := attestation.Report.ReportData
-	if !SignVerify(callData.Caller, buf.Bytes(), sig) {
+	if !Ed25519SignVerify(callData.Caller, buf.Bytes(), sig) {
 		return nil, errors.New("invalid report sign")
 	}
 

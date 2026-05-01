@@ -15,7 +15,6 @@ import (
 	"github.com/edgelesssys/ego/enclave"
 	"github.com/vedhavyas/go-subkey/v2/ed25519"
 	chain "github.com/wetee-dao/ink.go"
-	"golang.org/x/crypto/blake2b"
 )
 
 // sgx issue report
@@ -71,7 +70,7 @@ func SgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
 	}
 
 	sig := report.Data
-	if !SignVerify(reportData.Caller, buf.Bytes(), sig) {
+	if !Ed25519SignVerify(reportData.Caller, buf.Bytes(), sig) {
 		return nil, errors.New("invalid report sign")
 	}
 
@@ -140,18 +139,4 @@ func ClientSgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
 		CodeSignature: report.UniqueID,
 		CodeProductId: report.ProductID,
 	}, nil
-}
-
-func SignVerify(pubkeyBt []byte, msg []byte, signature []byte) bool {
-	pubkey, err := ed25519.Scheme{}.FromPublicKey(pubkeyBt)
-	if err != nil {
-		return false
-	}
-
-	if len(msg) > 256 {
-		h := blake2b.Sum256(msg)
-		msg = h[:]
-	}
-
-	return pubkey.Verify(msg, signature)
 }
