@@ -47,10 +47,6 @@ var (
 	ErrInvalidVoteUser = errors.New("invalid vote user")
 	// ErrInvalidVoteStatus 无效的投票状态
 	ErrInvalidVoteStatus = errors.New("invalid vote status")
-	// ErrVoteAlreadyUnlocked 投票已解锁
-	ErrVoteAlreadyUnlocked = errors.New("vote already unlocked")
-	// ErrInvalidVoteUnlockTime 无效的投票解锁时间
-	ErrInvalidVoteUnlockTime = errors.New("invalid vote unlock time")
 	// ErrProposalNotConfirmed 提案未确认
 	ErrProposalNotConfirmed = errors.New("proposal not confirmed")
 	// ErrProposalInDecision 提案决策中
@@ -79,8 +75,6 @@ type Gov struct {
 	nextSpendIDStore *model.StoreValue[uint64]
 	// nextTrackIDStore 下一个轨道ID (key: next_track)
 	nextTrackIDStore *model.StoreValue[uint32]
-	// memberLocks 成员锁定金额映射 (keyPfx: member_lock_)
-	memberLocks *model.StoreMapping[model.UniAddr, model.Amount]
 	// allowances 授权额度映射 (keyPfx: allowance_)
 	allowances *model.StoreMapping[model.UniAddr, model.Amount]
 	// tracks 轨道数据映射 (keyPfx: track_)
@@ -93,8 +87,6 @@ type Gov struct {
 	// votes 投票数据二维列表 (keyPfx: votes_v2)
 	// K1 = proposalID, Ix = 内层索引，可按提案获取所有投票
 	votes *model.StoreList2D[uint32, uint32, Vote] `store:"keyPfx:votes_v4"`
-	// voteUnlocks 投票解锁状态映射 (keyPfx: vote_unlock_)
-	voteUnlocks *model.StoreMapping[uint64, bool]
 	// spends 支出数据映射 (keyPfx: spend_)
 	spends *model.StoreMapping[uint64, Spend]
 	// proposalResults 提案执行结果映射 (keyPfx: proposal_result_)

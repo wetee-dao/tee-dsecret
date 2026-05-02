@@ -209,19 +209,6 @@ func (d GovMutation) ExecCall(call *model.ContractCall) error {
 			return fmt.Errorf("transfer_from: amount: %w", err)
 		}
 		return m.TransferFrom(from, to, amount)
-	case [4]byte{0x2a, 0xb8, 0x1d, 0xd1}:
-		if err := model.RequireArgLen(args, 2, "unlock"); err != nil {
-			return err
-		}
-		proposalID, err := model.DecodeScaleArgBytes[uint32](args[0])
-		if err != nil {
-			return fmt.Errorf("unlock: proposalID: %w", err)
-		}
-		index, err := model.DecodeScaleArgBytes[uint32](args[1])
-		if err != nil {
-			return fmt.Errorf("unlock: index: %w", err)
-		}
-		return m.Unlock(proposalID, index)
 	default:
 		return fmt.Errorf("gov: unknown method %q", methodSel)
 	}
@@ -253,19 +240,6 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 		return codec.Encode(out)
 	case [4]byte{0x76, 0xf2, 0x07, 0x24}:
 		out, err := q.GetPublicJoin()
-		if err != nil {
-			return nil, err
-		}
-		return codec.Encode(out)
-	case [4]byte{0x3c, 0xd4, 0x96, 0x6d}:
-		if err := model.RequireArgLen(args, 1, "lock_balance_of"); err != nil {
-			return nil, err
-		}
-		owner, err := model.DecodeScaleArgBytes[model.UniAddr](args[0])
-		if err != nil {
-			return nil, fmt.Errorf("lock_balance_of: owner: %w", err)
-		}
-		out, err := q.LockBalanceOf(owner)
 		if err != nil {
 			return nil, err
 		}
@@ -361,19 +335,6 @@ func (q GovQuery) ExecQuery(call *model.ContractCall) ([]byte, error) {
 			return nil, err
 		}
 		return codec.Encode(out)
-	case [4]byte{0x7b, 0x5a, 0x66, 0xef}:
-		if err := model.RequireArgLen(args, 1, "vote_unlock_statuses"); err != nil {
-			return nil, err
-		}
-		keys, err := model.DecodeScaleArgBytes[[]VoteRef](args[0])
-		if err != nil {
-			return nil, fmt.Errorf("vote_unlock_statuses: keys: %w", err)
-		}
-		out, err := q.VoteUnlockStatuses(keys)
-		if err != nil {
-			return nil, err
-		}
-		return codec.Encode(out)
 	case [4]byte{0x34, 0x0f, 0x2c, 0xf4}:
 		if err := model.RequireArgLen(args, 3, "votes"); err != nil {
 			return nil, err
@@ -431,13 +392,11 @@ func NewGov(api model.ContractApi) *Gov {
 		defaultTrack:     &model.StoreValue[uint32]{Namespace: "gov", Key: "default_track"},
 		nextSpendIDStore: &model.StoreValue[uint64]{Namespace: "gov", Key: "next_spend_id"},
 		nextTrackIDStore: &model.StoreValue[uint32]{Namespace: "gov", Key: "next_track_id"},
-		memberLocks:      &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "member_lock_"},
 		allowances:       &model.StoreMapping[model.UniAddr, model.Amount]{Namespace: "gov", KeyPrefix: "allowance_"},
 		tracks:           &model.StoreMapping[uint32, TrackData]{Namespace: "gov", KeyPrefix: "tracks_v2"},
 		proposals:        model.NewStoreList[uint32, Proposal]("gov", "proposals_v6next_", "proposals_v6items_"),
 		votesOfUser:      model.NewStoreList2D[model.UniAddr, uint32, VoteRef]("gov", "votes_of_user_v1k1_to_id_", "votes_of_user_v1k1_length_", "votes_of_user_v1k2_next_", "votes_of_user_v1store_"),
 		votes:            model.NewStoreList2D[uint32, uint32, Vote]("gov", "votes_v4k1_to_id_", "votes_v4k1_length_", "votes_v4k2_next_", "votes_v4store_"),
-		voteUnlocks:      &model.StoreMapping[uint64, bool]{Namespace: "gov", KeyPrefix: "vote_unlock_"},
 		spends:           &model.StoreMapping[uint64, Spend]{Namespace: "gov", KeyPrefix: "spend_"},
 		proposalResults:  &model.StoreMapping[uint32, ProposalResult]{Namespace: "gov", KeyPrefix: "proposal_result_"},
 	}
@@ -447,7 +406,6 @@ var MethodMap = map[[4]byte]string{
 	[4]byte{0x87, 0xe0, 0xff, 0x32}: "balance_of",
 	[4]byte{0x36, 0x26, 0xe9, 0xbf}: "default_track",
 	[4]byte{0x76, 0xf2, 0x07, 0x24}: "get_public_join",
-	[4]byte{0x3c, 0xd4, 0x96, 0x6d}: "lock_balance_of",
 	[4]byte{0x53, 0x55, 0x0f, 0x05}: "members",
 	[4]byte{0x79, 0x9f, 0xe2, 0xdd}: "proposal",
 	[4]byte{0xfd, 0x88, 0x90, 0x7b}: "proposal_status",
@@ -456,7 +414,6 @@ var MethodMap = map[[4]byte]string{
 	[4]byte{0xb9, 0xfd, 0x54, 0xc4}: "track",
 	[4]byte{0x3c, 0x05, 0xbe, 0x89}: "tracks",
 	[4]byte{0x4d, 0x15, 0x1c, 0xf1}: "vote",
-	[4]byte{0x7b, 0x5a, 0x66, 0xef}: "vote_unlock_statuses",
 	[4]byte{0x34, 0x0f, 0x2c, 0xf4}: "votes",
 	[4]byte{0xfe, 0xad, 0xee, 0x12}: "votes_of_user",
 }

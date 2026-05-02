@@ -61,13 +61,7 @@ func (d GovMutation) Leave() error {
 		return ErrMemberNotExisted
 	}
 
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-
-	// 余额或锁定金额不为零时不能离开
-	if member.Int.Cmp(big.NewInt(0)) > 0 || lock.Int.Cmp(big.NewInt(0)) > 0 {
+	if member.Int.Cmp(big.NewInt(0)) > 0 {
 		return ErrMemberBalanceNotZero
 	}
 	return d.removeMember(caller)
@@ -120,26 +114,17 @@ func (d Gov) deleteMemberAndBurn(account model.UniAddr, requireGov bool) error {
 		return ErrMemberNotExisted
 	}
 
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), account, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-
-	amount := model.AmountAdd(*member, lock)
 	total, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
 	if err != nil {
 		return err
 	}
 
-	if err := d.totalIssuance.Set(d.api.GetTxn(), model.AmountSub(total, amount)); err != nil {
+	if err := d.totalIssuance.Set(d.api.GetTxn(), model.AmountSub(total, *member)); err != nil {
 		return err
 	}
 	return d.removeMember(account)
 }
 
 func (d Gov) removeMember(account model.UniAddr) error {
-	if err := d.members.Delete(d.api.GetTxn(), account); err != nil {
-		return err
-	}
-	return d.memberLocks.Delete(d.api.GetTxn(), account)
+	return d.members.Delete(d.api.GetTxn(), account)
 }

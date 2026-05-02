@@ -12,20 +12,7 @@ func (d GovQuery) TotalSupply() (model.Amount, error) {
 }
 
 func (d GovQuery) BalanceOf(owner model.UniAddr) (model.Amount, error) {
-	member, err := d.members.GetOrDefault(d.api.GetTxn(), owner, model.ZeroAmount)
-	if err != nil {
-		return model.ZeroAmount, err
-	}
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), owner, model.ZeroAmount)
-	if err != nil {
-		return model.ZeroAmount, err
-	}
-
-	return model.AmountSub(member, lock), nil
-}
-
-func (d GovQuery) LockBalanceOf(owner model.UniAddr) (model.Amount, error) {
-	return d.memberLocks.GetOrDefault(d.api.GetTxn(), owner, model.ZeroAmount)
+	return d.members.GetOrDefault(d.api.GetTxn(), owner, model.ZeroAmount)
 }
 
 func (d GovMutation) Transfer(to model.UniAddr, value model.Amount) error {
@@ -75,13 +62,7 @@ func (d GovMutation) transfer(from, to model.UniAddr, value model.Amount) error 
 		return ErrMemberNotExisted
 	}
 
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), from, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-
-	free := model.AmountSub(sender, lock)
-	if free.Int.Cmp(value.Int) < 0 {
+	if sender.Int.Cmp(value.Int) < 0 {
 		return ErrLowBalance
 	}
 

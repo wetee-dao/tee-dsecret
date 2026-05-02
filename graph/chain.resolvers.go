@@ -6,8 +6,6 @@ package graph
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -38,8 +36,7 @@ func (r *queryResolver) ChainInfo(ctx context.Context) ([]*model.ChainInfo, erro
 	chainEnv := util.GetEnv("CHAIN_ENV", "local")
 	chainConfig := model.GetChainConfig(chainEnv)
 	if chainConfig == nil {
-		fmt.Println("Invalid chain environment:", chainEnv)
-		os.Exit(1)
+		return nil, gqlerror.Errorf("%s", "ChainInfo is nil")
 	}
 
 	return []*model.ChainInfo{
@@ -47,6 +44,7 @@ func (r *queryResolver) ChainInfo(ctx context.Context) ([]*model.ChainInfo, erro
 			IsMain:         true,
 			CloudContract:  chainConfig.CloudAddress,
 			SubnetContract: chainConfig.SubnetAddress,
+			NetworkLabel:   chainConfig.NetworkLabel,
 		},
 	}, nil
 }

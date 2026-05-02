@@ -100,12 +100,11 @@ type Vote struct {
 	Index       uint32        // 投票索引
 	ProposalID  uint32        // 提案ID
 	Caller      model.UniAddr // 投票人地址
-	Pledge      model.Amount  // 质押金额
+	Pledge      model.Amount  // 本笔投入的 VOTE 数量：投票时销毁，取消时按此额退回并恢复 totalIssuance（计票权重）
 	OpinionYes  bool          // 是否赞成
 	VoteWeight  model.Amount  // 投票权重
-	UnlockBlock int64         // 解锁区块
 	VoteBlock   int64         // 投票时的区块号
-	Deleted     bool          // 是否已删除
+	Deleted     bool          // 是否已删除；取消投票时先退还本笔 Pledge 对应 VOTE 并恢复 totalIssuance，再移出计票
 }
 
 // Spend 支出记录
@@ -123,11 +122,4 @@ type Spend struct {
 type VoteRef struct {
 	ProposalID uint32 // 提案ID
 	VoteIndex  uint32 // 投票索引
-}
-
-// VoteUnlockStatus 投票解锁状态
-type VoteUnlockStatus struct {
-	ProposalID uint32 // 提案ID
-	VoteIndex  uint32 // 投票索引
-	Unlocked   bool   // 是否已解锁
 }

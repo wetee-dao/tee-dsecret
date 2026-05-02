@@ -58,16 +58,6 @@ func TestGovQuery_BalanceOf_Success(t *testing.T) {
 	require.Equal(t, 0, balance.Int.Cmp(big.NewInt(100)))
 }
 
-func TestGovQuery_LockBalanceOf_NotMember(t *testing.T) {
-	rt, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	q := GovQuery{Gov: *NewGov(rt)}
-	lock, err := q.LockBalanceOf(addr([]byte{1}))
-	require.NoError(t, err)
-	require.Equal(t, 0, lock.Int.Sign())
-}
-
 func TestGovMutation_Transfer_Disabled(t *testing.T) {
 	rt, cleanup := setupTestDB(t)
 	defer cleanup()

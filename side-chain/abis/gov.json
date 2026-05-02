@@ -23,7 +23,7 @@
         "displayName": [
           "Balance"
         ],
-        "type": 55
+        "type": 50
       },
       "blockNumber": {
         "displayName": [
@@ -35,7 +35,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 56
+        "type": 51
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -213,43 +213,6 @@
           },
           {
             "docs": [],
-            "label": "index",
-            "type": {
-              "displayName": [
-                "u32"
-              ],
-              "type": 2
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "unlock",
-        "mutates": true,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "ink",
-            "MessageResult"
-          ],
-          "type": 11
-        },
-        "selector": "0x2ab81dd1"
-      },
-      {
-        "args": [
-          {
-            "docs": [],
-            "label": "proposal_i_d",
-            "type": {
-              "displayName": [
-                "u32"
-              ],
-              "type": 2
-            }
-          },
-          {
-            "docs": [],
             "label": "start_key",
             "type": {
               "displayName": [
@@ -278,7 +241,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 54
+          "type": 49
         },
         "selector": "0x340f2cf4"
       },
@@ -311,32 +274,6 @@
           "type": 44
         },
         "selector": "0x3c05be89"
-      },
-      {
-        "args": [
-          {
-            "docs": [],
-            "label": "owner",
-            "type": {
-              "displayName": [
-                "UniAddr"
-              ],
-              "type": 13
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "lock_balance_of",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "Result"
-          ],
-          "type": 21
-        },
-        "selector": "0x3cd4966d"
       },
       {
         "args": [
@@ -530,32 +467,6 @@
           "type": 33
         },
         "selector": "0x799fe2dd"
-      },
-      {
-        "args": [
-          {
-            "docs": [],
-            "label": "keys",
-            "type": {
-              "displayName": [
-                "Vec"
-              ],
-              "type": 49
-            }
-          }
-        ],
-        "default": false,
-        "docs": [],
-        "label": "vote_unlock_statuses",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "Result"
-          ],
-          "type": 52
-        },
-        "selector": "0x7b5a66ef"
       },
       {
         "args": [
@@ -1072,7 +983,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 54
+          "type": 49
         },
         "selector": "0xfeadee12"
       }
@@ -1238,82 +1149,72 @@
               {
                 "fields": [],
                 "index": 9,
-                "name": "InvalidVoteUnlockTime"
-              },
-              {
-                "fields": [],
-                "index": 10,
                 "name": "InvalidVoteUser"
               },
               {
                 "fields": [],
-                "index": 11,
+                "index": 10,
                 "name": "LowBalance"
               },
               {
                 "fields": [],
-                "index": 12,
+                "index": 11,
                 "name": "MemberBalanceNotZero"
               },
               {
                 "fields": [],
-                "index": 13,
+                "index": 12,
                 "name": "MemberExisted"
               },
               {
                 "fields": [],
-                "index": 14,
+                "index": 13,
                 "name": "MemberNotExisted"
               },
               {
                 "fields": [],
-                "index": 15,
+                "index": 14,
                 "name": "MustCallByGov"
               },
               {
                 "fields": [],
-                "index": 16,
+                "index": 15,
                 "name": "NoTrack"
               },
               {
                 "fields": [],
-                "index": 17,
+                "index": 16,
                 "name": "PropNotOngoing"
               },
               {
                 "fields": [],
-                "index": 18,
+                "index": 17,
                 "name": "ProposalInDecision"
               },
               {
                 "fields": [],
-                "index": 19,
+                "index": 18,
                 "name": "ProposalNotConfirmed"
               },
               {
                 "fields": [],
-                "index": 20,
+                "index": 19,
                 "name": "PublicJoinNotAllowed"
               },
               {
                 "fields": [],
-                "index": 21,
+                "index": 20,
                 "name": "SpendAlreadyExecuted"
               },
               {
                 "fields": [],
-                "index": 22,
+                "index": 21,
                 "name": "SpendNotFound"
               },
               {
                 "fields": [],
-                "index": 23,
+                "index": 22,
                 "name": "TransferDisabled"
-              },
-              {
-                "fields": [],
-                "index": 24,
-                "name": "VoteAlreadyUnlocked"
               }
             ]
           }
@@ -2416,10 +2317,6 @@
                 "type": 8
               },
               {
-                "name": "UnlockBlock",
-                "type": 4
-              },
-              {
                 "name": "VoteBlock",
                 "type": 4
               },
@@ -2514,21 +2411,18 @@
       "id": 48,
       "type": {
         "def": {
-          "composite": {
-            "fields": [
-              {
-                "name": "ProposalID",
-                "type": 2
-              },
-              {
-                "name": "VoteIndex",
-                "type": 2
-              }
-            ]
+          "sequence": {
+            "type": 45
           }
         },
+        "params": [
+          {
+            "name": "T",
+            "type": 45
+          }
+        ],
         "path": [
-          "VoteRef"
+          "Vec"
         ]
       }
     },
@@ -2536,171 +2430,46 @@
       "id": 49,
       "type": {
         "def": {
-          "sequence": {
-            "type": 48
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 48
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
           }
         },
         "params": [
           {
             "name": "T",
             "type": 48
+          },
+          {
+            "name": "E",
+            "type": 9
           }
         ],
         "path": [
-          "Vec"
+          "Result"
         ]
       }
     },
     {
       "id": 50,
-      "type": {
-        "def": {
-          "composite": {
-            "fields": [
-              {
-                "name": "ProposalID",
-                "type": 2
-              },
-              {
-                "name": "VoteIndex",
-                "type": 2
-              },
-              {
-                "name": "Unlocked",
-                "type": 6
-              }
-            ]
-          }
-        },
-        "path": [
-          "VoteUnlockStatus"
-        ]
-      }
-    },
-    {
-      "id": 51,
-      "type": {
-        "def": {
-          "sequence": {
-            "type": 50
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 50
-          }
-        ],
-        "path": [
-          "Vec"
-        ]
-      }
-    },
-    {
-      "id": 52,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 51
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 9
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 51
-          },
-          {
-            "name": "E",
-            "type": 9
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 53,
-      "type": {
-        "def": {
-          "sequence": {
-            "type": 45
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 45
-          }
-        ],
-        "path": [
-          "Vec"
-        ]
-      }
-    },
-    {
-      "id": 54,
-      "type": {
-        "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 53
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 9
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
-        },
-        "params": [
-          {
-            "name": "T",
-            "type": 53
-          },
-          {
-            "name": "E",
-            "type": 9
-          }
-        ],
-        "path": [
-          "Result"
-        ]
-      }
-    },
-    {
-      "id": 55,
       "type": {
         "def": {
           "primitive": "u128"
@@ -2711,7 +2480,7 @@
       }
     },
     {
-      "id": 56,
+      "id": 51,
       "type": {
         "def": {
           "composite": {

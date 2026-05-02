@@ -2,7 +2,6 @@ package gov
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 
 	"github.com/wetee-dao/ink.go/util"
@@ -58,28 +57,55 @@ func (d GovQuery) Votes(proposalID uint32, startKey util.Option[uint32], size ui
 	return votes, nil
 }
 
-// VoteUnlockStatuses 批量获取投票解锁状态
-// keys: 投票标识数组，每个元素包含 proposalID 和 VoteIndex
-func (d GovQuery) VoteUnlockStatuses(keys []VoteRef) ([]VoteUnlockStatus, error) {
-	result := make([]VoteUnlockStatus, len(keys))
-	for i, key := range keys {
-		unlockKey := voteUnlockKey(key.ProposalID, key.VoteIndex)
-		unlocked, err := d.voteUnlocks.GetOrDefault(d.api.GetTxn(), unlockKey, false)
-		if err != nil {
-			return nil, err
-		}
-
-		fmt.Println("key.ProposalID, key.VoteIndex, unlocked", key.ProposalID, " ", key.VoteIndex, " ", unlocked)
-		result[i] = VoteUnlockStatus{
-			ProposalID: key.ProposalID,
-			VoteIndex:  key.VoteIndex,
-			Unlocked:   unlocked,
-		}
+// burnVoteForProposal 投票：从账户销毁 VOTE，并同步减少 totalIssuance（与 Mint 对称）。
+func (d GovMutation) burnVoteForProposal(account model.UniAddr, amount model.Amount) error {
+	if amount.Int.Sign() <= 0 {
+		return ErrLowBalance
 	}
-	return result, nil
+	member, err := d.members.GetOrDefault(d.api.GetTxn(), account, model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	if member.Int.Cmp(amount.Int) < 0 {
+		return ErrLowBalance
+	}
+	member = model.AmountSub(member, amount)
+	total, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	if total.Int.Cmp(amount.Int) < 0 {
+		return ErrLowBalance
+	}
+	total = model.AmountSub(total, amount)
+	if err := d.members.Set(d.api.GetTxn(), account, member); err != nil {
+		return err
+	}
+	return d.totalIssuance.Set(d.api.GetTxn(), total)
 }
 
-// SubmitVote 提交投票
+// refundVoteForCancel 取消投票：向账户退回本票对应的 VOTE，并恢复 totalIssuance（冲销投票时的销毁）。
+func (d GovMutation) refundVoteForCancel(account model.UniAddr, amount model.Amount) error {
+	if amount.Int.Sign() <= 0 {
+		return nil
+	}
+	member, err := d.members.GetOrDefault(d.api.GetTxn(), account, model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	member = model.AmountAdd(member, amount)
+	total, err := d.totalIssuance.GetOrDefault(d.api.GetTxn(), model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	total = model.AmountAdd(total, amount)
+	if err := d.members.Set(d.api.GetTxn(), account, member); err != nil {
+		return err
+	}
+	return d.totalIssuance.Set(d.api.GetTxn(), total)
+}
+
+// SubmitVote 提交投票：销毁 lockAmount 数量的治理代币作为本票权重（ABI 参数名保持 lockAmount）。
 func (d GovMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount model.Amount) error {
 	height := d.api.GetHeight()
 	caller := d.api.GetCaller()
@@ -107,45 +133,34 @@ func (d GovMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount m
 		return ErrInvalidVoteTime
 	}
 
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-	free := model.AmountSub(member, lock)
-	if free.Int.Cmp(lockAmount.Int) < 0 {
+	if member.Int.Cmp(lockAmount.Int) < 0 {
 		return ErrLowBalance
 	}
 
-	unlockAfter := int64(track.MinEnactmentPeriod)
+	if err := d.burnVoteForProposal(caller, lockAmount); err != nil {
+		return err
+	}
 
 	one := big.NewInt(1)
 	vote := Vote{
-		ProposalID:  proposalID,
-		Caller:      caller,
-		Pledge:      lockAmount,
-		OpinionYes:  opinionYes,
-		VoteWeight:  model.Amount{Int: one},
-		UnlockBlock: unlockAfter,
-		VoteBlock:   height,
+		ProposalID: proposalID,
+		Caller:     caller,
+		Pledge:     lockAmount,
+		OpinionYes: opinionYes,
+		VoteWeight: model.Amount{Int: one},
+		VoteBlock:  height,
 	}
 
-	// 使用 StoreList2D.Insert 插入投票
 	index, err := d.votes.Insert(d.api.GetTxn(), proposalID, vote)
 	if err != nil {
 		return err
 	}
 
-	// 更新投票的 Index 字段
 	vote.Index = index
 	if err := d.votes.Update(d.api.GetTxn(), proposalID, index, vote); err != nil {
 		return err
 	}
 
-	if err := d.memberLocks.Set(d.api.GetTxn(), caller, model.AmountAdd(lock, lockAmount)); err != nil {
-		return err
-	}
-
-	// 记录用户投票引用，方便用户查询自己的投票
 	if _, err := d.votesOfUser.Insert(d.api.GetTxn(), caller, VoteRef{
 		ProposalID: proposalID,
 		VoteIndex:  index,
@@ -156,12 +171,15 @@ func (d GovMutation) SubmitVote(proposalID uint32, opinionYes bool, lockAmount m
 	return nil
 }
 
-// CancelVote 取消投票
+// CancelVote 取消投票（提案 Ongoing）：退还本票 Pledge 的 VOTE、恢复 totalIssuance，并标记 Deleted。
 func (d GovMutation) CancelVote(proposalID uint32, index uint32) error {
 	caller := d.api.GetCaller()
 	vote, err := d.vote(proposalID, index)
 	if err != nil {
 		return err
+	}
+	if vote.Deleted {
+		return ErrInvalidVoteStatus
 	}
 	if !bytes.Equal(vote.Caller.V, caller.V) {
 		return ErrInvalidVoteUser
@@ -173,77 +191,13 @@ func (d GovMutation) CancelVote(proposalID uint32, index uint32) error {
 	if prop.Status.State != ProposalStatusOngoing {
 		return ErrPropNotOngoing
 	}
+
+	if err := d.refundVoteForCancel(caller, vote.Pledge); err != nil {
+		return err
+	}
+
 	vote.Deleted = true
-
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-	if lock.Int.Cmp(vote.Pledge.Int) < 0 {
-		return ErrLowBalance
-	}
-
-	if err := d.memberLocks.Set(d.api.GetTxn(), caller, model.AmountSub(lock, vote.Pledge)); err != nil {
-		return err
-	}
-
 	return d.votes.Update(d.api.GetTxn(), proposalID, index, vote)
-}
-
-// Unlock 解锁投票
-func (d GovMutation) Unlock(proposalID uint32, index uint32) error {
-	height := d.api.GetHeight()
-	caller := d.api.GetCaller()
-
-	// 使用组合 key (proposalID, index) 检查解锁状态
-	unlockKey := voteUnlockKey(proposalID, index)
-	unlocked, err := d.voteUnlocks.GetOrDefault(d.api.GetTxn(), unlockKey, false)
-	if err != nil {
-		return err
-	}
-	if unlocked {
-		return ErrVoteAlreadyUnlocked
-	}
-
-	vote, err := d.vote(proposalID, index)
-	if err != nil {
-		return err
-	}
-	if vote.Deleted {
-		return ErrInvalidVoteStatus
-	}
-	if !bytes.Equal(vote.Caller.V, caller.V) {
-		return ErrInvalidVoteUser
-	}
-
-	prop, err := d.proposal(proposalID)
-	if err != nil {
-		return ErrInvalidDeposit
-	}
-
-	track, err := d.track(prop.TrackID)
-	if err != nil {
-		return ErrNoTrack
-	}
-
-	end := prop.Deposit.Block + int64(track.MaxDeciding) + int64(track.MinEnactmentPeriod)
-	if height < end {
-		return ErrInvalidVoteUnlockTime
-	}
-
-	lock, err := d.memberLocks.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
-	if err != nil {
-		return err
-	}
-	if lock.Int.Cmp(vote.Pledge.Int) < 0 {
-		return ErrLowBalance
-	}
-
-	if err := d.memberLocks.Set(d.api.GetTxn(), caller, model.AmountSub(lock, vote.Pledge)); err != nil {
-		return err
-	}
-
-	return d.voteUnlocks.Set(d.api.GetTxn(), unlockKey, true)
 }
 
 // calculateProposalStatus 计算提案状态
@@ -453,9 +407,4 @@ func (d Gov) calculateProposalStatus(id uint32, prop Proposal) (ProposalStatusQu
 		ConfirmedNumber:    uint32(confirmed),
 		LastConfirmedBlock: lastAchieveBlock,
 	}, nil
-}
-
-// voteUnlockKey 生成投票解锁状态的 key
-func voteUnlockKey(proposalID uint32, index uint32) uint64 {
-	return uint64(proposalID)<<32 | uint64(index)
 }
