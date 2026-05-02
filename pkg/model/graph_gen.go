@@ -2,6 +2,14 @@
 
 package model
 
+type ChainInfo struct {
+	IsMain         bool     `json:"is_main"`
+	Code           string   `json:"code"`
+	Token          []string `json:"token"`
+	CloudContract  string   `json:"cloud_contract"`
+	SubnetContract string   `json:"subnet_contract"`
+}
+
 // 环境变量
 // Environments
 type Kvalue struct {

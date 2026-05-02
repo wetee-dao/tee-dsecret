@@ -6,10 +6,13 @@ package graph
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 )
 
 // StartEpoch is the resolver for the start_epoch field.
@@ -28,6 +31,24 @@ func (r *mutationResolver) StartEpoch(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// ChainInfo is the resolver for the chain_info field.
+func (r *queryResolver) ChainInfo(ctx context.Context) ([]*model.ChainInfo, error) {
+	chainEnv := util.GetEnv("CHAIN_ENV", "local")
+	chainConfig := model.GetChainConfig(chainEnv)
+	if chainConfig == nil {
+		fmt.Println("Invalid chain environment:", chainEnv)
+		os.Exit(1)
+	}
+
+	return []*model.ChainInfo{
+		{
+			IsMain:         true,
+			CloudContract:  chainConfig.CloudAddress,
+			SubnetContract: chainConfig.SubnetAddress,
+		},
+	}, nil
 }
 
 // Validators is the resolver for the validators field.

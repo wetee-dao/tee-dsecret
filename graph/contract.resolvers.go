@@ -13,58 +13,9 @@ import (
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
+	"github.com/wetee-dao/tee-dsecret/pkg/util"
 	"github.com/wetee-dao/tee-dsecret/side-chain/contracts"
 )
-
-// Faucet is the resolver for the faucet field.
-func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType int) (bool, error) {
-	callerBytes, err := DecodeCaller(caller)
-	if err != nil {
-		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
-	}
-
-	var to model.UniAddr = model.UniAddr{
-		V: callerBytes,
-		T: uint32(callerType),
-	}
-	tobt, _ := codec.Encode(to)
-	var value model.Amount = types.NewU256(*big.NewInt(100000000))
-	valuebt, _ := codec.Encode(value)
-
-	// 创建合同调用
-	argBytes := [][]byte{tobt, valuebt}
-	contract := "gov"
-	method := model.MethodToSelectorBytes("Mint")
-	call := &model.ContractCall{
-		Name:   []byte(contract),
-		Method: method,
-		Args:   argBytes,
-	}
-
-	// 获取 DKG Signer
-	dkg := sideChain.GetDKG()
-	if dkg == nil || dkg.DkgPubKey == nil {
-		return false, gqlerror.Errorf("DKG not initialized")
-	}
-
-	signer := dkg.Signer.ToSigner()
-	sysCall := &model.SysCall{
-		Payload: &model.SysCall_Contract{
-			Contract: call,
-		},
-	}
-
-	signature, err := signer.Sign(sysCall.BytesForSig())
-	if err != nil {
-		return false, gqlerror.Errorf("Sign: %v", err)
-	}
-
-	if err := SubmitContractCall(signer.PublicKey, 0, contract, model.MethodToSelector("Mint"), argBytes, signature); err != nil {
-		return false, gqlerror.Errorf("SubmitTx: %v", err)
-	}
-
-	return true, err
-}
 
 // SystemContractInit is the resolver for the systemContractInit field.
 func (r *mutationResolver) SystemContractInit(ctx context.Context, contract string) (bool, error) {
@@ -112,6 +63,60 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 	}
 
 	return true, nil
+}
+
+// Faucet is the resolver for the faucet field.
+func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType int) (bool, error) {
+	if util.GetEnv("CHAIN_ENV", "local") == "main" {
+		return false, gqlerror.Errorf("Faucet is disabled on main environment")
+	}
+
+	callerBytes, err := DecodeCaller(caller)
+	if err != nil {
+		return false, gqlerror.Errorf("ContractCall DecodeCaller: %v", err)
+	}
+
+	var to model.UniAddr = model.UniAddr{
+		V: callerBytes,
+		T: uint32(callerType),
+	}
+	tobt, _ := codec.Encode(to)
+	var value model.Amount = types.NewU256(*big.NewInt(100000000))
+	valuebt, _ := codec.Encode(value)
+
+	// 创建合同调用
+	argBytes := [][]byte{tobt, valuebt}
+	contract := "gov"
+	method := model.MethodToSelectorBytes("Mint")
+	call := &model.ContractCall{
+		Name:   []byte(contract),
+		Method: method,
+		Args:   argBytes,
+	}
+
+	// 获取 DKG Signer
+	dkg := sideChain.GetDKG()
+	if dkg == nil || dkg.DkgPubKey == nil {
+		return false, gqlerror.Errorf("DKG not initialized")
+	}
+
+	signer := dkg.Signer.ToSigner()
+	sysCall := &model.SysCall{
+		Payload: &model.SysCall_Contract{
+			Contract: call,
+		},
+	}
+
+	signature, err := signer.Sign(sysCall.BytesForSig())
+	if err != nil {
+		return false, gqlerror.Errorf("Sign: %v", err)
+	}
+
+	if err := SubmitContractCall(signer.PublicKey, 0, contract, model.MethodToSelector("Mint"), argBytes, signature); err != nil {
+		return false, gqlerror.Errorf("SubmitTx: %v", err)
+	}
+
+	return true, err
 }
 
 // ContractCall is the resolver for the contractCall field.

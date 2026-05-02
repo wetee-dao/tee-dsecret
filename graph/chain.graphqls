@@ -1,4 +1,11 @@
+type ChainInfo {
+  is_main: Boolean!
+  cloud_contract: String!
+  subnet_contract: String!
+}
+
 extend type Query {
+  chain_info: [ChainInfo!]!
   validators: [String!]!
 }
 
