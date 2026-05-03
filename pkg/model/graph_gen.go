@@ -8,10 +8,6 @@ type ChainInfo struct {
 	SubnetContract string `json:"subnet_contract"`
 	// 展示用网络名称（如 Paseo / Polkadot）
 	NetworkLabel string `json:"network_label"`
-	// 为 true 时国库代币由前端通过 @polkadot/api（rpc_ws）查询；为 false 时由前端自行选用 Subscan 等数据源
-	IsPolkadot bool `json:"is_polkadot"`
-	// 与 @polkadot/api 连接的 WebSocket/HTTP RPC（与链配置首个节点地址一致）
-	RPCWs string `json:"rpc_ws"`
 }
 
 // 环境变量

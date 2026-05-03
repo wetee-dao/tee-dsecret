@@ -8,7 +8,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
 cd $DIR
-cp ./contract_cache/cloud.json ../pkg/chains/revives/
+cp ./contract_cache/cloud.json ../pkg/chains/revive/
 
-cd $DIR/../pkg/chains/revives/
+cd $DIR/../pkg/chains/revive/
 go-ink-gen -json cloud.json

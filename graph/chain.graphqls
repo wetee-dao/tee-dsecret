@@ -4,8 +4,6 @@ type ChainInfo {
   subnet_contract: String!
   """展示用网络名称（如 Paseo / Polkadot）"""
   network_label: String!
-  """Subscan Open API 根地址，如 https://assethub-paseo.api.subscan.io"""
-  subscan_api_base: String!
 }
 
 extend type Query {

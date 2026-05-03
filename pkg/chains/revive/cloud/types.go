@@ -9,24 +9,32 @@ import (
 )
 
 type Error struct { // Enum
-	SetCodeFailed          *bool // 0
-	MustCallByGovContract  *bool // 1
-	WorkerLevelNotEnough   *bool // 2
-	RegionNotMatch         *bool // 3
-	WorkerNotOnline        *bool // 4
-	NotPodOwner            *bool // 5
-	PodKeyNotExist         *bool // 6
-	PodStatusError         *bool // 7
-	InvalidSideChainCaller *bool // 8
-	DelFailed              *bool // 9
-	NotFound               *bool // 10
-	PodNotFound            *bool // 11
-	WorkerIdNotFound       *bool // 12
-	WorkerNotFound         *bool // 13
-	LevelPriceNotFound     *bool // 14
-	AssetNotFound          *bool // 15
-	BalanceNotEnough       *bool // 16
-	PayFailed              *bool // 17
+	SetCodeFailed              *bool // 0
+	MustCallByGovContract      *bool // 1
+	WorkerLevelNotEnough       *bool // 2
+	RegionNotMatch             *bool // 3
+	WorkerNotOnline            *bool // 4
+	NotPodOwner                *bool // 5
+	PodKeyNotExist             *bool // 6
+	PodStatusError             *bool // 7
+	InvalidSideChainCaller     *bool // 8
+	DelFailed                  *bool // 9
+	NotFound                   *bool // 10
+	PodNotFound                *bool // 11
+	PodCodeNotFound            *bool // 12
+	WorkerIdNotFound           *bool // 13
+	WorkerNotFound             *bool // 14
+	LevelPriceNotFound         *bool // 15
+	AssetNotFound              *bool // 16
+	BalanceNotEnough           *bool // 17
+	PayFailed                  *bool // 18
+	PodInstantiateFailed       *bool // 19
+	ArbitrationNotFound        *bool // 20
+	ArbitrationAlreadyResolved *bool // 21
+	WorkerMortgageCheckFailed  *bool // 22
+	InvalidFeeRate             *bool // 23
+	InsufficientPrepayment     *bool // 24
+	PodAlreadySettled          *bool // 25
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -126,7 +134,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerIdNotFound != nil {
+	if ty.PodCodeNotFound != nil {
 		err = encoder.PushByte(12)
 		if err != nil {
 			return err
@@ -134,7 +142,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerNotFound != nil {
+	if ty.WorkerIdNotFound != nil {
 		err = encoder.PushByte(13)
 		if err != nil {
 			return err
@@ -142,7 +150,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.LevelPriceNotFound != nil {
+	if ty.WorkerNotFound != nil {
 		err = encoder.PushByte(14)
 		if err != nil {
 			return err
@@ -150,7 +158,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.AssetNotFound != nil {
+	if ty.LevelPriceNotFound != nil {
 		err = encoder.PushByte(15)
 		if err != nil {
 			return err
@@ -158,7 +166,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.BalanceNotEnough != nil {
+	if ty.AssetNotFound != nil {
 		err = encoder.PushByte(16)
 		if err != nil {
 			return err
@@ -166,8 +174,72 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.PayFailed != nil {
+	if ty.BalanceNotEnough != nil {
 		err = encoder.PushByte(17)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.PayFailed != nil {
+		err = encoder.PushByte(18)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.PodInstantiateFailed != nil {
+		err = encoder.PushByte(19)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.ArbitrationNotFound != nil {
+		err = encoder.PushByte(20)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.ArbitrationAlreadyResolved != nil {
+		err = encoder.PushByte(21)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.WorkerMortgageCheckFailed != nil {
+		err = encoder.PushByte(22)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.InvalidFeeRate != nil {
+		err = encoder.PushByte(23)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.InsufficientPrepayment != nil {
+		err = encoder.PushByte(24)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.PodAlreadySettled != nil {
+		err = encoder.PushByte(25)
 		if err != nil {
 			return err
 		}
@@ -232,27 +304,59 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		return
 	case 12: // Base
 		t := true
-		ty.WorkerIdNotFound = &t
+		ty.PodCodeNotFound = &t
 		return
 	case 13: // Base
 		t := true
-		ty.WorkerNotFound = &t
+		ty.WorkerIdNotFound = &t
 		return
 	case 14: // Base
 		t := true
-		ty.LevelPriceNotFound = &t
+		ty.WorkerNotFound = &t
 		return
 	case 15: // Base
 		t := true
-		ty.AssetNotFound = &t
+		ty.LevelPriceNotFound = &t
 		return
 	case 16: // Base
 		t := true
-		ty.BalanceNotEnough = &t
+		ty.AssetNotFound = &t
 		return
 	case 17: // Base
 		t := true
+		ty.BalanceNotEnough = &t
+		return
+	case 18: // Base
+		t := true
 		ty.PayFailed = &t
+		return
+	case 19: // Base
+		t := true
+		ty.PodInstantiateFailed = &t
+		return
+	case 20: // Base
+		t := true
+		ty.ArbitrationNotFound = &t
+		return
+	case 21: // Base
+		t := true
+		ty.ArbitrationAlreadyResolved = &t
+		return
+	case 22: // Base
+		t := true
+		ty.WorkerMortgageCheckFailed = &t
+		return
+	case 23: // Base
+		t := true
+		ty.InvalidFeeRate = &t
+		return
+	case 24: // Base
+		t := true
+		ty.InsufficientPrepayment = &t
+		return
+	case 25: // Base
+		t := true
+		ty.PodAlreadySettled = &t
 		return
 	default:
 		return fmt.Errorf("unrecognized enum")
@@ -307,6 +411,10 @@ func (ty *Error) Error() string {
 		return "PodNotFound"
 	}
 
+	if ty.PodCodeNotFound != nil {
+		return "PodCodeNotFound"
+	}
+
 	if ty.WorkerIdNotFound != nil {
 		return "WorkerIdNotFound"
 	}
@@ -329,6 +437,34 @@ func (ty *Error) Error() string {
 
 	if ty.PayFailed != nil {
 		return "PayFailed"
+	}
+
+	if ty.PodInstantiateFailed != nil {
+		return "PodInstantiateFailed"
+	}
+
+	if ty.ArbitrationNotFound != nil {
+		return "ArbitrationNotFound"
+	}
+
+	if ty.ArbitrationAlreadyResolved != nil {
+		return "ArbitrationAlreadyResolved"
+	}
+
+	if ty.WorkerMortgageCheckFailed != nil {
+		return "WorkerMortgageCheckFailed"
+	}
+
+	if ty.InvalidFeeRate != nil {
+		return "InvalidFeeRate"
+	}
+
+	if ty.InsufficientPrepayment != nil {
+		return "InsufficientPrepayment"
+	}
+
+	if ty.PodAlreadySettled != nil {
+		return "PodAlreadySettled"
 	}
 	return "Unknown"
 }
@@ -510,14 +646,18 @@ func (ty *TEEType) Decode(decoder scale.Decoder) (err error) {
 }
 
 type Pod struct { // Composite
-	Name       []byte
-	Owner      types.H160
-	PodAddress types.H160
-	Ptype      PodType
-	StartBlock uint32
-	TeeType    TEEType
-	Level      byte
-	PayAssetId uint32
+	Name          []byte
+	Owner         types.H160
+	PodAddress    types.H160
+	Ptype         PodType
+	StartBlock    uint32
+	TeeType       TEEType
+	Level         byte
+	PayAssetId    uint32
+	PrepaidAmount types.U256
+	EndBlock      uint32
+	IsSettled     bool
+	SettledAmount types.U256
 }
 type Command struct { // Enum
 	SH   *[]byte // 0
@@ -897,17 +1037,17 @@ type Container struct { // Composite
 	Gpu     uint32
 	Env     []Env
 }
-type Tuple_34 struct { // Tuple
+type Tuple_36 struct { // Tuple
 	F0 uint64
 	F1 Container
 }
-type Tuple_36 struct { // Tuple
+type Tuple_38 struct { // Tuple
 	F0 uint64
 	F1 Pod
-	F2 []Tuple_34
+	F2 []Tuple_36
 	F3 byte
 }
-type Tuple_39 struct { // Tuple
+type Tuple_41 struct { // Tuple
 	F0 uint64
 	F1 uint32
 	F2 uint32
@@ -918,7 +1058,7 @@ type Secret struct { // Composite
 	Hash   types.H256
 	Minted bool
 }
-type Tuple_44 struct { // Tuple
+type Tuple_45 struct { // Tuple
 	F0 uint64
 	F1 Secret
 }
@@ -991,7 +1131,7 @@ func (ty *Disk) Decode(decoder scale.Decoder) (err error) {
 	}
 }
 
-type Tuple_55 struct { // Tuple
+type Tuple_56 struct { // Tuple
 	F0 uint64
 	F1 Disk
 }
@@ -1000,7 +1140,7 @@ type Ip struct { // Composite
 	Ipv6   util.Option[types.U128]
 	Domain util.Option[[]byte]
 }
-type K8sCluster struct { // Composite
+type K8sClusterInfo struct { // Composite
 	Name          []byte
 	Owner         types.H160
 	Level         byte
@@ -1008,14 +1148,13 @@ type K8sCluster struct { // Composite
 	StartBlock    uint32
 	StopBlock     util.Option[uint32]
 	TerminalBlock util.Option[uint32]
-	P2pId         util.AccountId
 	Ip            Ip
 	Port          uint32
 	Status        byte
 }
 type Tuple_66 struct { // Tuple
 	F0 uint64
-	F1 K8sCluster
+	F1 K8sClusterInfo
 	F2 []byte
 }
 type Tuple_71 struct { // Tuple
@@ -1034,9 +1173,81 @@ type Tuple_74 struct { // Tuple
 	F4 uint32
 	F5 byte
 }
-type Tuple_77 struct { // Tuple
+type ArbitrationStatus struct { // Enum
+	Pending  *bool // 0
+	Approved *bool // 1
+	Rejected *bool // 2
+}
+
+func (ty ArbitrationStatus) Encode(encoder scale.Encoder) (err error) {
+	if ty.Pending != nil {
+		err = encoder.PushByte(0)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.Approved != nil {
+		err = encoder.PushByte(1)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if ty.Rejected != nil {
+		err = encoder.PushByte(2)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return fmt.Errorf("unrecognized enum")
+}
+
+func (ty *ArbitrationStatus) Decode(decoder scale.Decoder) (err error) {
+	variant, err := decoder.ReadOneByte()
+	if err != nil {
+		return err
+	}
+	switch variant {
+	case 0: // Base
+		t := true
+		ty.Pending = &t
+		return
+	case 1: // Base
+		t := true
+		ty.Approved = &t
+		return
+	case 2: // Base
+		t := true
+		ty.Rejected = &t
+		return
+	default:
+		return fmt.Errorf("unrecognized enum")
+	}
+}
+
+type Arbitration struct { // Composite
+	Id           uint64
+	PodId        uint64
+	WorkerId     uint64
+	Claimant     types.H160
+	Amount       types.U256
+	Reason       []byte
+	Status       ArbitrationStatus
+	ResultAmount types.U256
+	CreatedAt    uint32
+	ResolvedAt   util.Option[uint32]
+}
+type Tuple_81 struct { // Tuple
+	F0 uint64
+	F1 Arbitration
+}
+type Tuple_84 struct { // Tuple
 	F0 Pod
-	F1 []Tuple_34
+	F1 []Tuple_36
 	F2 uint32
 	F3 byte
 }

@@ -51,9 +51,7 @@ type ComplexityRoot struct {
 	ChainInfo struct {
 		CloudContract  func(childComplexity int) int
 		IsMain         func(childComplexity int) int
-		IsPolkadot     func(childComplexity int) int
 		NetworkLabel   func(childComplexity int) int
-		RPCWs          func(childComplexity int) int
 		SubnetContract func(childComplexity int) int
 	}
 
@@ -139,26 +137,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ChainInfo.IsMain(childComplexity), true
 
-	case "ChainInfo.is_polkadot":
-		if e.complexity.ChainInfo.IsPolkadot == nil {
-			break
-		}
-
-		return e.complexity.ChainInfo.IsPolkadot(childComplexity), true
-
 	case "ChainInfo.network_label":
 		if e.complexity.ChainInfo.NetworkLabel == nil {
 			break
 		}
 
 		return e.complexity.ChainInfo.NetworkLabel(childComplexity), true
-
-	case "ChainInfo.rpc_ws":
-		if e.complexity.ChainInfo.RPCWs == nil {
-			break
-		}
-
-		return e.complexity.ChainInfo.RPCWs(childComplexity), true
 
 	case "ChainInfo.subnet_contract":
 		if e.complexity.ChainInfo.SubnetContract == nil {
@@ -1371,94 +1355,6 @@ func (ec *executionContext) fieldContext_ChainInfo_network_label(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ChainInfo_is_polkadot(ctx context.Context, field graphql.CollectedField, obj *model.ChainInfo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ChainInfo_is_polkadot(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.IsPolkadot, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ChainInfo_is_polkadot(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChainInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ChainInfo_rpc_ws(ctx context.Context, field graphql.CollectedField, obj *model.ChainInfo) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ChainInfo_rpc_ws(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.RPCWs, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ChainInfo_rpc_ws(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ChainInfo",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _LenValue_k(ctx context.Context, field graphql.CollectedField, obj *model.LenValue) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_LenValue_k(ctx, field)
 	if err != nil {
@@ -1913,10 +1809,6 @@ func (ec *executionContext) fieldContext_Query_chain_info(_ context.Context, fie
 				return ec.fieldContext_ChainInfo_subnet_contract(ctx, field)
 			case "network_label":
 				return ec.fieldContext_ChainInfo_network_label(ctx, field)
-			case "is_polkadot":
-				return ec.fieldContext_ChainInfo_is_polkadot(ctx, field)
-			case "rpc_ws":
-				return ec.fieldContext_ChainInfo_rpc_ws(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChainInfo", field.Name)
 		},
@@ -4468,16 +4360,6 @@ func (ec *executionContext) _ChainInfo(ctx context.Context, sel ast.SelectionSet
 			}
 		case "network_label":
 			out.Values[i] = ec._ChainInfo_network_label(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "is_polkadot":
-			out.Values[i] = ec._ChainInfo_is_polkadot(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "rpc_ws":
-			out.Values[i] = ec._ChainInfo_rpc_ws(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
