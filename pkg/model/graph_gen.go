@@ -6,8 +6,12 @@ type ChainInfo struct {
 	IsMain         bool   `json:"is_main"`
 	CloudContract  string `json:"cloud_contract"`
 	SubnetContract string `json:"subnet_contract"`
+	// 链类型（如 local / test / main）
+	ChainType string `json:"chain_type"`
 	// 展示用网络名称（如 Paseo / Polkadot）
 	NetworkLabel string `json:"network_label"`
+	// 链节点 URL 列表
+	Urls []string `json:"urls"`
 }
 
 // 环境变量

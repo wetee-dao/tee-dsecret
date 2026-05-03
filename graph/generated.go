@@ -49,10 +49,12 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	ChainInfo struct {
+		ChainType      func(childComplexity int) int
 		CloudContract  func(childComplexity int) int
 		IsMain         func(childComplexity int) int
 		NetworkLabel   func(childComplexity int) int
 		SubnetContract func(childComplexity int) int
+		Urls           func(childComplexity int) int
 	}
 
 	LenValue struct {
@@ -123,6 +125,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	_ = ec
 	switch typeName + "." + field {
 
+	case "ChainInfo.chain_type":
+		if e.complexity.ChainInfo.ChainType == nil {
+			break
+		}
+
+		return e.complexity.ChainInfo.ChainType(childComplexity), true
+
 	case "ChainInfo.cloud_contract":
 		if e.complexity.ChainInfo.CloudContract == nil {
 			break
@@ -150,6 +159,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ChainInfo.SubnetContract(childComplexity), true
+
+	case "ChainInfo.urls":
+		if e.complexity.ChainInfo.Urls == nil {
+			break
+		}
+
+		return e.complexity.ChainInfo.Urls(childComplexity), true
 
 	case "LenValue.k":
 		if e.complexity.LenValue.K == nil {
@@ -1311,6 +1327,50 @@ func (ec *executionContext) fieldContext_ChainInfo_subnet_contract(_ context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _ChainInfo_chain_type(ctx context.Context, field graphql.CollectedField, obj *model.ChainInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChainInfo_chain_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ChainType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChainInfo_chain_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChainInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ChainInfo_network_label(ctx context.Context, field graphql.CollectedField, obj *model.ChainInfo) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ChainInfo_network_label(ctx, field)
 	if err != nil {
@@ -1343,6 +1403,50 @@ func (ec *executionContext) _ChainInfo_network_label(ctx context.Context, field 
 }
 
 func (ec *executionContext) fieldContext_ChainInfo_network_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ChainInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ChainInfo_urls(ctx context.Context, field graphql.CollectedField, obj *model.ChainInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ChainInfo_urls(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Urls, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ChainInfo_urls(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ChainInfo",
 		Field:      field,
@@ -1807,8 +1911,12 @@ func (ec *executionContext) fieldContext_Query_chain_info(_ context.Context, fie
 				return ec.fieldContext_ChainInfo_cloud_contract(ctx, field)
 			case "subnet_contract":
 				return ec.fieldContext_ChainInfo_subnet_contract(ctx, field)
+			case "chain_type":
+				return ec.fieldContext_ChainInfo_chain_type(ctx, field)
 			case "network_label":
 				return ec.fieldContext_ChainInfo_network_label(ctx, field)
+			case "urls":
+				return ec.fieldContext_ChainInfo_urls(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ChainInfo", field.Name)
 		},
@@ -4358,8 +4466,18 @@ func (ec *executionContext) _ChainInfo(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "chain_type":
+			out.Values[i] = ec._ChainInfo_chain_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "network_label":
 			out.Values[i] = ec._ChainInfo_network_label(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "urls":
+			out.Values[i] = ec._ChainInfo_urls(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
