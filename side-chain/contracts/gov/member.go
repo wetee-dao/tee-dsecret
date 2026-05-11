@@ -80,6 +80,9 @@ func (d Gov) addMember(account model.UniAddr, balance model.Amount) error {
 	if len(account.V) == 0 {
 		return ErrMemberNotExisted
 	}
+	if balance.Int.Sign() < 0 {
+		return ErrLowBalance
+	}
 	member, err := d.members.Get(d.api.GetTxn(), account)
 	if err != nil {
 		return err

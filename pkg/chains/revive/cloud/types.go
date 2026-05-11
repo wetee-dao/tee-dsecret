@@ -11,9 +11,9 @@ import (
 type Error struct { // Enum
 	SetCodeFailed              *bool // 0
 	MustCallByGovContract      *bool // 1
-	WorkerLevelNotEnough       *bool // 2
-	RegionNotMatch             *bool // 3
-	WorkerNotOnline            *bool // 4
+	WorkerNotOnline            *bool // 2
+	WorkerLevelNotEnough       *bool // 3
+	RegionNotMatch             *bool // 4
 	NotPodOwner                *bool // 5
 	PodKeyNotExist             *bool // 6
 	PodStatusError             *bool // 7
@@ -35,6 +35,7 @@ type Error struct { // Enum
 	InvalidFeeRate             *bool // 23
 	InsufficientPrepayment     *bool // 24
 	PodAlreadySettled          *bool // 25
+	CallFailed                 *bool // 26
 }
 
 func (ty Error) Encode(encoder scale.Encoder) (err error) {
@@ -54,7 +55,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerLevelNotEnough != nil {
+	if ty.WorkerNotOnline != nil {
 		err = encoder.PushByte(2)
 		if err != nil {
 			return err
@@ -62,7 +63,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.RegionNotMatch != nil {
+	if ty.WorkerLevelNotEnough != nil {
 		err = encoder.PushByte(3)
 		if err != nil {
 			return err
@@ -70,7 +71,7 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		return nil
 	}
 
-	if ty.WorkerNotOnline != nil {
+	if ty.RegionNotMatch != nil {
 		err = encoder.PushByte(4)
 		if err != nil {
 			return err
@@ -245,6 +246,14 @@ func (ty Error) Encode(encoder scale.Encoder) (err error) {
 		}
 		return nil
 	}
+
+	if ty.CallFailed != nil {
+		err = encoder.PushByte(26)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return fmt.Errorf("unrecognized enum")
 }
 
@@ -264,15 +273,15 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		return
 	case 2: // Base
 		t := true
-		ty.WorkerLevelNotEnough = &t
+		ty.WorkerNotOnline = &t
 		return
 	case 3: // Base
 		t := true
-		ty.RegionNotMatch = &t
+		ty.WorkerLevelNotEnough = &t
 		return
 	case 4: // Base
 		t := true
-		ty.WorkerNotOnline = &t
+		ty.RegionNotMatch = &t
 		return
 	case 5: // Base
 		t := true
@@ -358,6 +367,10 @@ func (ty *Error) Decode(decoder scale.Decoder) (err error) {
 		t := true
 		ty.PodAlreadySettled = &t
 		return
+	case 26: // Base
+		t := true
+		ty.CallFailed = &t
+		return
 	default:
 		return fmt.Errorf("unrecognized enum")
 	}
@@ -371,16 +384,16 @@ func (ty *Error) Error() string {
 		return "MustCallByGovContract"
 	}
 
+	if ty.WorkerNotOnline != nil {
+		return "WorkerNotOnline"
+	}
+
 	if ty.WorkerLevelNotEnough != nil {
 		return "WorkerLevelNotEnough"
 	}
 
 	if ty.RegionNotMatch != nil {
 		return "RegionNotMatch"
-	}
-
-	if ty.WorkerNotOnline != nil {
-		return "WorkerNotOnline"
 	}
 
 	if ty.NotPodOwner != nil {
@@ -465,6 +478,10 @@ func (ty *Error) Error() string {
 
 	if ty.PodAlreadySettled != nil {
 		return "PodAlreadySettled"
+	}
+
+	if ty.CallFailed != nil {
+		return "CallFailed"
 	}
 	return "Unknown"
 }
@@ -890,7 +907,7 @@ type ContainerDisk struct { // Composite
 	Id   uint64
 	Path []byte
 }
-type Env struct { // Enum
+type PodEnv struct { // Enum
 	Env *struct { // 0
 		F0 []byte
 		F1 []byte
@@ -905,7 +922,7 @@ type Env struct { // Enum
 	}
 }
 
-func (ty Env) Encode(encoder scale.Encoder) (err error) {
+func (ty PodEnv) Encode(encoder scale.Encoder) (err error) {
 	if ty.Env != nil {
 		err = encoder.PushByte(0)
 		if err != nil {
@@ -965,7 +982,7 @@ func (ty Env) Encode(encoder scale.Encoder) (err error) {
 	return fmt.Errorf("unrecognized enum")
 }
 
-func (ty *Env) Decode(decoder scale.Decoder) (err error) {
+func (ty *PodEnv) Decode(decoder scale.Decoder) (err error) {
 	variant, err := decoder.ReadOneByte()
 	if err != nil {
 		return err
@@ -1035,7 +1052,7 @@ type Container struct { // Composite
 	Mem     uint32
 	Disk    []ContainerDisk
 	Gpu     uint32
-	Env     []Env
+	Env     []PodEnv
 }
 type Tuple_36 struct { // Tuple
 	F0 uint64

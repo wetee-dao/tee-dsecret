@@ -3,6 +3,7 @@ package dkg
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -44,6 +45,14 @@ type DKG struct {
 	deals     map[string]*model.DealBundle
 	responses map[string]*pedersen.ResponseBundle
 	justifs   []*pedersen.JustificationBundle
+	mu        sync.RWMutex
+
+	// RandomPool holds pre-generated independent random shares for DSS signing.
+	RandomPool *RandomSharePool
+
+	// randomDkgStates tracks in-flight random DKG sessions (randomIndex -> state).
+	randomDkgStates map[uint32]*randomDkgState
+	randomDkgMu     sync.Mutex
 
 	// mainChan is the channel to receive out message
 	mainChain *model.PersistChan[*model.DkgMessage]
@@ -97,12 +106,19 @@ func NewDKG(
 		return nil, fmt.Errorf("create dkg persist chan: %w", err)
 	}
 
+	// Initialize random share pool.
+	dkg.RandomPool = NewRandomSharePool(NodeSecret, DefaultRandomSharePoolCapacity)
+
 	return dkg, nil
 }
 
 // out dkg event Handler
 func (dkg *DKG) DkgOutHandler(data any) error {
-	dkg.mainChain.Push(data.(*model.DkgMessage))
+	msg, ok := data.(*model.DkgMessage)
+	if !ok {
+		return errors.New("invalid dkg message type")
+	}
+	dkg.mainChain.Push(msg)
 	return nil
 }
 
@@ -120,20 +136,37 @@ func (dkg *DKG) Stop() {
 
 // Get conected node number
 func (dkg *DKG) AvailableNodeLen() int {
-	var len int = 1
+	dkg.mu.RLock()
+	defer dkg.mu.RUnlock()
+	var count int = 1
 	peers := dkg.Peer.AvailableNodes()
 	for _, p := range peers {
 		for _, node := range dkg.Nodes {
 			if p.String() == node.P2pId.String() {
-				len = len + 1
+				count = count + 1
 			}
 		}
 	}
-	return len
+	return count
 }
 
-func (d *DKG) Share() model.DistKeyShare {
-	return *d.DkgKeyShare
+func (d *DKG) Share() (*model.DistKeyShare, error) {
+	if d.DkgKeyShare == nil {
+		return nil, errors.New("DKG key share is nil")
+	}
+	return d.DkgKeyShare, nil
+}
+
+func (d *DKG) GetDkgKeyShare() *model.DistKeyShare {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.DkgKeyShare
+}
+
+func (d *DKG) GetDkgPubKey() *model.PubKey {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.DkgPubKey
 }
 
 // // Get validator id

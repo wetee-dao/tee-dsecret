@@ -52,7 +52,11 @@ func (r *mutationResolver) SystemContractInit(ctx context.Context, contract stri
 		},
 	}
 
-	signature, err := signer.Sign(sysCall.BytesForSig())
+	sigBytes, err := sysCall.BytesForSig()
+	if err != nil {
+		return false, gqlerror.Errorf("BytesForSig: %v", err)
+	}
+	signature, err := signer.Sign(sigBytes)
 	if err != nil {
 		return false, gqlerror.Errorf("Sign: %v", err)
 	}
@@ -107,7 +111,11 @@ func (r *mutationResolver) Faucet(ctx context.Context, caller string, callerType
 		},
 	}
 
-	signature, err := signer.Sign(sysCall.BytesForSig())
+	sigBytes, err := sysCall.BytesForSig()
+	if err != nil {
+		return false, gqlerror.Errorf("BytesForSig: %v", err)
+	}
+	signature, err := signer.Sign(sigBytes)
 	if err != nil {
 		return false, gqlerror.Errorf("Sign: %v", err)
 	}

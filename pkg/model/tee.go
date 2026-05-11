@@ -48,6 +48,8 @@ func IssueReport(pk *chain.Signer, call *TeeCall) error {
 		return SgxIssue(pk, call)
 	case 1:
 		return SnpIssue(pk, call)
+	case 2:
+		return errors.New("TDX report issue is not yet implemented")
 	default:
 		timestamp := time.Now().Unix()
 		call.Time = timestamp
@@ -68,6 +70,8 @@ func VerifyReport(reportData *TeeCall) (*TeeVerifyResult, error) {
 		}
 	case 1:
 		return SnpVerify(reportData)
+	case 2:
+		return nil, errors.New("TDX report verify is not yet implemented")
 	case 9999:
 		return &TeeVerifyResult{}, nil
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/wetee-dao/tee-dsecret/pkg/chains"
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
 	"github.com/wetee-dao/tee-dsecret/pkg/model/protoio"
 )
@@ -30,19 +31,23 @@ func (app *SideChain) checkTx(txbt []byte) uint32 {
 			return CodeInvalidNode
 		}
 
-		// keys := app.p2p.AllNodes()
-		// isIn := false
-		// for _, key := range keys {
-		// 	if bytes.Equal(txbox.Caller, key.Byte()) {
-		// 		isIn = true
-		// 		break
-		// 	}
-		// }
+		keys, err := chains.MainChain.GetValidatorList()
+		if err != nil {
+			fmt.Println("invalid node: get validator list error", err)
+			return CodeInvalidNode
+		}
+		isIn := false
+		for _, key := range keys {
+			if bytes.Equal(txbox.Caller, key.ValidatorId.Byte()) {
+				isIn = true
+				break
+			}
+		}
 
-		// if !isIn {
-		// 	fmt.Println("invalid node2")
-		// 	return CodeInvalidNode
-		// }
+		if !isIn {
+			fmt.Println("invalid node2")
+			return CodeInvalidNode
+		}
 	}
 
 	return CodeTypeOK

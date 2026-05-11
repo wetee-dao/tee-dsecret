@@ -153,6 +153,19 @@ func (d GovMutation) DepositProposal(proposalID uint32, amount model.Amount) err
 		return ErrInvalidDeposit
 	}
 
+	// Deduct deposit from caller balance
+	callerBalance, err := d.members.GetOrDefault(d.api.GetTxn(), caller, model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	if callerBalance.Int.Cmp(amount.Int) < 0 {
+		return ErrLowBalance
+	}
+	callerBalance = model.AmountSub(callerBalance, amount)
+	if err := d.members.Set(d.api.GetTxn(), caller, callerBalance); err != nil {
+		return err
+	}
+
 	prop.Deposit = ProposalDeposit{Depositor: caller, Amount: amount, Block: height}
 	prop.Status = ProposalStatus{State: ProposalStatusOngoing}
 	return d.proposals.Update(d.api.GetTxn(), proposalID, prop)

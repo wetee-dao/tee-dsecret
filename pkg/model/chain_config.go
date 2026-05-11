@@ -19,8 +19,8 @@ var LocalChainConfig = ChainConfigType{
 var TestChainConfig = ChainConfigType{
 	ChainType:     "polkadot",
 	Urls:          []string{"wss://sys.turboflakes.io/asset-hub-paseo", "wss://asset-hub-paseo-rpc.n.dwellir.com"},
-	SubnetAddress: "0x4ec58c127786d767fdd968ced12f30be5f9a4bac",
-	CloudAddress:  "0x239a33348e8a698cee4eb06af3780dee2ea227e3",
+	SubnetAddress: "0x442f45995ed1bc0793e45f1affc464bf8bdfda45",
+	CloudAddress:  "0x6a581b4db56bb9865a494cbc3c164b301c0b7809",
 	NetworkLabel:  "Paseo (Asset Hub)",
 }
 

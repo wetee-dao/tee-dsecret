@@ -66,7 +66,7 @@ func TransToContainer(rc cloud.Tuple_72) model.Container {
 		Mem:     c.Mem,
 		Disk:    model.CopyWithJSON[[]cloud.ContainerDisk, []model.ContainerDisk](c.Disk),
 		Gpu:     c.Gpu,
-		Env:     model.CopyWithJSON[[]cloud.Env, []model.Env](c.Env),
+		Env:     model.CopyWithJSON[[]cloud.PodEnv, []model.Env](c.Env),
 	}
 
 	for i := 0; i < len(contariner.Disk); i++ {

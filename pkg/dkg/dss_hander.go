@@ -35,6 +35,10 @@ func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
 
 	client := chains.MainChain.GetClient()
 
+	if dkg.NewDkgPubKey == nil {
+		util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "NewDkgPubKey is nil")
+		return
+	}
 	h160 := dkg.NewDkgPubKey.H160()
 	_, isSome, err := revive.GetOriginalAccountLatest(client.Api().RPC.State, h160)
 	if err != nil {
@@ -46,19 +50,26 @@ func (dkg *DKG) SendNewEpochPartialSigToSponsor() {
 	// at first epoch account must call MapAccount
 	if !isSome {
 		runtimeCall := revive.MakeMapAccountCall()
-		call, _ := (runtimeCall).AsCall()
-		signer := NewDssSigner(dkg)
+		call, err := (runtimeCall).AsCall()
+		if err != nil {
+			util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "AsCall error:"+err.Error())
+			return
+		}
+		signer := NewDssSigner(dkg, 0)
 
-		var err error
 		sig, err = client.PartialSign(signer, call)
 		if err != nil {
 			util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "MapAccount PartialSign error:"+err.Error())
 			return
 		}
 	} else {
-		signer := NewDssSigner(dkg)
+		signer := NewDssSigner(dkg, 0)
 		call, err := chains.MainChain.TxCallOfSetNextEpoch(dkg.NewEpochSponsor.NodeID, signer.AccountID())
 		util.LogWithPurple("DKG SendNewEpochPartialSigToSponsor", "side chain key", dkg.NewDkgPubKey.SS58(), dkg.NewDkgPubKey.H160().Hex())
+		if err != nil {
+			util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "TxCallOfSetNextEpoch error:"+err.Error())
+			return
+		}
 		if err != nil {
 			util.LogWithRed("DKG SendNewEpochPartialSigToSponsor", "MainChain.TxCallOfSetNextEpoch error:"+err.Error())
 			return
@@ -134,8 +145,12 @@ func (dkg *DKG) RevPartialSig(OrgId string, data []byte) error {
 		util.LogWithGreen("SendNewEpochPartialSigToSponsor mapAccount", dkg.DkgPubKey.SS58())
 
 		runtimeCall := revive.MakeMapAccountCall()
-		call, _ := (runtimeCall).AsCall()
-		err := client.SignAndSubmit(&signer, call, false, 0)
+		call, err := (runtimeCall).AsCall()
+		if err != nil {
+			dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor AsCall error:" + err.Error()))
+			return errors.New("AsCall error:" + err.Error())
+		}
+		err = client.SignAndSubmit(&signer, call, false, 0)
 		if err != nil {
 			dkg.consensusFailBack(errors.New("SendNewEpochPartialSigToSponsor side chain key MapAccount error:" + err.Error()))
 			return errors.New("side chain key MapAccount error:" + err.Error())

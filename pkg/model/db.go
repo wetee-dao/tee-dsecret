@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cockroachdb/pebble"
@@ -149,10 +150,11 @@ func GetJsonList[T any](namespace, key string) ([]*T, [][]byte, error) {
 
 		val := new(T)
 		err = json.Unmarshal(value, val)
-		if err == nil {
-			keys = append(keys, iter.Key())
-			list = append(list, val)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unmarshal db entry: %w", err)
 		}
+		keys = append(keys, iter.Key())
+		list = append(list, val)
 	}
 
 	return list, keys, nil
@@ -167,7 +169,8 @@ func keyUpperBound(b []byte) []byte {
 			return end[:i+1]
 		}
 	}
-	return nil
+	// all bytes are 0xFF; return a byte slice that is larger than any prefix
+	return append(b, 0x00)
 }
 
 func GetProtoMessageList[T any](namespace, key string) ([]*T, [][]byte, error) {

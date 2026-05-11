@@ -118,10 +118,14 @@ func (app *SideChain) newEpochSucceded(signer *dkg.DssSigner, nodeId uint64) {
 	}
 
 	// submit new epoch to main chain
-	call, _ := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer.AccountID())
+	call, err := chains.MainChain.TxCallOfSetNextEpoch(nodeId, signer.AccountID())
+	if err != nil {
+		util.LogWithRed("NewEpoch TxCallOfSetNextEpoch", err.Error())
+		return
+	}
 
 	client := chains.MainChain.GetClient()
-	err := client.SignAndSubmit(signer, *call, false, 0)
+	err = client.SignAndSubmit(signer, *call, false, 0)
 	if err != nil {
 		util.LogWithRed("NewEpoch client.SignAndSubmit", err.Error())
 	}
@@ -156,7 +160,9 @@ func (app *SideChain) GetEpoch() uint32 {
 
 	bytesBuffer := bytes.NewBuffer(bt)
 	var x uint32
-	binary.Read(bytesBuffer, binary.BigEndian, &x)
+	if err := binary.Read(bytesBuffer, binary.BigEndian, &x); err != nil {
+		return 0
+	}
 
 	return x
 }

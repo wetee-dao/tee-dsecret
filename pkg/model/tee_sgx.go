@@ -50,9 +50,11 @@ func SgxIssue(pk *chain.Signer, call *TeeCall) error {
 
 // sgx verify
 func SgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
-	payload := reportData.Tx
-	msgBytes := make([]byte, payload.Size())
-	payload.MarshalTo(msgBytes)
+	var msgBytes []byte
+	if reportData.Tx != nil {
+		msgBytes = make([]byte, reportData.Tx.Size())
+		reportData.Tx.MarshalTo(msgBytes)
+	}
 	reportBytes, timestamp := reportData.Report, reportData.Time
 
 	report, err := enclave.VerifyRemoteReport(reportBytes)
@@ -88,9 +90,11 @@ func SgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
 
 // client sgx verify
 func ClientSgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
-	payload := reportData.Tx
-	msgBytes := make([]byte, payload.Size())
-	payload.MarshalTo(msgBytes)
+	var msgBytes []byte
+	if reportData.Tx != nil {
+		msgBytes = make([]byte, reportData.Tx.Size())
+		reportData.Tx.MarshalTo(msgBytes)
+	}
 	var reportBytes, timestamp = reportData.Report, reportData.Time
 
 	// decode address
@@ -104,7 +108,13 @@ func ClientSgxVerify(reportData *TeeCall) (*TeeVerifyResult, error) {
 		return nil, errors.New("call sgx-verify errors" + err.Error())
 	}
 	outs := strings.Split(string(output), "⊂⊂⊂⊂")
+	if len(outs) < 2 {
+		return nil, errors.New("sgx-verify output format invalid: missing first delimiter")
+	}
 	datas := strings.Split(outs[1], "∐∐∐∐")
+	if len(datas) < 2 {
+		return nil, errors.New("sgx-verify output format invalid: missing second delimiter")
+	}
 	report := &attestation.Report{}
 	err = json.Unmarshal([]byte(datas[1]), report)
 	if err != nil {

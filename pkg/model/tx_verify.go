@@ -57,11 +57,19 @@ func VerifyTxSigner(tx *Tx) (*SysCall, error) {
 func SideSysCallVerify(caller []byte, callerType uint32, call *SysCall, signature []byte) error {
 	switch callerType {
 	case 0: // node ed25519
-		if !Ed25519SignVerify(caller, call.BytesForSig(), signature) {
+		sigBytes, err := call.BytesForSig()
+		if err != nil {
+			return errors.Wrap(err, "marshal syscall for sig")
+		}
+		if !Ed25519SignVerify(caller, sigBytes, signature) {
 			return errors.New("invalid signature")
 		}
 	case 1: // polkadot sign sr25519 side contract
-		if err := SideContractPolkadotVerify(caller, call.BytesForSig(), signature); err != nil {
+		sigBytes, err := call.BytesForSig()
+		if err != nil {
+			return errors.Wrap(err, "marshal syscall for sig")
+		}
+		if err := SideContractPolkadotVerify(caller, sigBytes, signature); err != nil {
 			return errors.Wrap(err, "contract")
 		}
 	default:
@@ -84,8 +92,7 @@ func SideContractPolkadotVerify(caller []byte, call []byte, signature []byte) er
 	// 解析公钥
 	pubkey, err := sr25519.Scheme{}.FromPublicKey(caller)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return fmt.Errorf("invalid sr25519 public key: %w", err)
 	}
 
 	// 验证签名

@@ -80,7 +80,9 @@ func (app *SideChain) InitChain(_ context.Context, req *abci.RequestInitChain) (
 	appHash := app.state.Hash()
 
 	// This parameter can also be set in the genesis file
-	req.ConsensusParams.Abci.VoteExtensionsEnableHeight = 1
+	if req.ConsensusParams != nil && req.ConsensusParams.Abci != nil {
+		req.ConsensusParams.Abci.VoteExtensionsEnableHeight = 1
+	}
 	return &abci.ResponseInitChain{ConsensusParams: req.ConsensusParams, AppHash: appHash}, nil
 }
 
@@ -167,6 +169,9 @@ func (app *SideChain) Commit(_ context.Context, _ *abci.RequestCommit) (*abci.Re
 	defer func() {
 		app.onGoingBlock = nil
 	}()
+	if app.onGoingBlock == nil {
+		return nil, fmt.Errorf("no ongoing block to commit")
+	}
 	if err := app.onGoingBlock.Commit(); err != nil {
 		return nil, err
 	}

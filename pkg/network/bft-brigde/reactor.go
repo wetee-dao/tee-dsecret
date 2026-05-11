@@ -139,6 +139,7 @@ func (r *BTFReactor) Receive(e p2p.Envelope) {
 		pub, err := r.GetPubkeyFromPeerID(e.Src.ID())
 		if err != nil {
 			util.LogWithRed("P2P PubkeyFromPeerID", "Receive unknown node", e.Src.ID())
+			return
 		}
 
 		msg.From = pub.String()

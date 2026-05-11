@@ -403,7 +403,7 @@ func (ty *Error) Error() string {
 
 type EpochInfo struct { // Composite
 	Epoch          uint32
-	EpochSolt      uint32
+	EpochSlot      uint32
 	LastEpochBlock uint32
 	Now            uint32
 	SideChainPub   types.H160

@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -17,10 +18,14 @@ import (
 
 // PreRecerve is the channel to receive DecryptShares
 var preRecerve map[uint64]chan *model.DecryptSharesResp = make(map[uint64]chan *model.DecryptSharesResp)
+var preRecerveMu sync.RWMutex
 
 // Recive msg from p2p
 func (s *SideChain) revSecret(m any) error {
-	mbox := m.(*model.SecretBox)
+	mbox, ok := m.(*model.SecretBox)
+	if !ok {
+		return fmt.Errorf("invalid secret box type")
+	}
 	switch msg := mbox.Payload.(type) {
 	case *model.SecretBox_Req:
 		return s.HandleReencryptReq(msg.Req, mbox.From)
@@ -45,7 +50,9 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 	}
 
 	// 初始化重新加密回复
+	preRecerveMu.Lock()
 	preRecerve[req.Id] = make(chan *model.DecryptSharesResp, len(validators))
+	preRecerveMu.Unlock()
 
 	// send decrypt secret request to all nodes
 	dshares := make([]*model.DecryptSharesResp, 0, threshold)
@@ -62,17 +69,44 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 	}
 
 	// 收集至少达到阈值数量的节点响应
+	var timeoutErr error
 	for range threshold {
+		preRecerveMu.RLock()
+		ch, ok := preRecerve[req.Id]
+		preRecerveMu.RUnlock()
+		if !ok {
+			return nil, fmt.Errorf("preRecerve channel not found for req %d", req.Id)
+		}
 		select {
-		case d := <-preRecerve[req.Id]:
+		case d := <-ch:
 			if d.Error != nil {
-				return nil, fmt.Errorf("%s", "HandleDecryptSecret error: "+string(d.Error))
+				timeoutErr = fmt.Errorf("%s", "HandleDecryptSecret error: "+string(d.Error))
+				break
 			}
 			dshares = append(dshares, d)
 		case <-time.After(30 * time.Second):
 			util.LogError("BroadcastDecryptSecret", "Timeout receiving from channel")
-			return nil, fmt.Errorf("timeout receiving from channel")
+			timeoutErr = fmt.Errorf("timeout receiving from channel")
+			break
 		}
+	}
+	// drain remaining messages and clean up channel to avoid goroutine leaks
+	preRecerveMu.Lock()
+	ch := preRecerve[req.Id]
+	delete(preRecerve, req.Id)
+	preRecerveMu.Unlock()
+	if ch != nil {
+		for {
+			select {
+			case <-ch:
+			default:
+				goto drained
+			}
+		}
+	drained:
+	}
+	if timeoutErr != nil {
+		return nil, timeoutErr
 	}
 
 	nameSpace := types.H160(req.NameSpace)
@@ -171,13 +205,22 @@ func (s *SideChain) BroadcastReencryptReq(req *model.PodStart) (*model.DecryptRe
 // HandleDecryptSecret 处理解密请求
 func (s *SideChain) HandleReencryptReq(req *model.PodStart, from string) error {
 	dkg := s.dkg
+	if dkg == nil {
+		return fmt.Errorf("dkg is nil")
+	}
 
 	// 获取重新加密所需的公钥和密文
 	clientPubKey := model.PubKeyFromByte(req.PubKey)
+	if clientPubKey == nil {
+		return fmt.Errorf("client pubkey is nil")
+	}
 	// 获取命名空间
 	nameSpace := types.H160(req.NameSpace)
 	// 获取本节点的份额，并进行重新加密操作
-	dkgShare := dkg.Share()
+	dkgShare, err := dkg.Share()
+	if err != nil {
+		return fmt.Errorf("get dkg share: %w", err)
+	}
 
 	// 重加密所有 secret
 	secrets, err := s.GetSecrets(nameSpace, req.Secrets)
@@ -186,7 +229,7 @@ func (s *SideChain) HandleReencryptReq(req *model.PodStart, from string) error {
 	}
 	secretShares := make(map[uint64]*model.DecryptShare)
 	for index, secret := range secrets {
-		reply, err := proxy_reenc.Reencrypt(dkgShare, secret, *clientPubKey)
+		reply, err := proxy_reenc.Reencrypt(*dkgShare, secret, *clientPubKey)
 		if err != nil {
 			return fmt.Errorf("reencrypt: %w", err)
 		}
@@ -208,7 +251,7 @@ func (s *SideChain) HandleReencryptReq(req *model.PodStart, from string) error {
 	}
 	diskShares := make(map[uint64]*model.DecryptShare)
 	for index, disKey := range disKeys {
-		reply, err := proxy_reenc.Reencrypt(dkgShare, disKey, *clientPubKey)
+		reply, err := proxy_reenc.Reencrypt(*dkgShare, disKey, *clientPubKey)
 		if err != nil {
 			return fmt.Errorf("reencrypt: %w", err)
 		}
@@ -265,6 +308,9 @@ func (s *SideChain) VerifyReencryptResp(shares *model.DecryptSharesResp) error {
 	nameSpace := types.H160(req.NameSpace)
 	// 解析客户端的公钥
 	clientPubKey := model.PubKeyFromByte(req.PubKey)
+	if clientPubKey == nil {
+		return fmt.Errorf("client pubkey is nil")
+	}
 
 	// 验证所有的重新加密回复
 	secrets, err := s.GetSecrets(nameSpace, req.Secrets)
@@ -282,8 +328,7 @@ func (s *SideChain) VerifyReencryptResp(shares *model.DecryptSharesResp) error {
 		err = proxy_reenc.Verify(poly, secret, *clientPubKey, reply)
 		if err != nil {
 			shares.Error = []byte("Verify error")
-			preRecerve[req.Id] <- shares
-			return fmt.Errorf("VerifyDecryptSecret secret proxy_reenc.Verify: %s", err)
+			return s.sendReencryptResp(req.Id, shares)
 		}
 	}
 
@@ -302,11 +347,27 @@ func (s *SideChain) VerifyReencryptResp(shares *model.DecryptSharesResp) error {
 		err = proxy_reenc.Verify(poly, secret, *clientPubKey, reply)
 		if err != nil {
 			shares.Error = []byte("Verify error")
-			preRecerve[req.Id] <- shares
-			return fmt.Errorf("VerifyDecryptSecret disk proxy_reenc.Verify: %s", err)
+			return s.sendReencryptResp(req.Id, shares)
 		}
 	}
 
-	preRecerve[req.Id] <- shares
-	return nil
+	return s.sendReencryptResp(req.Id, shares)
+}
+
+// sendReencryptResp sends the reencrypt response to the preRecerve channel
+// without blocking if the channel has been removed or is full.
+func (s *SideChain) sendReencryptResp(id uint64, shares *model.DecryptSharesResp) error {
+	preRecerveMu.RLock()
+	ch, ok := preRecerve[id]
+	preRecerveMu.RUnlock()
+	if !ok {
+		return nil // channel already cleaned up
+	}
+	select {
+	case ch <- shares:
+		return nil
+	default:
+		// channel is full or no longer being read
+		return nil
+	}
 }

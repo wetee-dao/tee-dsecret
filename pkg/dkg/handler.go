@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -16,9 +17,12 @@ func (dkg *DKG) handleDkg(msg *model.DkgMessage) error {
 	switch msg.Type {
 	case "consensus":
 		consensusMsg := model.ConsensusMsg{}
-		json.Unmarshal(msg.Payload, &consensusMsg)
+		err := json.Unmarshal(msg.Payload, &consensusMsg)
+		if err != nil {
+			return fmt.Errorf("unmarshal consensus msg: %w", err)
+		}
 		// 开始共识
-		err := dkg.startConsensus(consensusMsg)
+		err = dkg.startConsensus(consensusMsg)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<< ERROR", "HandleDeal:", err)
 		}
@@ -41,6 +45,18 @@ func (dkg *DKG) handleDkg(msg *model.DkgMessage) error {
 		err := dkg.handleDealResp(msg.From, msg.Payload)
 		if err != nil {
 			util.LogError("DEAL <<<<<<<<<<<<<<<< ERROR", "HandleDealResp:", err)
+		}
+		return err
+	case "random_deal_batch":
+		err := dkg.handleRandomDealBatch(msg.From, msg.Payload)
+		if err != nil {
+			util.LogError("RandomDKG", "handleRandomDealBatch error:", err)
+		}
+		return err
+	case "random_deal_resp_batch":
+		err := dkg.handleRandomDealRespBatch(msg.From, msg.Payload)
+		if err != nil {
+			util.LogError("RandomDKG", "handleRandomDealRespBatch error:", err)
 		}
 		return err
 	// case "justification":
@@ -173,7 +189,10 @@ func (dkg *DKG) handleDkg(msg *model.DkgMessage) error {
 // Handle pub msg data save
 func (r *DKG) handleSecretSave() {
 	r.Peer.Sub("secret", func(msgWrap any) error {
-		msg := msgWrap.(*model.DkgMessage)
+		msg, ok := msgWrap.(*model.DkgMessage)
+		if !ok {
+			return errors.New("invalid message type")
+		}
 		// 解析消息
 		var datas []model.Kvs
 		err := json.Unmarshal(msg.Payload, &datas)

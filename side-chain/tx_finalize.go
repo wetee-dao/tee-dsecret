@@ -58,7 +58,10 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 			if err != nil {
 				return nil, err
 			}
-			// 所有节点在处理 SyncTxEnd 时统一清理 SysCall_index_ 储存
+			// TODO: deleteTxIndexStore currently runs outside the block transaction.
+			// If FinalizeBlock rolls back, the tx_index store is already deleted,
+			// leaving state inconsistent. It should be performed through `txn`
+			// so it is atomic with the block.
 			deleteTxIndexStore(p.SyncTxEnd)
 		case *model.SysCall_SyncTxRetry: // retry hub sync tx，重新收集签名
 			if app.dkg == nil {
@@ -102,7 +105,7 @@ func (app *SideChain) FinalizeTx(txs [][]byte, txn *model.Txn, height int64, pro
 	}
 
 	// if hub tx, send partial sign
-	if txIndex > 0 && len(hubCalls) > 0 && app.dkg != nil {
+	if txIndex > 0 && len(hubCalls) > 0 && hubCalls[0] != nil && app.dkg != nil {
 		err := app.sendPartialSign(hubCalls[0].ChainId, txIndex, hubCalls, app.ProposerAddressToNodeKey(proposer))
 		if err != nil {
 			return nil, err

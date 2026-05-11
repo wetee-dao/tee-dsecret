@@ -59,7 +59,7 @@
         "displayName": [
           "Hash"
         ],
-        "type": 94
+        "type": 95
       },
       "nativeToEthRatio": 100000000,
       "staticBufferSize": 16384,
@@ -67,7 +67,7 @@
         "displayName": [
           "Timestamp"
         ],
-        "type": 11
+        "type": 12
       }
     },
     "events": [],
@@ -93,7 +93,17 @@
           },
           {
             "docs": [],
-            "label": "pod_code_hash",
+            "label": "pod_impl_addr",
+            "type": {
+              "displayName": [
+                "Address"
+              ],
+              "type": 5
+            }
+          },
+          {
+            "docs": [],
+            "label": "proxy_code_hash",
             "type": {
               "displayName": [
                 "H256"
@@ -115,6 +125,11 @@
           "- `subnet_addr`：Subnet 合约地址，用于查询 worker、region、侧链密钥等信息。",
           "- `pod_code_hash`：Pod 合约的代码哈希，创建 Pod 时用于链上实例化。",
           "",
+          "# 参数",
+          "- `subnet_addr`：Subnet 合约地址。",
+          "- `pod_impl_addr`：Pod 实现合约的部署地址，所有 Proxy 共享此实现。",
+          "- `proxy_code_hash`：Proxy 合约的代码哈希，用于每次创建新 Pod 时实例化 Proxy。",
+          "",
           "# 返回值",
           "- `Ok(())`：初始化成功或已初始化。"
         ],
@@ -133,7 +148,57 @@
         "args": [
           {
             "docs": [],
-            "label": "pod_contract",
+            "label": "addr",
+            "type": {
+              "displayName": [
+                "Address"
+              ],
+              "type": 5
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          "设置 Pod 实现合约的部署地址（用于升级 Pod 逻辑）。",
+          "",
+          "更新后，调用 `update_pod_contract` 可将已有 Pod 的 Proxy 指向新实现。",
+          "新创建的 Pod Proxy 也将自动使用最新实现地址。",
+          "",
+          "调用权限：仅治理合约（gov）可调用。"
+        ],
+        "label": "set_pod_impl",
+        "mutates": true,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 9
+        },
+        "selector": "0xc2c30860"
+      },
+      {
+        "args": [],
+        "default": false,
+        "docs": [
+          "获取当前 Pod 实现合约的部署地址。"
+        ],
+        "label": "pod_impl",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 10
+        },
+        "selector": "0xcc942625"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "label": "hash",
             "type": {
               "displayName": [
                 "H256"
@@ -144,20 +209,11 @@
         ],
         "default": false,
         "docs": [
-          "设置 Pod 合约的代码哈希。",
+          "设置 Proxy 合约的代码哈希（用于实例化新 Pod Proxy）。",
           "",
-          "用于升级或更换 Pod 合约模板，后续新创建的 Pod 将使用新的代码哈希进行实例化。",
-          "",
-          "调用权限：仅治理合约（gov）可调用。",
-          "",
-          "# 参数",
-          "- `pod_contract`：新的 Pod 合约代码哈希。",
-          "",
-          "# 返回值",
-          "- `Ok(())`：设置成功。",
-          "- `Err(Error::MustCallByGovContract)`：调用者非治理合约。"
+          "调用权限：仅治理合约（gov）可调用。"
         ],
-        "label": "set_pod_contract",
+        "label": "set_proxy_code_hash",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -166,29 +222,24 @@
           ],
           "type": 9
         },
-        "selector": "0x0c28546b"
+        "selector": "0x2e0e012a"
       },
       {
         "args": [],
         "default": false,
         "docs": [
-          "获取当前设置的 Pod 合约代码哈希。",
-          "",
-          "调用权限：任何人可调用。",
-          "",
-          "# 返回值",
-          "- `H256`：当前 Pod 合约代码哈希；若未设置则返回 `H256::zero()`。"
+          "获取当前 Proxy 合约的代码哈希。"
         ],
-        "label": "pod_contract",
+        "label": "proxy_code_hash",
         "mutates": false,
         "payable": false,
         "returnType": {
           "displayName": [
             "Result"
           ],
-          "type": 10
+          "type": 11
         },
-        "selector": "0x1417e3e6"
+        "selector": "0xdf39a05e"
       },
       {
         "args": [
@@ -199,25 +250,26 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
         "default": false,
         "docs": [
-          "更新指定 Pod 的合约代码。",
+          "将指定 Pod 的 Proxy 升级到当前最新 Pod 实现合约。",
           "",
-          "获取当前 Pod 合约代码哈希，后续可通过调用 Pod 合约的 `set_code` 实现代码升级。",
-          "当前为占位实现，待完善 TODO。",
+          "通过调用 Pod Proxy 合约的 `upgrade` 方法，将代理指向的实现地址切换为",
+          "`POD_IMPL_ADDRESS` 中存储的最新地址，实现不停机热升级。",
           "",
-          "调用权限：任何人可调用（写操作）。",
+          "调用权限：仅治理合约（gov）可调用。",
           "",
           "# 参数",
           "- `pod_id`：目标 Pod 的唯一标识。",
           "",
           "# 返回值",
-          "- `Ok(())`：操作成功（当前为占位）。",
-          "- `Err(Error::PodNotFound)`：Pod 不存在。"
+          "- `Ok(())`：升级成功。",
+          "- `Err(Error::PodNotFound)`：Pod 不存在。",
+          "- `Err(Error::PodCodeNotFound)`：Pod 实现地址未配置或升级调用失败。"
         ],
         "label": "update_pod_contract",
         "mutates": true,
@@ -239,7 +291,7 @@
               "displayName": [
                 "BlockNumber"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -287,7 +339,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 13
+          "type": 14
         },
         "selector": "0x6f7ded81"
       },
@@ -300,7 +352,7 @@
               "displayName": [
                 "u16"
               ],
-              "type": 14
+              "type": 15
             }
           }
         ],
@@ -350,7 +402,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 15
+          "type": 16
         },
         "selector": "0xb00f71ca"
       },
@@ -372,7 +424,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 17
+          "type": 18
         },
         "selector": "0xb0a1c753"
       },
@@ -396,7 +448,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 17
+          "type": 18
         },
         "selector": "0x6619d9c7"
       },
@@ -419,7 +471,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 16
+              "type": 17
             }
           }
         ],
@@ -472,7 +524,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 16
+              "type": 17
             }
           }
         ],
@@ -523,34 +575,9 @@
           "displayName": [
             "Result"
           ],
-          "type": 18
+          "type": 10
         },
         "selector": "0x9ddb90ba"
-      },
-      {
-        "args": [],
-        "default": false,
-        "docs": [
-          "接收转账的占位函数。",
-          "",
-          "用于接收用户向 Cloud 合约转账（充值），目前仅记录转账事件（读取 `value_transferred`），",
-          "不做额外处理。实际业务中转账金额可能用于后续创建 Pod 或其他付费操作。",
-          "",
-          "调用权限：任何人可调用。",
-          "",
-          "# 返回值",
-          "- `Ok(())`：接收成功。"
-        ],
-        "label": "charge",
-        "mutates": false,
-        "payable": false,
-        "returnType": {
-          "displayName": [
-            "Result"
-          ],
-          "type": 9
-        },
-        "selector": "0x96dc00c1"
       },
       {
         "args": [
@@ -584,7 +611,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 17
+          "type": 18
         },
         "selector": "0x017f8fa1"
       },
@@ -631,7 +658,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -702,7 +729,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -741,7 +768,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -780,7 +807,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -800,7 +827,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -840,7 +867,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -896,7 +923,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -944,7 +971,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1043,7 +1070,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1084,7 +1111,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1183,7 +1210,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1245,7 +1272,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1303,7 +1330,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1341,7 +1368,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1380,7 +1407,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1481,7 +1508,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 16
+              "type": 17
             }
           }
         ],
@@ -1525,7 +1552,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1535,7 +1562,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 16
+              "type": 17
             }
           },
           {
@@ -1589,7 +1616,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1609,7 +1636,7 @@
               "displayName": [
                 "U256"
               ],
-              "type": 16
+              "type": 17
             }
           }
         ],
@@ -1655,7 +1682,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1692,7 +1719,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1712,7 +1739,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1750,7 +1777,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -1780,6 +1807,45 @@
           "type": 86
         },
         "selector": "0xefc61efb"
+      },
+      {
+        "args": [
+          {
+            "docs": [],
+            "label": "pod_id",
+            "type": {
+              "displayName": [
+                "u64"
+              ],
+              "type": 12
+            }
+          }
+        ],
+        "default": false,
+        "docs": [
+          "查询指定 Pod 是否已完成结算。",
+          "",
+          "供 Pod 合约在 withdraw 时校验，防止在 mint_pod 之前抢跑提现导致支付失败。",
+          "",
+          "调用权限：任何人可调用。",
+          "",
+          "# 参数",
+          "- `pod_id`：目标 Pod ID。",
+          "",
+          "# 返回值",
+          "- `true`：Pod 已结算，可以安全提现。",
+          "- `false`：Pod 不存在或未结算。"
+        ],
+        "label": "is_pod_settled",
+        "mutates": false,
+        "payable": false,
+        "returnType": {
+          "displayName": [
+            "Result"
+          ],
+          "type": 87
+        },
+        "selector": "0x4766b7cc"
       },
       {
         "args": [
@@ -1820,7 +1886,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 87
+              "type": 88
             }
           },
           {
@@ -1860,7 +1926,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1870,7 +1936,7 @@
               "displayName": [
                 "BlockNumber"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -1926,7 +1992,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -1936,7 +2002,7 @@
               "displayName": [
                 "AccountId"
               ],
-              "type": 88
+              "type": 89
             }
           }
         ],
@@ -1979,7 +2045,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -2022,7 +2088,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -2067,7 +2133,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -2077,7 +2143,7 @@
               "displayName": [
                 "BlockNumber"
               ],
-              "type": 12
+              "type": 13
             }
           }
         ],
@@ -2122,7 +2188,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -2182,7 +2248,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           }
         ],
@@ -2208,7 +2274,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 90
+          "type": 91
         },
         "selector": "0xd6901a3f"
       },
@@ -2221,7 +2287,7 @@
               "displayName": [
                 "u64"
               ],
-              "type": 11
+              "type": 12
             }
           },
           {
@@ -2231,7 +2297,7 @@
               "displayName": [
                 "Vec"
               ],
-              "type": 93
+              "type": 94
             }
           }
         ],
@@ -2285,7 +2351,7 @@
           "displayName": [
             "Result"
           ],
-          "type": 18
+          "type": 10
         },
         "selector": "0xd99d60f8"
       }
@@ -2320,17 +2386,17 @@
               {
                 "fields": [],
                 "index": 2,
-                "name": "WorkerLevelNotEnough"
+                "name": "WorkerNotOnline"
               },
               {
                 "fields": [],
                 "index": 3,
-                "name": "RegionNotMatch"
+                "name": "WorkerLevelNotEnough"
               },
               {
                 "fields": [],
                 "index": 4,
-                "name": "WorkerNotOnline"
+                "name": "RegionNotMatch"
               },
               {
                 "fields": [],
@@ -2436,6 +2502,11 @@
                 "fields": [],
                 "index": 25,
                 "name": "PodAlreadySettled"
+              },
+              {
+                "fields": [],
+                "index": 26,
+                "name": "CallFailed"
               }
             ]
           }
@@ -2625,6 +2696,48 @@
               {
                 "fields": [
                   {
+                    "type": 5
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 5
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
                     "type": 7
                   }
                 ],
@@ -2659,7 +2772,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": {
         "def": {
           "primitive": "u64"
@@ -2667,7 +2780,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": {
         "def": {
           "primitive": "u32"
@@ -2678,7 +2791,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": {
         "def": {
           "variant": {
@@ -2686,7 +2799,7 @@
               {
                 "fields": [
                   {
-                    "type": 12
+                    "type": 13
                   }
                 ],
                 "index": 0,
@@ -2707,7 +2820,7 @@
         "params": [
           {
             "name": "T",
-            "type": 12
+            "type": 13
           },
           {
             "name": "E",
@@ -2720,7 +2833,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": {
         "def": {
           "primitive": "u16"
@@ -2728,7 +2841,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "type": {
         "def": {
           "variant": {
@@ -2736,7 +2849,7 @@
               {
                 "fields": [
                   {
-                    "type": 14
+                    "type": 15
                   }
                 ],
                 "index": 0,
@@ -2757,7 +2870,7 @@
         "params": [
           {
             "name": "T",
-            "type": 14
+            "type": 15
           },
           {
             "name": "E",
@@ -2766,17 +2879,6 @@
         ],
         "path": [
           "Result"
-        ]
-      }
-    },
-    {
-      "id": 16,
-      "type": {
-        "def": {
-          "composite": {}
-        },
-        "path": [
-          "U256"
         ]
       }
     },
@@ -2784,41 +2886,10 @@
       "id": 17,
       "type": {
         "def": {
-          "variant": {
-            "variants": [
-              {
-                "fields": [
-                  {
-                    "type": 16
-                  }
-                ],
-                "index": 0,
-                "name": "Ok"
-              },
-              {
-                "fields": [
-                  {
-                    "type": 8
-                  }
-                ],
-                "index": 1,
-                "name": "Err"
-              }
-            ]
-          }
+          "composite": {}
         },
-        "params": [
-          {
-            "name": "T",
-            "type": 16
-          },
-          {
-            "name": "E",
-            "type": 8
-          }
-        ],
         "path": [
-          "Result"
+          "U256"
         ]
       }
     },
@@ -2831,7 +2902,7 @@
               {
                 "fields": [
                   {
-                    "type": 5
+                    "type": 17
                   }
                 ],
                 "index": 0,
@@ -2852,7 +2923,7 @@
         "params": [
           {
             "name": "T",
-            "type": 5
+            "type": 17
           },
           {
             "name": "E",
@@ -2924,7 +2995,7 @@
               {
                 "fields": [
                   {
-                    "type": 11
+                    "type": 12
                   }
                 ],
                 "index": 0,
@@ -2945,7 +3016,7 @@
         "params": [
           {
             "name": "T",
-            "type": 11
+            "type": 12
           },
           {
             "name": "E",
@@ -2970,7 +3041,7 @@
               {
                 "fields": [
                   {
-                    "type": 11
+                    "type": 12
                   }
                 ],
                 "index": 1,
@@ -2982,7 +3053,7 @@
         "params": [
           {
             "name": "T",
-            "type": 11
+            "type": 12
           }
         ],
         "path": [
@@ -3087,7 +3158,7 @@
               },
               {
                 "name": "start_block",
-                "type": 12,
+                "type": 13,
                 "typeName": "BlockNumber"
               },
               {
@@ -3107,12 +3178,12 @@
               },
               {
                 "name": "prepaid_amount",
-                "type": 16,
+                "type": 17,
                 "typeName": "U256"
               },
               {
                 "name": "end_block",
-                "type": 12,
+                "type": 13,
                 "typeName": "BlockNumber"
               },
               {
@@ -3122,7 +3193,7 @@
               },
               {
                 "name": "settled_amount",
-                "type": 16,
+                "type": 17,
                 "typeName": "U256"
               }
             ]
@@ -3191,7 +3262,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3201,7 +3272,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3211,7 +3282,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3221,7 +3292,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3231,7 +3302,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3241,7 +3312,7 @@
               {
                 "fields": [
                   {
-                    "type": 14,
+                    "type": 15,
                     "typeName": "u16"
                   }
                 ],
@@ -3274,7 +3345,7 @@
             "fields": [
               {
                 "name": "id",
-                "type": 11,
+                "type": 12,
                 "typeName": "u64"
               },
               {
@@ -3341,7 +3412,7 @@
                     "typeName": "Bytes"
                   },
                   {
-                    "type": 11,
+                    "type": 12,
                     "typeName": "u64"
                   }
                 ],
@@ -3352,7 +3423,7 @@
           }
         },
         "path": [
-          "Env"
+          "PodEnv"
         ]
       }
     },
@@ -3410,7 +3481,7 @@
               {
                 "name": "env",
                 "type": 34,
-                "typeName": "Vec<Env>"
+                "typeName": "Vec<PodEnv>"
               }
             ]
           }
@@ -3425,7 +3496,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             35
           ]
         }
@@ -3446,7 +3517,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             27,
             37,
             3
@@ -3511,9 +3582,9 @@
       "type": {
         "def": {
           "tuple": [
-            11,
             12,
-            12,
+            13,
+            13,
             3
           ]
         }
@@ -3605,7 +3676,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             44
           ]
         }
@@ -3757,7 +3828,7 @@
               {
                 "fields": [
                   {
-                    "type": 11
+                    "type": 12
                   }
                 ],
                 "index": 0,
@@ -3778,7 +3849,7 @@
         "params": [
           {
             "name": "T",
-            "type": 11
+            "type": 12
           },
           {
             "name": "E",
@@ -3944,7 +4015,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             53
           ]
         }
@@ -4015,7 +4086,7 @@
               {
                 "fields": [
                   {
-                    "type": 12
+                    "type": 13
                   }
                 ],
                 "index": 1,
@@ -4027,7 +4098,7 @@
         "params": [
           {
             "name": "T",
-            "type": 12
+            "type": 13
           }
         ],
         "path": [
@@ -4199,7 +4270,7 @@
               },
               {
                 "name": "start_block",
-                "type": 12,
+                "type": 13,
                 "typeName": "BlockNumber"
               },
               {
@@ -4240,7 +4311,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             65,
             50
           ]
@@ -4327,7 +4398,7 @@
       "type": {
         "def": {
           "sequence": {
-            "type": 11
+            "type": 12
           }
         }
       }
@@ -4358,7 +4429,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             71
           ]
         }
@@ -4379,11 +4450,11 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             27,
             73,
-            12,
-            12,
+            13,
+            13,
             3
           ]
         }
@@ -4478,17 +4549,17 @@
             "fields": [
               {
                 "name": "id",
-                "type": 11,
+                "type": 12,
                 "typeName": "u64"
               },
               {
                 "name": "pod_id",
-                "type": 11,
+                "type": 12,
                 "typeName": "u64"
               },
               {
                 "name": "worker_id",
-                "type": 11,
+                "type": 12,
                 "typeName": "u64"
               },
               {
@@ -4498,7 +4569,7 @@
               },
               {
                 "name": "amount",
-                "type": 16,
+                "type": 17,
                 "typeName": "U256"
               },
               {
@@ -4513,12 +4584,12 @@
               },
               {
                 "name": "result_amount",
-                "type": 16,
+                "type": 17,
                 "typeName": "U256"
               },
               {
                 "name": "created_at",
-                "type": 12,
+                "type": 13,
                 "typeName": "BlockNumber"
               },
               {
@@ -4614,7 +4685,7 @@
       "type": {
         "def": {
           "tuple": [
-            11,
+            12,
             78
           ]
         }
@@ -4679,7 +4750,7 @@
           "tuple": [
             27,
             37,
-            12,
+            13,
             3
           ]
         }
@@ -4764,6 +4835,48 @@
       "id": 87,
       "type": {
         "def": {
+          "variant": {
+            "variants": [
+              {
+                "fields": [
+                  {
+                    "type": 26
+                  }
+                ],
+                "index": 0,
+                "name": "Ok"
+              },
+              {
+                "fields": [
+                  {
+                    "type": 8
+                  }
+                ],
+                "index": 1,
+                "name": "Err"
+              }
+            ]
+          }
+        },
+        "params": [
+          {
+            "name": "T",
+            "type": 26
+          },
+          {
+            "name": "E",
+            "type": 8
+          }
+        ],
+        "path": [
+          "Result"
+        ]
+      }
+    },
+    {
+      "id": 88,
+      "type": {
+        "def": {
           "sequence": {
             "type": 35
           }
@@ -4771,7 +4884,7 @@
       }
     },
     {
-      "id": 88,
+      "id": 89,
       "type": {
         "def": {
           "composite": {
@@ -4791,7 +4904,7 @@
       }
     },
     {
-      "id": 89,
+      "id": 90,
       "type": {
         "def": {
           "variant": {
@@ -4824,7 +4937,7 @@
       }
     },
     {
-      "id": 90,
+      "id": 91,
       "type": {
         "def": {
           "variant": {
@@ -4832,7 +4945,7 @@
               {
                 "fields": [
                   {
-                    "type": 89
+                    "type": 90
                   }
                 ],
                 "index": 0,
@@ -4853,7 +4966,7 @@
         "params": [
           {
             "name": "T",
-            "type": 89
+            "type": 90
           },
           {
             "name": "E",
@@ -4866,7 +4979,7 @@
       }
     },
     {
-      "id": 91,
+      "id": 92,
       "type": {
         "def": {
           "variant": {
@@ -4879,7 +4992,7 @@
               {
                 "fields": [
                   {
-                    "type": 11,
+                    "type": 12,
                     "typeName": "u64"
                   }
                 ],
@@ -4889,7 +5002,7 @@
               {
                 "fields": [
                   {
-                    "type": 11,
+                    "type": 12,
                     "typeName": "u64"
                   }
                 ],
@@ -4902,7 +5015,7 @@
         "params": [
           {
             "name": "T",
-            "type": 11
+            "type": 12
           }
         ],
         "path": [
@@ -4911,14 +5024,14 @@
       }
     },
     {
-      "id": 92,
+      "id": 93,
       "type": {
         "def": {
           "composite": {
             "fields": [
               {
                 "name": "etype",
-                "type": 91,
+                "type": 92,
                 "typeName": "EditType<u64>"
               },
               {
@@ -4935,17 +5048,17 @@
       }
     },
     {
-      "id": 93,
+      "id": 94,
       "type": {
         "def": {
           "sequence": {
-            "type": 92
+            "type": 93
           }
         }
       }
     },
     {
-      "id": 94,
+      "id": 95,
       "type": {
         "def": {
           "composite": {

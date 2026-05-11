@@ -4,16 +4,16 @@ import (
 	"bytes"
 )
 
-func (c *SysCall) BytesForSig() []byte {
+func (c *SysCall) BytesForSig() ([]byte, error) {
 	if call := c.GetContract(); call != nil {
-		return ContractForSig(call)
+		return ContractForSig(call), nil
 	}
 
 	data, err := c.XXX_Marshal(nil, true)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return data
+	return data, nil
 
 }
 

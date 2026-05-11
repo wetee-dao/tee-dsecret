@@ -13,17 +13,29 @@ import (
 )
 
 // create dss signer from dkg
-func NewDssSigner(dkg *DKG) *DssSigner {
-	return &DssSigner{
+func NewDssSigner(dkg *DKG, txIndex int64) *DssSigner {
+	signer := &DssSigner{
 		dkg:  dkg,
 		sigs: make([]*dss.PartialSig, 0),
 	}
+	// Try to acquire an independent random share from the pool.
+	// If the pool is nil, empty, or txIndex <= 0, fallback to using the long share.
+	if dkg.RandomPool != nil && txIndex > 0 {
+		random, err := dkg.RandomPool.Acquire(txIndex)
+		if err == nil {
+			signer.randomShare = random
+		} else {
+			fmt.Println("DssSigner: failed to acquire random share:", err)
+		}
+	}
+	return signer
 }
 
 // signer for dss
 type DssSigner struct {
-	dkg  *DKG
-	sigs []*dss.PartialSig
+	dkg         *DKG
+	randomShare *model.DistKeyShare // independent random share from RandomPool; nil means fallback to long share
+	sigs        []*dss.PartialSig
 }
 
 // set shares for dss
@@ -47,6 +59,8 @@ func (d *DssSigner) SetSigs(btsigs [][]byte) {
 
 // get ed25519 public key
 func (d *DssSigner) Public() []byte {
+	d.dkg.mu.RLock()
+	defer d.dkg.mu.RUnlock()
 	if d.dkg.DkgPubKey != nil {
 		return d.dkg.DkgPubKey.Byte()
 	}
@@ -54,6 +68,8 @@ func (d *DssSigner) Public() []byte {
 }
 
 func (d *DssSigner) AccountID() types.AccountID {
+	d.dkg.mu.RLock()
+	defer d.dkg.mu.RUnlock()
 	if d.dkg.DkgPubKey != nil {
 		return d.dkg.DkgPubKey.AccountID()
 	}
@@ -118,24 +134,42 @@ func (d *DssSigner) PartialSign(msg []byte) ([]byte, error) {
 	return json.Marshal(sigWrap)
 }
 
-// pub list
+// pub list returns the participant public keys, the long-term share,
+// the random share, and the threshold.
+// If an independent random share was acquired from RandomPool, it is used;
+// otherwise falls back to the long-term share (preserves backward compatibility).
 func (d *DssSigner) PubList() ([]kyber.Point, *model.DistKeyShare, *model.DistKeyShare, int) {
+	d.dkg.mu.RLock()
+	defer d.dkg.mu.RUnlock()
 	pubs := make([]kyber.Point, 0, len(d.dkg.Nodes))
 	if len(d.dkg.NewNodes) > 0 {
 		for _, k := range d.dkg.NewNodes {
 			pubs = append(pubs, k.ValidatorId.Point())
 		}
-		return pubs, d.dkg.NewDkgKeyShare, d.dkg.NewDkgKeyShare, len(d.dkg.NewNodes) * 2 / 3
+		random := d.randomShare
+		if random == nil {
+			random = d.dkg.NewDkgKeyShare
+		}
+		return pubs, d.dkg.NewDkgKeyShare, random, len(d.dkg.NewNodes) * 2 / 3
 	}
 
 	for _, k := range d.dkg.Nodes {
 		pubs = append(pubs, k.ValidatorId.Point())
 	}
-	return pubs, d.dkg.DkgKeyShare, d.dkg.DkgKeyShare, d.dkg.Threshold
+	random := d.randomShare
+	if random == nil {
+		random = d.dkg.DkgKeyShare
+	}
+	return pubs, d.dkg.DkgKeyShare, random, d.dkg.Threshold
 }
 
 // verify sig
 func (d *DssSigner) Verify(msg []byte, signature []byte) bool {
+	d.dkg.mu.RLock()
+	defer d.dkg.mu.RUnlock()
+	if d.dkg.DkgPubKey == nil {
+		return false
+	}
 	return ed25519.Verify(d.dkg.DkgPubKey.Ed25519PublicKey(), msg, signature)
 }
 

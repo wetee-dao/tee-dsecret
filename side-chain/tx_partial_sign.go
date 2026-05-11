@@ -81,7 +81,7 @@ func (s *SideChain) sendPartialSign(chainId uint32, tx_index int64, hubs []*mode
 	}
 
 	// Create a new DSS signer using the DKG instance.
-	signer := dkg.NewDssSigner(s.dkg)
+	signer := dkg.NewDssSigner(s.dkg, tx_index)
 	// Partially sign the batch call using the signer.
 	sig, err := client.PartialSign(signer, *call)
 	if err != nil {
@@ -123,7 +123,11 @@ func (s *SideChain) revPartialSign(msgBox any) error {
 		return errors.New("txCh is nil")
 	}
 
-	s.txCh.Push(msgBox.(*model.BlockPartialSign))
+	msg, ok := msgBox.(*model.BlockPartialSign)
+	if !ok {
+		return errors.New("invalid partial sign message type")
+	}
+	s.txCh.Push(msg)
 	return nil
 }
 
@@ -153,7 +157,7 @@ func (s *SideChain) handlePartialSign(msg *model.BlockPartialSign) error {
 	}
 
 	// 5. 检查是否收集到足够的签名
-	if len(sigs) < s.dkg.Threshold+1 || len(sigs) > s.dkg.Threshold+1 {
+	if len(sigs) < s.dkg.Threshold+1 {
 		util.LogWithGray("PartialSign", "ALL =", len(sigs), "TH[+1] =", s.dkg.Threshold+1)
 		return nil
 	}
@@ -189,7 +193,10 @@ func (s *SideChain) SavePartialSig(user_id string, msg *model.BlockPartialSign) 
 	// Serialize the BlockPartialSign object into a byte slice.
 	// Ignore the error returned by Marshal as it's not handled in the current implementation.
 	// Note: This should be improved to handle errors properly.
-	bt, _ := msg.Marshal()
+	bt, err := msg.Marshal()
+	if err != nil {
+		return errors.Wrap(err, "marshal partial sig error")
+	}
 	// Store the serialized data in the global state with a constructed key.
 	// The key is formed by combining the partial signature prefix, transaction index, and user ID.
 	return model.SetKey(GLOABL_STATE, PartialSigPrefix+fmt.Sprint(msg.TxIndex)+"_"+user_id, bt)

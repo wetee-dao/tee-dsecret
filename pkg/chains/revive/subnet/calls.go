@@ -137,12 +137,12 @@ func (c *Subnet) QueryEpochInfo(
 	return v, gas, nil
 }
 
-func (c *Subnet) DryRunSetEpochSolt(
-	epoch_solt uint32, __ink_params chain.DryRunParams,
+func (c *Subnet) DryRunSetEpochSlot(
+	epoch_slot uint32, __ink_params chain.DryRunParams,
 ) (*util.Result[util.NullTuple, Error], *chain.DryRunReturnGas, error) {
 	if c.ChainClient.Debug {
 		fmt.Println()
-		util.LogWithPurple("[ DryRun   method ]", "set_epoch_solt")
+		util.LogWithPurple("[ DryRun   method ]", "set_epoch_slot")
 	}
 	v, gas, err := chain.DryRunInk[util.Result[util.NullTuple, Error]](
 		c,
@@ -151,8 +151,8 @@ func (c *Subnet) DryRunSetEpochSolt(
 		__ink_params.GasLimit,
 		__ink_params.StorageDepositLimit,
 		util.InkContractInput{
-			Selector: "0xe05fb410",
-			Args:     []any{epoch_solt},
+			Selector: "0x6c9fe8a0",
+			Args:     []any{epoch_slot},
 		},
 	)
 	if err != nil && !errors.Is(err, chain.ErrContractReverted) {
@@ -165,12 +165,12 @@ func (c *Subnet) DryRunSetEpochSolt(
 	return v, gas, nil
 }
 
-func (c *Subnet) ExecSetEpochSolt(
-	epoch_solt uint32, __ink_params chain.ExecParams,
+func (c *Subnet) ExecSetEpochSlot(
+	epoch_slot uint32, __ink_params chain.ExecParams,
 ) error {
 	_param := chain.DefaultParamWithOrigin(__ink_params.Signer.AccountID())
 	_param.PayAmount = __ink_params.PayAmount
-	_, gas, err := c.DryRunSetEpochSolt(epoch_solt, _param)
+	_, gas, err := c.DryRunSetEpochSlot(epoch_slot, _param)
 	if err != nil {
 		return err
 	}
@@ -179,17 +179,17 @@ func (c *Subnet) ExecSetEpochSolt(
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
-			Selector: "0xe05fb410",
-			Args:     []any{epoch_solt},
+			Selector: "0x6c9fe8a0",
+			Args:     []any{epoch_slot},
 		},
 		__ink_params,
 	)
 }
 
-func (c *Subnet) CallOfSetEpochSolt(
-	epoch_solt uint32, __ink_params chain.DryRunParams,
+func (c *Subnet) CallOfSetEpochSlot(
+	epoch_slot uint32, __ink_params chain.DryRunParams,
 ) (*types.Call, error) {
-	_, gas, err := c.DryRunSetEpochSolt(epoch_solt, __ink_params)
+	_, gas, err := c.DryRunSetEpochSlot(epoch_slot, __ink_params)
 	if err != nil {
 		return nil, err
 	}
@@ -199,8 +199,8 @@ func (c *Subnet) CallOfSetEpochSolt(
 		gas.GasRequired,
 		gas.StorageDeposit,
 		util.InkContractInput{
-			Selector: "0xe05fb410",
-			Args:     []any{epoch_solt},
+			Selector: "0x6c9fe8a0",
+			Args:     []any{epoch_slot},
 		},
 	)
 }

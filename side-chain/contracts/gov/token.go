@@ -50,6 +50,10 @@ func (d GovMutation) TransferFrom(from, to model.UniAddr, amount model.Amount) e
 }
 
 func (d GovMutation) transfer(from, to model.UniAddr, value model.Amount) error {
+	if value.Int.Sign() <= 0 {
+		return ErrLowBalance
+	}
+
 	sender, err := d.members.GetOrDefault(d.api.GetTxn(), from, model.ZeroAmount)
 	if err != nil {
 		return err
@@ -76,6 +80,10 @@ func (d GovMutation) transfer(from, to model.UniAddr, value model.Amount) error 
 }
 
 func (d GovMutation) Mint(to model.UniAddr, value model.Amount) error {
+	if err := d.ensureGov(); err != nil {
+		return err
+	}
+
 	// 获取当前余额
 	balance, err := d.members.GetOrDefault(d.api.GetTxn(), to, model.ZeroAmount)
 	if err != nil {

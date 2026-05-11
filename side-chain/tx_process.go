@@ -34,7 +34,8 @@ func (app *SideChain) ProcessTx(txs [][]byte) abci.ResponseProcessProposal_Propo
 		case *model.SysCall_HubCall:
 		case *model.SysCall_Contract:
 		default:
-			fmt.Println("Payload is not set")
+			fmt.Println("Payload is not set or unknown")
+			return abci.ResponseProcessProposal_REJECT
 		}
 	}
 

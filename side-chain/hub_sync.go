@@ -25,7 +25,7 @@ func (s *SideChain) SyncToHub(txIndex int64, sigs [][]byte) error {
 
 	// Aggregate signature
 	util.LogWithGray("Sync to polkadot hub", "sync sigs = ", len(sigs))
-	signer := dkg.NewDssSigner(s.dkg)
+	signer := dkg.NewDssSigner(s.dkg, txIndex)
 	signer.SetSigs(sigs)
 
 	// submit sync tx to polkadot hub

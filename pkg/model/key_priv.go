@@ -21,18 +21,22 @@ type PrivKey struct {
 }
 
 func (p *PrivKey) Scalar() kyber.Scalar {
-	return p.ed25519Scalar()
+	s, _ := p.ed25519Scalar()
+	return s
 }
 
-func (p *PrivKey) ed25519Scalar() kyber.Scalar {
+func (p *PrivKey) ed25519Scalar() (kyber.Scalar, error) {
 	buf := p.PrivateKey
+	if len(buf) < ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid private key length: %d", len(buf))
+	}
 
 	// hash seed and clamp bytes
 	digest := sha512.Sum512(buf[:32])
 	digest[0] &= 0xf8
 	digest[31] &= 0x7f
 	digest[31] |= 0x40
-	return p.suite.Scalar().SetBytes(digest[:32])
+	return p.suite.Scalar().SetBytes(digest[:32]), nil
 }
 
 func (p *PrivKey) String() string {
@@ -91,6 +95,9 @@ func GenerateEd25519KeyPair(src io.Reader) (*PrivKey, *PubKey, error) {
 }
 
 func PrivateKeyFromStd(privkey ed25519.PrivateKey) (*PrivKey, error) {
+	if len(privkey) != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid private key length: %d, expected %d", len(privkey), ed25519.PrivateKeySize)
+	}
 	return &PrivKey{
 		PrivateKey: privkey,
 		suite:      suites.MustFind("Ed25519"),
@@ -102,6 +109,9 @@ func PrivateKeyFromHex(s string) (*PrivKey, error) {
 	bt, err := hex.DecodeString(s)
 	if err != nil {
 		return nil, err
+	}
+	if len(bt) != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid private key length: %d, expected %d", len(bt), ed25519.PrivateKeySize)
 	}
 
 	return &PrivKey{

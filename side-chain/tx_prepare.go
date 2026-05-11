@@ -73,6 +73,8 @@ func (s *SideChain) PrepareTx(txs [][]byte, finaltx *[][]byte, height int64, add
 
 		*finaltx = append(*finaltx, tx)
 		*finaltx = append(*finaltx, hubtx...)
+		// TODO: DeleteSigOfTx should be moved to FinalizeTx or Commit to ensure
+		// it only runs after the block is actually committed.
 		s.DeleteSigOfTx(height)
 	}
 }

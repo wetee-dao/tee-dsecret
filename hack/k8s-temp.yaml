@@ -4,6 +4,9 @@ metadata:
   name: $NAME
   namespace: worker-addon
 spec:
+  # 先停旧 Pod，再起新镜像（避免与旧容器并行占 SGX/端口）；升级会有短暂中断
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: $NAME

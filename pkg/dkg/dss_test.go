@@ -98,7 +98,7 @@ func TestDSS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	isok := ed25519.Verify(dkgs[0].DkgPubKey.Ed25519PublicKey(), msg, sigbt)
+	isok := ed25519.Verify(dkgs[0].GetDkgPubKey().Ed25519PublicKey(), msg, sigbt)
 	fmt.Println("ed25519.Verify", isok)
 }
 

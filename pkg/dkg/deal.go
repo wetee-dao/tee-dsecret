@@ -2,6 +2,7 @@ package dkg
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/wetee-dao/tee-dsecret/pkg/model"
@@ -56,6 +57,7 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	// end local node
 
 	// 存储deal
+	dkg.mu.Lock()
 	dkg.deals[OrgId] = pmessage.DealBundle
 
 	mustDeals := len(dkg.Nodes)
@@ -63,6 +65,7 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 		mustDeals = pmessage.ConsensusNodeNum
 	}
 	if len(dkg.deals) < mustDeals {
+		dkg.mu.Unlock()
 		// dkg.log.Error("HandleDeal len(dkg.deals)", len(dkg.deals), "=========== mustDeals", mustDeals)
 		return nil
 	}
@@ -72,12 +75,17 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 		new := util.DeepCopy(*d)
 		deals = append(deals, new.DealBundle)
 	}
+	dkg.mu.Unlock()
 
 	// 处理密钥份额
 	resp, err := dkg.DistKeyGenerator.ProcessDeals(deals)
-	if err != nil || resp == nil {
+	if err != nil {
 		dkg.finishDkgConsensusStep(false, "dkg.DistKeyGenerator.ProcessDeals")
 		return fmt.Errorf("ProcessDeals error: %w", err)
+	}
+	if resp == nil {
+		dkg.finishDkgConsensusStep(false, "dkg.DistKeyGenerator.ProcessDeals returned nil")
+		return errors.New("ProcessDeals error: resp is nil")
 	}
 
 	// 如果交易未被批准，则返回错误
@@ -92,13 +100,16 @@ func (dkg *DKG) handleDeal(OrgId string, data []byte) error {
 	}
 	dkg.log.Info(logs...)
 
-	if errNum > 1 {
-		dkg.finishDkgConsensusStep(false, "errNum > 1")
-		return fmt.Errorf("ProcessDeals error: errNum >1")
+	if errNum > 0 {
+		dkg.finishDkgConsensusStep(false, "errNum > 0")
+		return fmt.Errorf("ProcessDeals error: errNum > 0")
 	}
 
 	// 将响应对象序列化为字节切片
-	bt, _ := json.Marshal(resp)
+	bt, err := json.Marshal(resp)
+	if err != nil {
+		return fmt.Errorf("marshal deal resp error: %w", err)
+	}
 
 	// 发送 deal resp 到所有参与节点
 	err = dkg.sendToNode(model.SendToNodes(dkg.NewNetIds()), &model.DkgMessage{
@@ -126,8 +137,10 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 		return err
 	}
 
+	dkg.mu.Lock()
 	dkg.responses[OrgId] = message
 	if len(dkg.responses) < len(dkg.NewNodes) {
+		dkg.mu.Unlock()
 		// dkg.log.Error("||||||||||||||||  HandleDealResp len(dkg.responses)", len(dkg.responses), "=========== mustDeals", len(dkg.NewNodes))
 		return nil
 	}
@@ -136,6 +149,7 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 	for _, d := range dkg.responses {
 		responses = append(responses, d)
 	}
+	dkg.mu.Unlock()
 
 	// 处理密钥份额
 	res, justification, err := dkg.DistKeyGenerator.ProcessResponses(responses)
@@ -147,11 +161,13 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 
 	// 检查是否生成了密钥份额
 	if res != nil {
+		dkg.mu.Lock()
 		dkg.NewDkgKeyShare = &model.DistKeyShare{
 			CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
 			PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 		}
 		dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
+		dkg.mu.Unlock()
 
 		// 保存密钥份额
 		dkg.saveState()
@@ -164,11 +180,13 @@ func (dkg *DKG) handleDealResp(OrgId string, data []byte) error {
 		// reshare 可能在这里获取私钥
 		res, err := dkg.DistKeyGenerator.ProcessJustifications(nil)
 		if err == nil {
+			dkg.mu.Lock()
 			dkg.NewDkgKeyShare = &model.DistKeyShare{
 				CommitsWrap:  model.KyberPoints{Public: res.Key.Commits},
 				PriShareWrap: model.PriShare{PriShare: res.Key.Share},
 			}
 			dkg.NewDkgPubKey, _ = model.PubKeyFromPoint(res.Key.Public())
+			dkg.mu.Unlock()
 
 			// 保存密钥份额
 			dkg.saveState()

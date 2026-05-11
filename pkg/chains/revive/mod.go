@@ -185,7 +185,7 @@ func (c *Contract) GetEpoch() (uint32, uint32, uint32, uint32, types.H160, error
 		return 0, 0, 0, 0, types.H160{}, err
 	}
 
-	return d.Epoch, d.EpochSolt, d.LastEpochBlock, d.Now, d.SideChainPub, nil
+	return d.Epoch, d.EpochSlot, d.LastEpochBlock, d.Now, d.SideChainPub, nil
 }
 
 // go to new epoch

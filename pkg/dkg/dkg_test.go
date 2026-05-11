@@ -90,9 +90,12 @@ func TestNetwork(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		util.LogWithYellow("V0 |||", d.DkgKeyShare.PriShare().String())
+		ks := d.GetDkgKeyShare()
+		if ks != nil {
+			util.LogWithYellow("V0 |||", ks.PriShare().String())
+		}
 	}
-	dkg_pubkey = dkgs[0].DkgPubKey
+	dkg_pubkey = dkgs[0].GetDkgPubKey()
 
 	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
 
@@ -153,7 +156,10 @@ func TestNetwork(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		util.LogWithCyan("V1 |||", d.DkgKeyShare.PriShare().String())
+		ks := d.GetDkgKeyShare()
+		if ks != nil {
+			util.LogWithCyan("V1 |||", ks.PriShare().String())
+		}
 	}
 
 	util.LogWithGreen("----------------------------------------------------------------------------------------------------")
@@ -176,10 +182,14 @@ func TestNetwork(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	for _, d := range dkgs {
-		util.LogWithCyan("V2 |||", d.DkgKeyShare.PriShare().String())
+		ks := d.GetDkgKeyShare()
+		if ks != nil {
+			util.LogWithCyan("V2 |||", ks.PriShare().String())
+		}
 	}
 
-	fmt.Println("dkg pubkey", dkgs[0].DkgPubKey.SS58())
+	pk := dkgs[0].GetDkgPubKey()
+	fmt.Println("dkg pubkey", pk.SS58())
 	fmt.Println("dkg pubkey", dkg_pubkey.SS58())
 	if dkgs[0].DkgPubKey.SS58() != dkg_pubkey.SS58() {
 		t.Fatal("dkg pubkey error")

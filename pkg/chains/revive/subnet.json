@@ -121,7 +121,7 @@
           "任何人（只读查询）。",
           "",
           "# 返回值",
-          "- `EpochInfo`：包含 epoch 编号、epoch_solt、last_epoch_block、now、side_chain_pub 的结构体。"
+          "- `EpochInfo`：包含 epoch 编号、epoch_slot、last_epoch_block、now、side_chain_pub 的结构体。"
         ],
         "label": "epoch_info",
         "mutates": false,
@@ -138,7 +138,7 @@
         "args": [
           {
             "docs": [],
-            "label": "epoch_solt",
+            "label": "epoch_slot",
             "type": {
               "displayName": [
                 "u32"
@@ -157,13 +157,13 @@
           "仅治理合约（gov）可调用。",
           "",
           "# 参数",
-          "- `epoch_solt`：新的 epoch 间隔区块数。",
+          "- `epoch_slot`：新的 epoch 间隔区块数。",
           "",
           "# 返回值",
           "- `Ok(())`：设置成功。",
           "- `Err(Error::MustCallByMainContract)`：调用者不是治理合约。"
         ],
-        "label": "set_epoch_solt",
+        "label": "set_epoch_slot",
         "mutates": true,
         "payable": false,
         "returnType": {
@@ -172,7 +172,7 @@
           ],
           "type": 4
         },
-        "selector": "0xe05fb410"
+        "selector": "0x6c9fe8a0"
       },
       {
         "args": [],
@@ -1428,9 +1428,10 @@
         "docs": [
           "申请停止 Worker。",
           "",
-          "Worker 拥有者可以请求停止 Worker。停止前会检查 Worker 当前状态为未启动（status == 0），",
-          "且没有任何有效抵押记录（所有抵押必须已先解除）。",
-          "注意：此函数仅做停止校验并返回 Worker ID，实际状态清除由外部逻辑处理。",
+          "Worker 拥有者可以停止运行中的 Worker（status == 1），将状态置为已停止（status == 2）。",
+          "停止后抵押金可通过 `worker_unmortgage` 逐笔解除并退还。",
+          "注意：停止并不自动退还抵押金，需调用方后续手动解除；",
+          "Slash 机制在 Worker 停止后仍可对剩余抵押金执行罚没。",
           "",
           "# 调用权限",
           "仅 Worker 拥有者可调用。",
@@ -1439,11 +1440,10 @@
           "- `id`：要停止的 Worker ID。",
           "",
           "# 返回值",
-          "- `Ok(NodeID)`：校验通过，返回 Worker ID。",
+          "- `Ok(NodeID)`：停止成功，返回 Worker ID。",
           "- `Err(Error::WorkerNotExist)`：Worker 不存在。",
           "- `Err(Error::WorkerNotOwnedByCaller)`：调用者不是拥有者。",
-          "- `Err(Error::WorkerStatusNotReady)`：Worker 处于启动状态，无法停止。",
-          "- `Err(Error::WorkerIsUseByUser)`：Worker 仍有有效抵押记录，不可停止。"
+          "- `Err(Error::WorkerStatusNotReady)`：Worker 未处于运行状态（status != 1），无法停止。"
         ],
         "label": "worker_stop",
         "mutates": true,
@@ -1868,7 +1868,7 @@
         "docs": [
           "将指定 Secret 节点加入验证者集合（待处理）。",
           "",
-          "将目标节点以权重 1 加入 `PENDING_SECRETS` 列表。若该节点已在待处理列表中，",
+          "将目标节点以权重 1 加入 `PENDING_VALIDATORS`。若该节点已在待处理列表中，",
           "则将其权重设为 1。该变更将在下一个 epoch 生效。",
           "",
           "# 调用权限",
@@ -1910,7 +1910,7 @@
         "docs": [
           "将指定 Secret 节点从验证者集合中移除（待处理）。",
           "",
-          "将目标节点以权重 0 加入 `PENDING_SECRETS` 列表。若该节点已在待处理列表中，",
+          "将目标节点以权重 0 加入 `PENDING_VALIDATORS`。若该节点已在待处理列表中，",
           "则将其权重设为 0（表示移除）。该变更将在下一个 epoch 生效。",
           "",
           "# 调用权限",
@@ -1952,7 +1952,7 @@
           "推进到下一个 epoch 并更新验证者集合。",
           "",
           "侧链调用此函数来触发 epoch 切换。首次调用时会将调用者地址记录为侧链多签地址；",
-          "后续调用必须由该多签地址发起。调用时需满足距离上一个 epoch 已超过 `epoch_solt` 区块数。",
+          "后续调用必须由该多签地址发起。调用时需满足距离上一个 epoch 已超过 `epoch_slot` 区块数。",
           "epoch 切换后会调用 `calc_new_validators` 合并 pending 列表，更新运行中的验证者集合。",
           "",
           "# 调用权限",
@@ -1992,7 +1992,7 @@
           "",
           "# 返回值",
           "- `Ok(Vec<(u64, SecretNode, u32)>)`：下一个 epoch 的验证者 ID、详情和权重列表。",
-          "- `Err(Error::EpochNotExpired)`：当前 epoch 尚未接近到期（距离上次 epoch 不足 `epoch_solt - 5` 个区块）。"
+          "- `Err(Error::EpochNotExpired)`：当前 epoch 尚未接近到期（距离上次 epoch 不足 `epoch_slot - 5` 个区块）。"
         ],
         "label": "next_epoch_validators",
         "mutates": false,
@@ -2313,7 +2313,7 @@
                 "typeName": "u32"
               },
               {
-                "name": "epoch_solt",
+                "name": "epoch_slot",
                 "type": 5,
                 "typeName": "u32"
               },

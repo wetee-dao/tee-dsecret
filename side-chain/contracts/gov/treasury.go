@@ -15,6 +15,15 @@ func (d GovMutation) Spend(to model.UniAddr, amount model.Amount, trackID uint32
 	if member.Int.Sign() == 0 {
 		return ErrMemberNotExisted
 	}
+	if member.Int.Cmp(amount.Int) < 0 {
+		return ErrLowBalance
+	}
+
+	// Deduct amount from caller and escrow it
+	member = model.AmountSub(member, amount)
+	if err := d.members.Set(d.api.GetTxn(), caller, member); err != nil {
+		return err
+	}
 
 	id, err := d.nextSpendIDStore.GetOrDefault(d.api.GetTxn(), uint64(0))
 	if err != nil {
@@ -37,7 +46,10 @@ func (d GovMutation) Spend(to model.UniAddr, amount model.Amount, trackID uint32
 		return err
 	}
 
-	idbt, _ := codec.Encode(id)
+	idbt, err := codec.Encode(id)
+	if err != nil {
+		return err
+	}
 	return d.SubmitProposal(CallContent{
 		Contract: []byte("gov"),
 		Selector: model.MethodToSelector("Payout"),
@@ -61,7 +73,17 @@ func (d GovMutation) Payout(spendID uint64) error {
 	if spend.Payout {
 		return ErrSpendAlreadyExecuted
 	}
-	spend.Payout = true
 
+	// Transfer escrowed amount to the recipient
+	recipient, err := d.members.GetOrDefault(d.api.GetTxn(), spend.To, model.ZeroAmount)
+	if err != nil {
+		return err
+	}
+	recipient = model.AmountAdd(recipient, spend.Amount)
+	if err := d.members.Set(d.api.GetTxn(), spend.To, recipient); err != nil {
+		return err
+	}
+
+	spend.Payout = true
 	return d.spends.Set(d.api.GetTxn(), spend.ID, *spend)
 }

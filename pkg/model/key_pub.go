@@ -29,7 +29,9 @@ func (p *PubKey) Suite() suites.Suite {
 func (p *PubKey) Point() kyber.Point {
 	buf := p.PublicKey
 	point := p.suite.Point()
-	point.UnmarshalBinary(buf)
+	if err := point.UnmarshalBinary(buf); err != nil {
+		return nil
+	}
 	return point
 }
 
@@ -63,7 +65,10 @@ func (p *PubKey) SS58() string {
 }
 
 func (p *PubKey) H160Address() types.H160 {
-	h160, _ := util.H160FromPublicKey(p.Byte())
+	h160, err := util.H160FromPublicKey(p.Byte())
+	if err != nil {
+		return types.H160{}
+	}
 	return h160
 }
 
@@ -131,6 +136,9 @@ func PubKeyFromPoint(point kyber.Point) (*PubKey, error) {
 }
 
 func PubKeyFromByte(pubkey []byte) *PubKey {
+	if len(pubkey) != ed25519.PublicKeySize {
+		return nil
+	}
 	return &PubKey{
 		PublicKey: ed25519.PublicKey(pubkey),
 		suite:     suites.MustFind("Ed25519"),

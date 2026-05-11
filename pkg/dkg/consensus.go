@@ -27,8 +27,12 @@ func (dkg *DKG) TryEpochConsensus(
 	}
 
 	// check old validators length
-	if dkg.AvailableNodeLen() <= dkg.Threshold {
-		util.LogError("DKG Consensus", "validator node exapect >", dkg.Threshold, ", got:", dkg.AvailableNodeLen())
+	dkg.mu.RLock()
+	available := dkg.AvailableNodeLen()
+	threshold := dkg.Threshold
+	dkg.mu.RUnlock()
+	if available <= threshold {
+		util.LogError("DKG Consensus", "validator node exapect >", threshold, ", got:", available)
 		return fmt.Errorf("old validators count <= dkg.Threshold")
 	}
 
@@ -39,16 +43,25 @@ func (dkg *DKG) TryEpochConsensus(
 	}
 
 	// check local node is in validators, only validator node can start consensus
-	if dkg.DkgKeyShare == nil && msg.Epoch > StartEpoch {
+	dkg.mu.RLock()
+	dkgKeyShare := dkg.DkgKeyShare
+	nodeCount := len(dkg.Nodes)
+	nodesCopy := make([]*model.Validator, 0, nodeCount)
+	for _, n := range dkg.Nodes {
+		nodesCopy = append(nodesCopy, n)
+	}
+	dkg.mu.RUnlock()
+
+	if dkgKeyShare == nil && msg.Epoch > StartEpoch {
 		util.LogError("DKG Consensus", "msg.Epoch", msg.Epoch, "| Node is not old validator, cannot start consensus")
 		return errors.New("node is not old validator, cannot start consensus")
 	}
 
 	// init consensus msg
-	if dkg.DkgKeyShare != nil {
-		msg.ShareCommits = *util.DeepCopy(dkg.DkgKeyShare.CommitsWrap)
-		msg.ConsensusNodeNum = len(dkg.Nodes)
-		msg.OldValidators = *util.DeepCopy(dkg.Nodes)
+	if dkgKeyShare != nil {
+		msg.ShareCommits = *util.DeepCopy(dkgKeyShare.CommitsWrap)
+		msg.ConsensusNodeNum = nodeCount
+		msg.OldValidators = nodesCopy
 	} else {
 		msg.ShareCommits = model.KyberPoints{Public: []kyber.Point{}}
 		msg.ConsensusNodeNum = 0
@@ -77,7 +90,10 @@ func (dkg *DKG) TryEpochConsensus(
 	dkg.consensusSuccessBack = callback
 	dkg.consensusFailBack = fail
 
-	bt, _ := json.Marshal(msg)
+	bt, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal consensus msg: %w", err)
+	}
 	dkg.DkgOutHandler(&model.DkgMessage{
 		Type:    "consensus",
 		Payload: bt,
@@ -88,15 +104,15 @@ func (dkg *DKG) TryEpochConsensus(
 
 // start dkg consensus
 func (dkg *DKG) startConsensus(msg model.ConsensusMsg) error {
-	if dkg.ConsensusIsbusy() {
+	if !dkg.TrySetConsensusBusy() {
 		return errors.New("DKG Consensus going")
 	}
 
 	if dkg.Epoch >= msg.Epoch {
+		dkg.setConsensusFree()
 		return errors.New("DKG Epoch is not need to update")
 	}
 
-	dkg.setConsensusBusy()
 	dkg.addConsensusTimeout()
 
 	if len(msg.ShareCommits.Public) == 0 {
@@ -113,9 +129,11 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 	// if flag.Lookup("test.v") == nil {
 	// 	go dkg.HandleSecretSave()
 	// }
+	dkg.mu.Lock()
 	dkg.Nodes = msg.Validators
 	dkg.NewNodes = msg.Validators
 	dkg.Threshold = len(msg.Validators) * 2 / 3
+	dkg.mu.Unlock()
 
 	// 如果已经初始化，则直接返回
 	if dkg.status == 1 {
@@ -133,10 +151,13 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 	signer := schnorr.NewScheme(dkg.Suite)
 
 	// 初始化协议配置
+	dkg.mu.RLock()
+	threshold := dkg.Threshold
+	dkg.mu.RUnlock()
 	conf := pedersen.Config{
 		Suite:     dkg.Suite,
 		NewNodes:  nodes,
-		Threshold: dkg.Threshold,
+		Threshold: threshold,
 		Auth:      signer,
 		FastSync:  true,
 		Longterm:  dkg.Signer.Scalar(),
@@ -176,11 +197,13 @@ func (dkg *DKG) initConsensus(msg model.ConsensusMsg) error {
 // Re-consensus DKG
 func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	// old
+	dkg.mu.Lock()
 	dkg.Threshold = len(msg.OldValidators) * 2 / 3
 	dkg.Nodes = msg.OldValidators
 	// new
 	dkg.NewNodes = msg.Validators
 	dkg.NewEpoch = msg.Epoch
+	dkg.mu.Unlock()
 
 	// new DKG 节点列表
 	newNodes := make([]pedersen.Node, 0, len(msg.Validators))
@@ -237,9 +260,11 @@ func (dkg *DKG) reConsensus(msg model.ConsensusMsg) error {
 	priShare := dkg.DkgKeyShare
 
 	// 重置 DKG Key
+	dkg.mu.Lock()
 	dkg.deals = map[string]*model.DealBundle{}
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
+	dkg.mu.Unlock()
 
 	// old node not issue deals
 	if priShare == nil {
@@ -281,9 +306,11 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 		dkg.failConsensusTimer.Stop()
 	}
 
+	dkg.mu.Lock()
 	dkg.deals = map[string]*model.DealBundle{}
 	dkg.responses = map[string]*pedersen.ResponseBundle{}
 	dkg.justifs = []*pedersen.JustificationBundle{}
+	dkg.mu.Unlock()
 	if !isok {
 		util.LogWithRed("DKG dkg consensus", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEpoch, "error", tag)
 		dkg.setConsensusFree()
@@ -295,6 +322,7 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 
 	dkg.saveState()
 	// if dkg.DkgPubKey == nil, set new data to init
+	dkg.mu.Lock()
 	if dkg.DkgPubKey == nil {
 		dkg.Nodes = dkg.NewNodes
 		dkg.Epoch = dkg.NewEpoch
@@ -302,6 +330,7 @@ func (dkg *DKG) finishDkgConsensusStep(isok bool, tag string) {
 		dkg.DkgPubKey = dkg.NewDkgPubKey
 		dkg.DkgKeyShare = dkg.NewDkgKeyShare
 	}
+	dkg.mu.Unlock()
 	dkg.SendNewEpochPartialSigToSponsor()
 }
 
@@ -313,7 +342,9 @@ func (dkg *DKG) ToNewEpoch() {
 
 	defer dkg.setConsensusFree()
 
+	dkg.mu.Lock()
 	if dkg.NewDkgKeyShare == nil {
+		dkg.mu.Unlock()
 		util.LogWithRed("DKG consensus ToNewEpoch", "failed <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.NewEpoch)
 		if dkg.consensusFailBack != nil {
 			dkg.consensusFailBack(errors.New("DKG consensus failed"))
@@ -334,34 +365,54 @@ func (dkg *DKG) ToNewEpoch() {
 
 	// reset cache
 	dkg.NewEpochSponsor = nil
+	dkg.mu.Unlock()
 
 	util.LogWithGray("DKG consensus", "successfully <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< New Epoch", dkg.Epoch)
 	dkg.saveState()
+
 }
 
 func (dkg *DKG) ConsensusIsbusy() bool {
+	dkg.mu.Lock()
+	defer dkg.mu.Unlock()
 	return time.Now().Unix()-dkg.lastConsensusTime < 90
 }
 
-func (dkg *DKG) setConsensusBusy() {
+// TrySetConsensusBusy atomically checks if consensus is busy and sets it if not.
+// Returns true if successfully set, false if already busy.
+func (dkg *DKG) TrySetConsensusBusy() bool {
+	dkg.mu.Lock()
+	defer dkg.mu.Unlock()
+	if time.Now().Unix()-dkg.lastConsensusTime < 90 {
+		return false
+	}
 	dkg.lastConsensusTime = time.Now().Unix()
+	return true
+}
+
+func (dkg *DKG) setConsensusBusy() {
+	dkg.mu.Lock()
+	dkg.lastConsensusTime = time.Now().Unix()
+	dkg.mu.Unlock()
 }
 
 func (dkg *DKG) setConsensusFree() {
+	dkg.mu.Lock()
 	dkg.lastConsensusTime = 0
+	dkg.mu.Unlock()
 }
 
 func (dkg *DKG) NewValidatorNodeLen(nodes []*model.Validator) int {
-	var len int = 1
+	var count int = 1
 	peers := dkg.Peer.AvailableNodes()
 	for _, p := range peers {
 		for _, node := range nodes {
 			if p.String() == node.P2pId.String() {
-				len = len + 1
+				count = count + 1
 			}
 		}
 	}
-	return len
+	return count
 }
 
 func (dkg *DKG) OldAndNetIds() []*model.PubKey {

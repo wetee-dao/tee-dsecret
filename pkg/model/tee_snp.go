@@ -34,14 +34,16 @@ func SnpIssue(pk *chain.Signer, call *TeeCall) error {
 	if err != nil {
 		return err
 	}
+	defer device.Close()
 
+	if len(sig) < 64 {
+		return errors.New("signature length must be at least 64 bytes")
+	}
 	sig64 := *(*[64]byte)(sig[:64])
 	attestationReport, err := client.GetExtendedReport(device, sig64)
 	if err != nil {
-		device.Close()
 		return errors.New("client.GetExtendedReport:" + err.Error())
 	}
-	device.Close()
 
 	data, err := proto.Marshal(attestationReport)
 	if err != nil {

@@ -2,6 +2,7 @@ package sidechain
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -12,6 +13,9 @@ import (
 
 // Submit tx to sidechain
 func SubmitTx(tx *model.Tx) error {
+	if SideChainNode == nil {
+		return fmt.Errorf("side chain node is not initialized")
+	}
 	return SideChainNode.Mempool().CheckTx(GetTxBytes(tx), func(r *abci.ResponseCheckTx) {}, mempool.TxInfo{
 		SenderP2PID: SideChainNode.NodeInfo().ID(),
 	})
@@ -26,7 +30,10 @@ func GetTxBytes(tx *model.Tx) []byte {
 }
 
 func (s *SideChain) SubmitCallFromNode(call *model.SysCall) error {
-	sigbt := call.BytesForSig()
+	sigbt, err := call.BytesForSig()
+	if err != nil {
+		return errors.Errorf("BytesForSig: %v", err)
+	}
 
 	signer := s.NodePriv.ToSigner()
 	signature, err := signer.Sign(sigbt)
@@ -47,7 +54,10 @@ func (s *SideChain) SubmitCallFromNode(call *model.SysCall) error {
 }
 
 func (s *SideChain) GetCallBytesFromNode(call *model.SysCall) ([]byte, error) {
-	sigbt := call.BytesForSig()
+	sigbt, err := call.BytesForSig()
+	if err != nil {
+		return nil, errors.Errorf("BytesForSig: %v", err)
+	}
 	dkg := s.GetDKG()
 	if dkg == nil || dkg.Signer == nil {
 		return nil, errors.Errorf("DKG signer not initialized")

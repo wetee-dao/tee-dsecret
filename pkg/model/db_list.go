@@ -21,8 +21,12 @@ func AddToList(namespace string, key string, val []byte) error {
 	}
 
 	txn := DBINS.NewTransaction()
-	txn.SetKey(namespace, "index_"+key, util.Uint64ToBytes(index+1))
-	txn.SetKey(namespace, key+fmt.Sprint(index), val)
+	if err := txn.SetKey(namespace, "index_"+key, util.Uint64ToBytes(index+1)); err != nil {
+		return err
+	}
+	if err := txn.SetKey(namespace, key+fmt.Sprint(index), val); err != nil {
+		return err
+	}
 	return txn.Commit()
 }
 
